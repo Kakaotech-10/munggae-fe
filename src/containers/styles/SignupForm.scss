@@ -1,0 +1,70 @@
+@import url("https://statics.goorm.io/fonts/GoormSans/v1.0.0/GoormSans.min.css");
+
+.start-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #fdfcfc;
+  font-family: "Goorm Sans", sans-serif;
+  font-weight: weight;
+  font-style: normal;
+
+  .sidebar-area {
+    width: 20%;
+    height: 100%;
+    background-color: #4267b2;
+  }
+
+  .content-wrapper {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+
+    .signup-area {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      overflow-y: auto;
+      max-height: calc(100vh - calc(100% / 16));
+      height: calc(9 * 100% / 10);
+      background-color: #fdfcfc;
+      padding: 20px;
+      @media (max-width: 767px) {
+        gap: 10px;
+      }
+    }
+    .re-login {
+      text-decoration: underline;
+    }
+  }
+
+  // Media query for screens smaller than 768px
+  @media (max-width: 767px) {
+    flex-direction: column;
+
+    .sidebar-area {
+      width: 100%;
+      height: calc(100% / 9);
+      order: 3;
+    }
+
+    .content-wrapper {
+      width: 100%;
+      height: calc(7.15 * 100% / 8);
+
+      .search-area {
+        height: calc(100% / 8);
+      }
+
+      .signup-area {
+        height: calc(7 * 100% / 7);
+      }
+      .re-login {
+        font-size: 13px;
+      }
+    }
+  }
+}

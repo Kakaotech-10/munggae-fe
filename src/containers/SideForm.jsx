@@ -12,11 +12,12 @@ import Logouticon from "../image/Logouticon.svg";
 const Sidebar = ({
   userName = "Mae.park(박세영)",
   profileImageUrl = "https://example.com/default-profile-image.jpg",
+  showLogout = true, // 새로운 prop 추가
 }) => {
   return (
     <div className="sidebar">
       <div className="logo">
-        <img src={Logo} />
+        <img src={Logo} alt="Logo" />
       </div>
       <div className="user-info">
         <div className="user-image">
@@ -61,10 +62,12 @@ const Sidebar = ({
           </li>
         </ul>
       </nav>
-      <button className="logout">
-        <img src={Logouticon} />
-        로그아웃
-      </button>
+      {showLogout && (
+        <button className="logout">
+          <img src={Logouticon} alt="Logout" />
+          로그아웃
+        </button>
+      )}
     </div>
   );
 };
