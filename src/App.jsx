@@ -1,10 +1,12 @@
+import { BrowserRouter as Router } from "react-router-dom";
+import StartRoutes from "./routes/StartRoutes";
 import "./App.css";
-import MainForm from "./containers/MainForm";
+
 function App() {
   return (
-    <>
-      <MainForm />
-    </>
+    <Router>
+      <StartRoutes />
+    </Router>
   );
 }
 
