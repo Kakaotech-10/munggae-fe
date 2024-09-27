@@ -1,0 +1,69 @@
+// MainForm.scss
+@import url("https://statics.goorm.io/fonts/GoormSans/v1.0.0/GoormSans.min.css");
+
+.main-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #fdfcfc;
+  font-family: "Goorm Sans", sans-serif;
+  font-weight: weight;
+  font-style: normal;
+
+  .sidebar-area {
+    width: 20%; // 1/5 of the total width
+    height: 100%;
+    background-color: #4267b2;
+  }
+
+  .content-wrapper {
+    width: 80%; // 4/5 of the total width
+    display: flex;
+    flex-direction: column;
+
+    .search-area {
+      height: calc(100% / 16);
+      background-color: none;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .post-area {
+      overflow-y: auto;
+      max-height: calc(100vh - calc(100% / 16));
+      height: calc(9 * 100% / 10); // Adjusted to 9/10 of the content area
+      background-color: #fdfcfc;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center; // Center horizontally
+    }
+  }
+
+  // Media query for screens smaller than 768px
+  @media (max-width: 767px) {
+    flex-direction: column;
+
+    .sidebar-area {
+      width: 100%;
+      height: calc(100% / 9); // 1/8 of the total height
+      order: 3; // Move sidebar to the bottom
+    }
+
+    .content-wrapper {
+      width: 100%;
+      height: calc(7.15 * 100% / 8); // 7/8 of the total height
+
+      .search-area {
+        height: calc(100% / 8); // 1/8 of the content wrapper height
+      }
+
+      .post-area {
+        height: calc(7 * 100% / 8); // 7/8 of the content wrapper height
+      }
+    }
+  }
+}

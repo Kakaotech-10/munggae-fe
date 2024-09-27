@@ -1,0 +1,53 @@
+// Search.scss
+.search-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+  border: 1.5px solid #3d3d3d;
+  border-radius: 5px;
+  overflow: hidden;
+  width: 300px;
+  margin-top: 30px;
+  margin-left: auto;
+  margin-right: 8%;
+
+  input {
+    width: 200px;
+    padding: 10px;
+    border: none;
+    font-size: 16px;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  button {
+    padding: 10px 20px;
+    background-color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+
+    img {
+      width: 20px;
+      height: 20px;
+      transition: filter 0.3s ease;
+    }
+
+    &:hover {
+      background-color: #446ba5; // Change background color on hover
+
+      img {
+        filter: brightness(0) invert(1); // Change image color to white on hover
+      }
+    }
+
+    &:active {
+      background-color: #385a8e; // Optionally, change color when button is clicked
+    }
+  }
+}
