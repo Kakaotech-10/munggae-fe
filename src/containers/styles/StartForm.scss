@@ -41,6 +41,10 @@
       background-color: #fdfcfc;
       padding: 20px;
 
+      .logo_black {
+        width: 300px;
+        height: 300px;
+      }
       .divider {
         width: 700px; // 구분선의 길이
         height: 1px; // 구분선의 두께
@@ -70,6 +74,11 @@
 
       .start-area {
         height: calc(7 * 100% / 8);
+
+        .logo_black {
+          width: 180px;
+          height: 180px;
+        }
       }
     }
   }

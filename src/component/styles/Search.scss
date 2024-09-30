@@ -1,4 +1,3 @@
-// Search.scss
 .search-bar {
   display: flex;
   justify-content: flex-end;
@@ -7,6 +6,7 @@
   border-radius: 5px;
   overflow: hidden;
   width: 300px;
+  height: 40px;
   margin-top: 30px;
   margin-left: auto;
   margin-right: 8%;
@@ -15,7 +15,7 @@
     width: 200px;
     padding: 10px;
     border: none;
-    font-size: 16px;
+    font-size: 18px;
 
     &:focus {
       outline: none;
@@ -39,15 +39,37 @@
     }
 
     &:hover {
-      background-color: #446ba5; // Change background color on hover
+      background-color: #446ba5;
 
       img {
-        filter: brightness(0) invert(1); // Change image color to white on hover
+        filter: brightness(0) invert(1);
       }
     }
 
     &:active {
-      background-color: #385a8e; // Optionally, change color when button is clicked
+      background-color: #385a8e;
+    }
+  }
+
+  @media (max-width: 767px) {
+    width: 60%;
+    height: 30px;
+    max-width: 250px;
+    margin-left: auto;
+    margin-right: auto;
+
+    input {
+      width: 70%;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 8px 16px;
+
+      img {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
 }

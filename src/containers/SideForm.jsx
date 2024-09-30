@@ -1,6 +1,5 @@
-// Sidebar.jsx
-
-import Logo from "../image/Logo.svg";
+import React from "react";
+import Logo from "../image/Logo.png";
 import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
 import Noticeicon from "../image/Noticeicon.svg";
@@ -12,7 +11,7 @@ import Logouticon from "../image/Logouticon.svg";
 const Sidebar = ({
   userName = "Mae.park(박세영)",
   profileImageUrl = "https://example.com/default-profile-image.jpg",
-  showLogout = true, // 새로운 prop 추가
+  showLogout = true,
 }) => {
   return (
     <div className="sidebar">
@@ -24,7 +23,7 @@ const Sidebar = ({
           <img src={profileImageUrl} alt="profile" />
         </div>
         <p>
-          {userName}님, <br />
+          <span className="user-name">{userName}</span>님, <br />
           환영합니다
         </p>
       </div>
@@ -33,41 +32,43 @@ const Sidebar = ({
           <li>
             <div className="nav-item">
               <img src={Mainicon} alt="Main" />
-              메인 페이지
+              <span className="nav-text">메인 페이지</span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Noticeicon} alt="Notice" />
-              공지사항
+              <span className="nav-text">공지사항</span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Commuicon} alt="Community" />
-              커뮤니티
+              <span className="nav-text">커뮤니티</span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Clubicon} alt="Club" />
-              동아리
+              <span className="nav-text">동아리</span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Mypageicon} alt="My Page" />
-              마이페이지
+              <span className="nav-text">마이페이지</span>
             </div>
           </li>
+          {showLogout && (
+            <li>
+              <button className="nav-item logout">
+                <img src={Logouticon} alt="Logout" />
+                <span className="nav-text">로그아웃</span>
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
-      {showLogout && (
-        <button className="logout">
-          <img src={Logouticon} alt="Logout" />
-          로그아웃
-        </button>
-      )}
     </div>
   );
 };
