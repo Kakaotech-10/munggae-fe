@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import Button from "../component/Button";
+import Logo_black from "../image/Logo_black.png";
 import "./styles/StartForm.scss";
 
 const StartForm = () => {
@@ -25,8 +26,8 @@ const StartForm = () => {
           <Search />
         </div>
         <div className="start-area">
+          <img className="logo_black" src={Logo_black} alt="Logo_black" />
           <Button text="로그인" onClick={handleLogin} />
-          <div className="divider"></div>
           <Button
             text="회원가입"
             className="signup-button"

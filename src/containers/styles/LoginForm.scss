@@ -40,6 +40,10 @@
       height: calc(9 * 100% / 10);
       background-color: #fdfcfc;
       padding: 20px;
+      .logo_black {
+        width: 300px;
+        height: 300px;
+      }
     }
     .no-account {
       text-decoration: underline;
@@ -67,6 +71,10 @@
 
       .login-area {
         height: calc(7 * 100% / 8);
+        .logo_black {
+          width: 180px;
+          height: 180px;
+        }
       }
       .no-account {
         font-size: 14px;

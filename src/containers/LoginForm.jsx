@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./SideForm";
 import Button from "../component/Button";
 import Input from "../component/Input";
+import Logo_black from "../image/Logo_black.png";
 import "./styles/LoginForm.scss";
 
 const LoginForm = () => {
@@ -20,6 +21,8 @@ const LoginForm = () => {
       </div>
       <div className="content-wrapper">
         <div className="login-area">
+          <img className="logo_black" src={Logo_black} alt="Logo_black" />
+
           <Input type="text" placeholder="아이디를 입력하세요" />
           <Input type="password" placeholder="비밀번호를 입력하세요" />
           <Button text="로그인" />

@@ -1,5 +1,5 @@
 import React from "react";
-import Logo from "../image/Logo.svg";
+import Logo from "../image/Logo.png";
 import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
 import Noticeicon from "../image/Noticeicon.svg";
