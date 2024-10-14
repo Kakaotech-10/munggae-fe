@@ -42,7 +42,11 @@ const MainForm = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const newIsMobile = window.innerWidth < 768;
+      setIsMobile(newIsMobile);
+      if (!newIsMobile) {
+        setIsRightAreaVisible(true);
+      }
     };
 
     window.addEventListener("resize", handleResize);
@@ -103,7 +107,7 @@ const MainForm = () => {
               />
             ))}
           </div>
-          {isRightAreaVisible && (
+          {(isRightAreaVisible || !isMobile) && (
             <div className="right-area">
               <div
                 className={`right-section calendar ${
