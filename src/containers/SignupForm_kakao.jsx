@@ -15,7 +15,6 @@ const SignupForm_kakao = () => {
         <div className="signup-area">
           <ProfileUpload />
           <MemberCard />
-          <Input type="text" placeholder="회원번호" />
           <Input type="text" placeholder="이름" />
 
           <Button text="회원가입" />
