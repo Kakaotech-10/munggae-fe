@@ -1,4 +1,5 @@
-// LoginHandler.jsx
+//LoginHandeler.jsx
+
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -22,26 +23,8 @@ const LoginHandler = () => {
         });
 
         console.log(response);
-
-        // 서버 응답에 따라 리다이렉트 처리
-        if (response.data.isExistingUser) {
-          // 이미 가입된 회원인 경우
-          localStorage.setItem("name", response.data.account.nickname);
-          navigate("/mainpage");
-        } else {
-          // 새로운 회원인 경우
-          // 카카오에서 받은 기본 정보를 로컬 스토리지에 저장
-          localStorage.setItem("kakaoNickname", response.data.account.nickname);
-          if (response.data.account.profileImage) {
-            localStorage.setItem(
-              "kakaoProfileImage",
-              response.data.account.profileImage
-            );
-          }
-
-          // 추가 정보 입력 페이지로 리다이렉트
-          navigate("/kakao_signup");
-        }
+        localStorage.setItem("name", response.data.account.kakaoName);
+        navigate("/mainpage");
       } catch (err) {
         console.error("Login error:", err);
         setError("로그인 중 오류가 발생했습니다.");
