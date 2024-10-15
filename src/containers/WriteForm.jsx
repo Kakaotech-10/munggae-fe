@@ -31,8 +31,21 @@ const WriteForm = ({ onClose }) => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      onClose();
+    }
+  };
+
   return (
-    <div className="write-form-overlay" onClick={handleOverlayClick}>
+    <div
+      className="write-form-overlay"
+      onClick={handleOverlayClick}
+      onKeyDown={handleKeyDown}
+      role="dialog"
+      aria-modal="true"
+      tabIndex="-1"
+    >
       <div className="write-form-container">
         <form onSubmit={handleSubmit}>
           <div className="form-layout">
