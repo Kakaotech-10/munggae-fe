@@ -1,6 +1,6 @@
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
-const WriteForm = () => {
+const ClubForm = () => {
   return (
     <div className="start-container">
       <div className="sidebar-area">
@@ -16,4 +16,4 @@ const WriteForm = () => {
   );
 };
 
-export default WriteForm;
+export default ClubForm;
