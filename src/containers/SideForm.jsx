@@ -1,4 +1,5 @@
 //SideForm.jsx
+import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import Logo from "../image/Logo.png";
 import "./styles/SideForm.scss";
@@ -9,31 +10,67 @@ import Clubicon from "../image/Clubicon.svg";
 import Mypageicon from "../image/Mypageicon.svg";
 import Logouticon from "../image/Logouticon.svg";
 
-const Sidebar = ({
-  userName = "Mae.park(박세영)",
-  profileImageUrl = "https://example.com/default-profile-image.jpg",
-  showLogout = true,
-}) => {
+const NavItem = ({ icon, alt, text, path }) => {
   const navigate = useNavigate();
-  const handleMainpage = () => {
+
+  const handleNavigation = () => {
+    navigate(path);
+  };
+
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleNavigation();
+    }
+  };
+
+  return (
+    <li>
+      <div
+        className="nav-item"
+        onClick={handleNavigation}
+        onKeyPress={handleKeyPress}
+        role="button"
+        tabIndex={0}
+      >
+        <img src={icon} alt={alt} />
+        <span className="nav-text">{text}</span>
+      </div>
+    </li>
+  );
+};
+
+NavItem.propTypes = {
+  icon: PropTypes.string.isRequired,
+  alt: PropTypes.string.isRequired,
+  text: PropTypes.string.isRequired,
+  path: PropTypes.string.isRequired,
+};
+
+const Sidebar = ({ userName, profileImageUrl, showLogout }) => {
+  const navigate = useNavigate();
+
+  const handleLogoClick = () => {
     navigate("/mainpage");
   };
-  const handleNoticepage = () => {
-    navigate("/noticepage");
+
+  const handleLogoKeyPress = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleLogoClick();
+    }
   };
-  const handleCommunitypage = () => {
-    navigate("/communitypage");
-  };
-  const handleSettingpage = () => {
-    navigate("/setting");
-  };
-  const handleClubpage = () => {
-    navigate("/clubpage");
-  };
+
   return (
     <div className="sidebar">
-      <div className="logo">
-        <img src={Logo} alt="Logo" onClick={handleMainpage} />
+      <div
+        className="logo"
+        onClick={handleLogoClick}
+        onKeyPress={handleLogoKeyPress}
+        role="button"
+        tabIndex={0}
+      >
+        <img src={Logo} alt="Logo" />
       </div>
       <div className="user-info">
         <div className="user-image">
@@ -46,46 +83,31 @@ const Sidebar = ({
       </div>
       <nav>
         <ul>
-          <li>
-            <div className="nav-item">
-              <img src={Mainicon} alt="Main" />
-              <span className="nav-text" onClick={handleMainpage}>
-                메인 페이지
-              </span>
-            </div>
-          </li>
-          <li>
-            <div className="nav-item">
-              <img src={Noticeicon} alt="Notice" />
-              <span className="nav-text" onClick={handleNoticepage}>
-                공지사항
-              </span>
-            </div>
-          </li>
-          <li>
-            <div className="nav-item">
-              <img src={Commuicon} alt="Community" />
-              <span className="nav-text" onClick={handleCommunitypage}>
-                커뮤니티
-              </span>
-            </div>
-          </li>
-          <li>
-            <div className="nav-item">
-              <img src={Clubicon} alt="Club" />
-              <span className="nav-text" onClick={handleClubpage}>
-                동아리
-              </span>
-            </div>
-          </li>
-          <li>
-            <div className="nav-item">
-              <img src={Mypageicon} alt="My Page" />
-              <span className="nav-text" onClick={handleSettingpage}>
-                마이페이지
-              </span>
-            </div>
-          </li>
+          <NavItem
+            icon={Mainicon}
+            alt="Main"
+            text="메인 페이지"
+            path="/mainpage"
+          />
+          <NavItem
+            icon={Noticeicon}
+            alt="Notice"
+            text="공지사항"
+            path="/noticepage"
+          />
+          <NavItem
+            icon={Commuicon}
+            alt="Community"
+            text="커뮤니티"
+            path="/communitypage"
+          />
+          <NavItem icon={Clubicon} alt="Club" text="동아리" path="/clubpage" />
+          <NavItem
+            icon={Mypageicon}
+            alt="My Page"
+            text="마이페이지"
+            path="/setting"
+          />
           {showLogout && (
             <li>
               <button className="nav-item logout">
@@ -98,6 +120,18 @@ const Sidebar = ({
       </nav>
     </div>
   );
+};
+
+Sidebar.propTypes = {
+  userName: PropTypes.string,
+  profileImageUrl: PropTypes.string,
+  showLogout: PropTypes.bool,
+};
+
+Sidebar.defaultProps = {
+  userName: "Mae.park(박세영)",
+  profileImageUrl: "https://example.com/default-profile-image.jpg",
+  showLogout: true,
 };
 
 export default Sidebar;
