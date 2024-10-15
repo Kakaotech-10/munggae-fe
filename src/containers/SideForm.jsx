@@ -1,4 +1,5 @@
-import React from "react";
+//SideForm.jsx
+import { useNavigate } from "react-router-dom";
 import Logo from "../image/Logo.png";
 import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
@@ -13,10 +14,26 @@ const Sidebar = ({
   profileImageUrl = "https://example.com/default-profile-image.jpg",
   showLogout = true,
 }) => {
+  const navigate = useNavigate();
+  const handleMainpage = () => {
+    navigate("/mainpage");
+  };
+  const handleNoticepage = () => {
+    navigate("/noticepage");
+  };
+  const handleCommunitypage = () => {
+    navigate("/communitypage");
+  };
+  const handleSettingpage = () => {
+    navigate("/setting");
+  };
+  const handleClubpage = () => {
+    navigate("/clubpage");
+  };
   return (
     <div className="sidebar">
       <div className="logo">
-        <img src={Logo} alt="Logo" />
+        <img src={Logo} alt="Logo" onClick={handleMainpage} />
       </div>
       <div className="user-info">
         <div className="user-image">
@@ -32,31 +49,41 @@ const Sidebar = ({
           <li>
             <div className="nav-item">
               <img src={Mainicon} alt="Main" />
-              <span className="nav-text">메인 페이지</span>
+              <span className="nav-text" onClick={handleMainpage}>
+                메인 페이지
+              </span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Noticeicon} alt="Notice" />
-              <span className="nav-text">공지사항</span>
+              <span className="nav-text" onClick={handleNoticepage}>
+                공지사항
+              </span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Commuicon} alt="Community" />
-              <span className="nav-text">커뮤니티</span>
+              <span className="nav-text" onClick={handleCommunitypage}>
+                커뮤니티
+              </span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Clubicon} alt="Club" />
-              <span className="nav-text">동아리</span>
+              <span className="nav-text" onClick={handleClubpage}>
+                동아리
+              </span>
             </div>
           </li>
           <li>
             <div className="nav-item">
               <img src={Mypageicon} alt="My Page" />
-              <span className="nav-text">마이페이지</span>
+              <span className="nav-text" onClick={handleSettingpage}>
+                마이페이지
+              </span>
             </div>
           </li>
           {showLogout && (
