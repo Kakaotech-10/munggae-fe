@@ -1,0 +1,83 @@
+@import url("https://statics.goorm.io/fonts/GoormSans/v1.0.0/GoormSans.min.css");
+
+.start-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #fdfcfc;
+  font-family: "Goorm Sans", sans-serif;
+  font-weight: normal;
+  font-style: normal;
+
+  .content-wrapper {
+    flex-grow: 1;
+    padding: 20px;
+    max-width: 950px;
+    margin: 0 auto;
+  }
+
+  .search-area {
+    margin-bottom: 20px;
+    margin-right: -10%;
+    @media (max-width: 767px) {
+      margin-right: 40px;
+    }
+  }
+
+  .community-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h2 {
+      font-size: 24px;
+      margin: 0;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .write-button-area {
+    margin-left: 20px;
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: white;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 15px;
+      &:hover {
+        background-color: #f0f0f0;
+      }
+
+      &:active {
+        background-color: #e0e0e0;
+      }
+    }
+  }
+
+  .divider {
+    margin-bottom: 20px;
+    border: none;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  .posts-area {
+    margin-bottom: 20px;
+  }
+
+  .pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+}
