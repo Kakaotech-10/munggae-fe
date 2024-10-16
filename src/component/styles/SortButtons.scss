@@ -16,5 +16,9 @@
     &:active {
       background-color: #e0e0e0;
     }
+    @media (max-width: 767px) {
+      margin-right: 0px;
+      font-size: 14px;
+    }
   }
 }
