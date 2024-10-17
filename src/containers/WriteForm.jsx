@@ -3,6 +3,8 @@
 import { useState } from "react";
 import "./styles/WriteForm.scss";
 import Uploadicon from "../image/Uploadicon.svg";
+import { createPost } from "../api/useCreatePost";
+import { uploadAttachments } from "../api/useAttachment";
 
 const WriteForm = ({ onClose, onPostCreated }) => {
   const [title, setTitle] = useState("");
@@ -17,56 +19,35 @@ const WriteForm = ({ onClose, onPostCreated }) => {
 
   const handleSubmit = async () => {
     try {
-      // 게시글을 생성합니다.
-      const postResponse = await fetch("/api/v1/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          content,
-          memberId: 1, // 실제 멤버 ID로 교체해야 합니다.
-        }),
-      });
+      const postData = {
+        title,
+        content,
+        memberId: 1, // Replace with actual member ID
+        uploadDateTime: showUploadTime
+          ? `${uploadDate}T${uploadTime}:00`
+          : null,
+        deadlineDateTime: showDeadlineTime
+          ? `${deadlineDate}T${deadlineTime}:00`
+          : null,
+      };
 
-      if (!postResponse.ok) {
-        throw new Error("게시글 생성에 실패했습니다.");
-      }
+      const newPost = await createPost(postData);
 
-      const postData = await postResponse.json();
-
-      // 파일이 있다면 업로드합니다.
       if (files.length > 0) {
-        const formData = new FormData();
-        files.forEach((file) => formData.append("files", file));
-
-        const fileResponse = await fetch(
-          `/api/v1/posts/${postData.id}/attachments`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
-        if (!fileResponse.ok) {
-          throw new Error("파일 업로드에 실패했습니다.");
-        }
+        await uploadAttachments(newPost.id, files);
       }
 
-      // 게시글 생성 완료 후 콜백 함수 호출
-      onPostCreated(postData);
+      onPostCreated(newPost);
       onClose();
     } catch (error) {
-      console.error("게시글 제출 오류:", error);
-      // 여기에 사용자에게 오류 메시지를 표시하는 로직을 추가할 수 있습니다.
+      console.error("Error submitting post:", error);
+      // Add user-facing error message here
     }
   };
 
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
   };
-
   const handleOverlayClick = (e) => {
     if (e.target.className === "write-form-overlay") {
       onClose();

@@ -1,5 +1,3 @@
-//Community.jsx
-
 import { useState, useEffect } from "react";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
@@ -8,13 +6,15 @@ import Postlist from "../component/Postlist";
 import Pagination from "../component/Pagination";
 import SortButtons from "../component/SortButtons";
 import "./styles/Community.scss";
+import { getPosts } from "../api/useGetPosts";
 
 const Community = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [sortBy, setSortBy] = useState("latest");
   const [posts, setPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
+  const pageSize = 5;
 
   useEffect(() => {
     fetchPosts();
@@ -22,10 +22,7 @@ const Community = () => {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch(
-        `/api/v1/posts?pageNo=${currentPage - 1}&pageSize=10`
-      );
-      const data = await response.json();
+      const data = await getPosts(currentPage, pageSize);
       setPosts(data.content);
       setTotalPages(data.totalPages);
     } catch (error) {
@@ -43,12 +40,12 @@ const Community = () => {
 
   const handlePostCreated = (newPost) => {
     setPosts((prevPosts) => [newPost, ...prevPosts]);
-    fetchPosts(); // 전체 목록을 새로고침합니다.
+    fetchPosts();
   };
 
   const handleSort = (sortType) => {
     setSortBy(sortType);
-    setCurrentPage(1);
+    setCurrentPage(0);
   };
 
   const handlePageChange = (page) => {
@@ -81,12 +78,14 @@ const Community = () => {
         <div className="posts-area">
           {posts.map((post) => (
             <Postlist
-              key={post.id}
-              id={post.id}
-              title={post.title}
-              content={post.content}
-              author={post.member.name}
-              createdAt={post.createdAt}
+              key={post.post_id}
+              id={post.post_id}
+              title={post.post_title}
+              content={post.post_content}
+              author={post.member.member_name}
+              createdAt={post.created_at}
+              course={post.member.course}
+              nameEnglish={post.member.member_name_english}
             />
           ))}
         </div>
