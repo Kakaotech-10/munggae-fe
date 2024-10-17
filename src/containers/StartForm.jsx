@@ -4,6 +4,7 @@ import Search from "../component/Search";
 import Button from "../component/Button";
 import Logo_black from "../image/Logo_black.png";
 import "./styles/StartForm.scss";
+import { KAKAO_AUTH_URL } from "../component/OAuth";
 
 const StartForm = () => {
   const navigate = useNavigate();
@@ -14,6 +15,10 @@ const StartForm = () => {
 
   const handleSignup = () => {
     navigate("/signup");
+  };
+
+  const handleKakaoLogin = () => {
+    window.location.href = KAKAO_AUTH_URL;
   };
 
   return (
@@ -37,6 +42,7 @@ const StartForm = () => {
             text="카카오로 회원가입"
             backgroundColor="#FEE500"
             color="#3D3D3D"
+            onClick={handleKakaoLogin}
           />
         </div>
       </div>
