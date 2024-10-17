@@ -1,4 +1,3 @@
-//OAuth.jsx
 const CLIENT_ID = import.meta.env.VITE_REACT_APP_REST_API_KEY;
 const REDIRECT_URI = import.meta.env.VITE_REACT_APP_REDIRECT_URL;
 
