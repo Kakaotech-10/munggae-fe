@@ -52,6 +52,22 @@
         padding: 10px;
         overflow-y: auto;
 
+        @media (max-width: 767px) {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+
+          .right-section {
+            &.task-list,
+            &.top-topics {
+              width: calc(50% - 5px);
+              float: none; // float 제거
+              flex-grow: 0;
+              flex-shrink: 0;
+            }
+          }
+        }
+
         .right-section {
           background-color: white;
           border-radius: 10px;
@@ -156,22 +172,32 @@
           }
 
           &.task-list h3 {
-            font-size: 16px;
+            font-size: 17px;
             color: #3d3d3d;
+            @media (max-width: 767px) {
+              font-size: 15px;
+            }
           }
 
           &.top-topics {
             h3 {
-              font-size: 20px;
+              font-size: 17px;
               color: #26262c;
               margin-bottom: 0px;
+              @media (max-width: 767px) {
+                font-size: 15px;
+              }
             }
 
             .subtitle {
-              margin-left: 10px;
+              margin-left: 12px;
               font-size: 14px;
               color: #91929f;
               margin-top: 5px;
+              @media (max-width: 767px) {
+                margin-left: 0px;
+                font-size: 12px;
+              }
             }
 
             .topics-podium {
@@ -252,44 +278,47 @@
         height: calc(100% / 14);
       }
 
+      .toggle-right-area {
+        background-color: #4267b2;
+        color: white;
+        border-radius: 10px;
+        border: none;
+        padding: 7px;
+      }
+
       .main-content {
         flex-direction: column;
         height: calc(13 * 100% / 14);
         align-items: center;
 
-        .post-area {
-          width: 80%;
-          height: 70%;
-        }
-
         .right-area {
-          width: 90%;
-          height: 30%;
-          flex-direction: row;
-          flex-wrap: wrap;
-          justify-content: space-between;
+          width: 95%;
+          order: -1; // This moves the right-area to the top
+          margin-bottom: 20px;
+          overflow-y: visible;
+          display: table-row;
+          flex-direction: column;
 
           .right-section {
-            flex: 0 0 calc(50% - 10px);
             margin-right: 0;
             margin-bottom: 10px;
             min-height: auto;
 
             &.calendar {
-              flex: 0 0 100%;
-
+              width: 100%;
               .section-header {
                 padding: 8px 12px;
 
                 .title-container {
                   img {
-                    width: 16px;
-                    height: 16px;
-                    margin-right: 8px;
+                    width: 18px;
+                    height: 18px;
+                    margin-right: 10px;
                   }
 
                   span {
-                    font-size: 10px;
+                    font-size: 15px;
+                    font-weight: bold;
                   }
                 }
 
@@ -302,45 +331,88 @@
 
             &.task-list,
             &.top-topics {
-              aspect-ratio: 1 / 1;
-              height: calc((30vw - 20px) * 0.9);
+              width: calc(50% - 5px); // 50% width minus half of the gap
+              aspect-ratio: 1 / 1; // This makes it a square
+              display: inline-block;
+              vertical-align: top;
 
               .section-header,
               h3 {
                 padding: 10px;
+                height: 40px; // Fixed height for the header
 
                 .title-container {
-                  margin-left: 10px;
+                  margin-left: 5px;
 
                   img {
                     width: 16px;
                     height: 16px;
-                    margin-right: 8px;
+                    margin-right: 5px;
                   }
 
                   span {
-                    font-size: 10px;
+                    font-size: 14px;
                     line-height: 16px;
                   }
                 }
               }
+
+              .section-content {
+                height: calc(100% - 40px); // Subtract header height
+                overflow-y: auto;
+                padding: 5px;
+              }
             }
 
-            &.task-list .section-header {
-              font-size: 10px;
+            &.task-list {
+              float: left;
+              .section-header {
+                font-size: 14px;
+              }
             }
 
             &.top-topics {
+              float: right;
               .section-header {
-                font-size: 10px;
+                font-size: 14px;
               }
 
               .subtitle {
-                font-size: 10px;
+                font-size: 12px;
                 margin-top: 2px;
+                margin-left: 5px;
+              }
+
+              .topics-podium {
+                height: calc(
+                  100% - 60px
+                ); // Adjust based on header and subtitle height
+                padding: 5px;
+
+                .topic-item {
+                  .topic-bar {
+                    height: 60px !important;
+                  }
+
+                  .topic-name {
+                    font-size: 10px;
+                  }
+
+                  .rank-icon {
+                    width: 20px;
+                    height: 20px;
+                  }
+                }
               }
             }
           }
+        }
+
+        .post-area {
+          width: 95%;
+          flex-grow: 1;
+          overflow-y: auto;
+          padding: 10px;
         }
       }
     }
