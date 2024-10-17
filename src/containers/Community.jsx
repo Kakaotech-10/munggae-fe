@@ -1,4 +1,6 @@
-import { useState } from "react";
+//Community.jsx
+
+import { useState, useEffect } from "react";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import WriteForm from "./WriteForm";
@@ -11,6 +13,25 @@ const Community = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("latest");
+  const [posts, setPosts] = useState([]);
+  const [totalPages, setTotalPages] = useState(0);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [currentPage, sortBy]);
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch(
+        `/api/v1/posts?pageNo=${currentPage - 1}&pageSize=10`
+      );
+      const data = await response.json();
+      setPosts(data.content);
+      setTotalPages(data.totalPages);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    }
+  };
 
   const handleWriteClick = () => {
     setShowWriteForm(true);
@@ -20,38 +41,19 @@ const Community = () => {
     setShowWriteForm(false);
   };
 
+  const handlePostCreated = (newPost) => {
+    setPosts((prevPosts) => [newPost, ...prevPosts]);
+    fetchPosts(); // 전체 목록을 새로고침합니다.
+  };
+
   const handleSort = (sortType) => {
     setSortBy(sortType);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
-
-  // 임시 게시물 데이터
-  const posts = [
-    { id: 1, title: "안녕하세요~ 다들 함께해서 너무 반가워요", likes: 100 },
-    {
-      id: 2,
-      title: "안녕하세요~ 저는 사진 첨부되지 않은 게시물이에요",
-      likes: 100,
-    },
-    {
-      id: 3,
-      title: "안녕하세요~ 저는 사진 첨부되지 않은 게시물이에요",
-      likes: 100,
-    },
-    {
-      id: 4,
-      title: "안녕하세요~ 저는 사진 첨부되지 않은 게시물이에요",
-      likes: 100,
-    },
-    {
-      id: 5,
-      title: "안녕하세요~ 저는 사진 첨부되지 않은 게시물이에요",
-      likes: 100,
-    },
-  ];
 
   return (
     <div className="start-container">
@@ -80,21 +82,28 @@ const Community = () => {
           {posts.map((post) => (
             <Postlist
               key={post.id}
-              imageUrl={post.imageUrl}
+              id={post.id}
               title={post.title}
-              likes={post.likes}
+              content={post.content}
+              author={post.member.name}
+              createdAt={post.createdAt}
             />
           ))}
         </div>
         <div className="pagination-container">
           <Pagination
             currentPage={currentPage}
-            totalPages={3}
+            totalPages={totalPages}
             onPageChange={handlePageChange}
           />
         </div>
       </div>
-      {showWriteForm && <WriteForm onClose={handleCloseWriteForm} />}
+      {showWriteForm && (
+        <WriteForm
+          onClose={handleCloseWriteForm}
+          onPostCreated={handlePostCreated}
+        />
+      )}
     </div>
   );
 };
