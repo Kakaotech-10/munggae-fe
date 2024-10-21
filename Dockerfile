@@ -10,12 +10,9 @@ COPY . .
 
 RUN npm run build
 
-FROM node:current-slim
+# 최종 이미지(빌드 결과물만 포함)
+FROM alpine:latest
 
 WORKDIR /app
 
 COPY --from=build /app/dist ./dist
-
-EXPOSE 3000
-
-CMD ["npx", "vite", "preview", "--port", "3000"]
