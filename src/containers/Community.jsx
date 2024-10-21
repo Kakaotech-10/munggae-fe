@@ -5,8 +5,10 @@ import WriteForm from "./WriteForm";
 import Postlist from "../component/Postlist";
 import Pagination from "../component/Pagination";
 import SortButtons from "../component/SortButtons";
+import ViewPage from "../component/ViewPage";
 import "./styles/Community.scss";
 import { getPosts } from "../api/useGetPosts";
+import { getPost } from "../api/useGetPost";
 
 const Community = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
@@ -14,6 +16,7 @@ const Community = () => {
   const [sortBy, setSortBy] = useState("latest");
   const [posts, setPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
+  const [selectedPost, setSelectedPost] = useState(null);
   const pageSize = 5;
 
   useEffect(() => {
@@ -52,6 +55,19 @@ const Community = () => {
     setCurrentPage(page);
   };
 
+  const handlePostClick = async (postId) => {
+    try {
+      const postData = await getPost(postId);
+      setSelectedPost(postData);
+    } catch (error) {
+      console.error("Error fetching post details:", error);
+    }
+  };
+
+  const handleCloseViewPage = () => {
+    setSelectedPost(null);
+  };
+
   return (
     <div className="start-container">
       <div className="sidebar-area">
@@ -77,16 +93,19 @@ const Community = () => {
         <hr className="divider" />
         <div className="posts-area">
           {posts.map((post) => (
-            <Postlist
+            <div
               key={post.post_id}
-              id={post.post_id}
-              title={post.post_title}
-              content={post.post_content}
-              author={post.member.member_name}
-              createdAt={post.created_at}
-              course={post.member.course}
-              nameEnglish={post.member.member_name_english}
-            />
+              onClick={() => handlePostClick(post.post_id)}
+            >
+              <Postlist
+                id={post.post_id}
+                title={post.post_title}
+                likes={(post.post_likes !== undefined
+                  ? post.post_likes
+                  : 0
+                ).toString()}
+              />
+            </div>
           ))}
         </div>
         <div className="pagination-container">
@@ -102,6 +121,9 @@ const Community = () => {
           onClose={handleCloseWriteForm}
           onPostCreated={handlePostCreated}
         />
+      )}
+      {selectedPost && (
+        <ViewPage post={selectedPost} onClose={handleCloseViewPage} />
       )}
     </div>
   );
