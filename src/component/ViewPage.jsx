@@ -1,11 +1,14 @@
+//ViewPage.jsx
+
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
 import Trashicon from "../image/Trash.svg";
 import Editicon from "../image/Edit.svg";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
+import Comment, { CommentPropType } from "./Comment";
 
-const ViewPage = ({ post, onClose }) => {
+const ViewPage = ({ post, comments = [], onClose }) => {
   const handleOverlayClick = (e) => {
     if (e.target.className === "view-form-overlay") {
       onClose();
@@ -29,6 +32,34 @@ const ViewPage = ({ post, onClose }) => {
     };
     return new Date(dateString).toLocaleDateString("ko-KR", options);
   };
+
+  // 댓글을 계층 구조로 정리하는 함수
+  const organizeComments = (commentsArray) => {
+    if (!Array.isArray(commentsArray) || commentsArray.length === 0) {
+      return [];
+    }
+
+    const commentMap = {};
+    const rootComments = [];
+
+    commentsArray.forEach((comment) => {
+      commentMap[comment.comment_id] = { ...comment, replies: [] };
+    });
+
+    commentsArray.forEach((comment) => {
+      if (comment.parent_comment_id && commentMap[comment.parent_comment_id]) {
+        commentMap[comment.parent_comment_id].replies.push(
+          commentMap[comment.comment_id]
+        );
+      } else {
+        rootComments.push(commentMap[comment.comment_id]);
+      }
+    });
+
+    return rootComments;
+  };
+
+  const organizedComments = organizeComments(comments);
 
   return (
     <div
@@ -82,27 +113,17 @@ const ViewPage = ({ post, onClose }) => {
                 <span>{post.likes}</span>
                 <div className="divider"></div>
                 <img className="comments" src={Commenticon} alt="댓글 아이콘" />
-                <span>{post.comments ? post.comments.length : 0}</span>
+                <span>{comments.length}</span>
               </div>
               <hr className="comment-divider" />
               <div className="comment-area">
-                {post.comments &&
-                  post.comments.map((comment, index) => (
-                    <div key={index} className="comment">
-                      <div className="comment-header">
-                        <span className="comment-author">{`${comment.author.name}(${comment.author.nameEnglish})`}</span>
-                      </div>
-                      <div className="comment-content">{comment.content}</div>
-                      <div className="comment-footer">
-                        <img
-                          src={Hearticon}
-                          alt="좋아요"
-                          className="comment-like-icon"
-                        />
-                        <span>{comment.likes}</span>
-                      </div>
-                    </div>
-                  ))}
+                {organizedComments.map((comment) => (
+                  <Comment
+                    key={comment.comment_id}
+                    comment={comment}
+                    depth={0}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -128,17 +149,8 @@ ViewPage.propTypes = {
       nameEnglish: PropTypes.string.isRequired,
       profileImage: PropTypes.string.isRequired,
     }).isRequired,
-    comments: PropTypes.arrayOf(
-      PropTypes.shape({
-        author: PropTypes.shape({
-          name: PropTypes.string.isRequired,
-          nameEnglish: PropTypes.string.isRequired,
-        }).isRequired,
-        content: PropTypes.string.isRequired,
-        likes: PropTypes.number.isRequired,
-      })
-    ),
   }).isRequired,
+  comments: PropTypes.arrayOf(CommentPropType),
   onClose: PropTypes.func.isRequired,
 };
 

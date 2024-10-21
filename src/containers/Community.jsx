@@ -9,6 +9,7 @@ import ViewPage from "../component/ViewPage";
 import "./styles/Community.scss";
 import { getPosts } from "../api/useGetPosts";
 import { getPost } from "../api/useGetPost";
+import { getComment } from "../api/useGetComment"; // 새로 추가된 import
 
 const Community = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
@@ -17,6 +18,7 @@ const Community = () => {
   const [posts, setPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [comments, setComments] = useState([]); // 새로 추가된 상태
   const pageSize = 5;
 
   useEffect(() => {
@@ -55,10 +57,20 @@ const Community = () => {
     setCurrentPage(page);
   };
 
+  const fetchComments = async (postId) => {
+    try {
+      const commentsData = await getComment(postId);
+      setComments(commentsData);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
+
   const handlePostClick = async (postId) => {
     try {
       const postData = await getPost(postId);
       setSelectedPost(postData);
+      await fetchComments(postId); // 댓글 조회 추가
     } catch (error) {
       console.error("Error fetching post details:", error);
     }
@@ -66,6 +78,7 @@ const Community = () => {
 
   const handleCloseViewPage = () => {
     setSelectedPost(null);
+    setComments([]); // ViewPage를 닫을 때 댓글 상태 초기화
   };
 
   return (
@@ -123,7 +136,11 @@ const Community = () => {
         />
       )}
       {selectedPost && (
-        <ViewPage post={selectedPost} onClose={handleCloseViewPage} />
+        <ViewPage
+          post={selectedPost}
+          comments={comments} // 댓글 데이터 전달
+          onClose={handleCloseViewPage}
+        />
       )}
     </div>
   );
