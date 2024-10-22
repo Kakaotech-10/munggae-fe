@@ -72,6 +72,35 @@ const Community = () => {
     setCurrentPage(0);
   };
 
+  const handlePostEdit = async (updatedPost) => {
+    try {
+      // 수정된 게시물로 목록 업데이트
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.post_id === updatedPost.id
+            ? {
+                post_id: updatedPost.id,
+                post_title: updatedPost.title,
+                post_content: updatedPost.content,
+                post_likes: post.post_likes,
+                created_at: updatedPost.createdAt,
+                updated_at: updatedPost.updatedAt,
+                member: updatedPost.member,
+              }
+            : post
+        )
+      );
+
+      // 선택된 게시물 초기화
+      setSelectedPost(null);
+
+      // 게시물 목록 새로고침
+      await fetchPosts();
+    } catch (error) {
+      console.error("Error updating posts after edit:", error);
+    }
+  };
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
@@ -187,6 +216,7 @@ const Community = () => {
           commentError={commentError}
           onClose={handleCloseViewPage}
           onPostDelete={handlePostDelete}
+          onPostEdit={handlePostEdit} // 추가
         />
       )}
     </div>

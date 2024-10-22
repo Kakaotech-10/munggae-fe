@@ -1,3 +1,4 @@
+import { useState } from "react";
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
 import Trashicon from "../image/Trash.svg";
@@ -5,10 +6,17 @@ import Editicon from "../image/Edit.svg";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import Comment from "./Comment";
-
 import { deletePost } from "../api/useDeletePost";
+import WriteForm from "../containers/WriteForm";
 
-const ViewPage = ({ post, comments, commentError, onClose, onPostDelete }) => {
+const ViewPage = ({
+  post,
+  comments,
+  commentError,
+  onClose,
+  onPostDelete,
+  onPostEdit,
+}) => {
   const handleDeleteClick = async () => {
     try {
       if (window.confirm("게시물을 삭제하시겠습니까?")) {
@@ -22,6 +30,16 @@ const ViewPage = ({ post, comments, commentError, onClose, onPostDelete }) => {
     }
   };
 
+  const [showEditForm, setShowEditForm] = useState(false);
+
+  const handleEditClick = () => {
+    setShowEditForm(true);
+  };
+  const handleEditComplete = async (updatedPost) => {
+    await onPostEdit(updatedPost);
+    setShowEditForm(false); // 수정 폼 닫기
+    onClose(); // ViewPage 닫기
+  };
   const handleOverlayClick = (e) => {
     if (e.target.className === "view-form-overlay") {
       onClose();
@@ -119,8 +137,25 @@ const ViewPage = ({ post, comments, commentError, onClose, onPostDelete }) => {
                   src={Editicon}
                   alt="수정하기"
                   className="edit-icon"
+                  onClick={handleEditClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleEditClick();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   style={{ cursor: "pointer" }}
                 />
+                {showEditForm && (
+                  <WriteForm
+                    editMode={true}
+                    initialPost={post}
+                    onClose={() => setShowEditForm(false)}
+                    onPostCreated={handleEditComplete} // handleEditComplete로 변경
+                  />
+                )}
               </div>
             </div>
             <div className="form-group">
@@ -162,7 +197,7 @@ ViewPage.propTypes = {
     id: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
-    imageUrl: PropTypes.string.isRequired,
+    imageUrl: PropTypes.string, // optional로 변경
     likes: PropTypes.string.isRequired,
     updatedAt: PropTypes.string.isRequired,
     author: PropTypes.shape({
@@ -171,7 +206,7 @@ ViewPage.propTypes = {
       course: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
       nameEnglish: PropTypes.string.isRequired,
-      profileImage: PropTypes.string.isRequired,
+      profileImage: PropTypes.string, // optional로 변경
     }).isRequired,
   }).isRequired,
   comments: PropTypes.arrayOf(
@@ -190,8 +225,9 @@ ViewPage.propTypes = {
     })
   ).isRequired,
   onClose: PropTypes.func.isRequired,
-  commentError: PropTypes.string,
   onPostDelete: PropTypes.func.isRequired,
+  onPostEdit: PropTypes.func.isRequired, // 추가
+  commentError: PropTypes.string,
 };
 
 export default ViewPage;
