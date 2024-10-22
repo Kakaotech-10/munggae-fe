@@ -112,6 +112,14 @@ const Community = () => {
             <div
               key={post.post_id}
               onClick={() => handlePostClick(post.post_id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handlePostClick(post.post_id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               <Postlist
                 id={post.post_id}
