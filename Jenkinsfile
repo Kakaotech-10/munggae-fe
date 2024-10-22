@@ -5,7 +5,7 @@ pipeline {
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
         AWS_DEFAULT_REGION = credentials('aws-region')
-        S3_BUCKET = credentials('aws-region')
+        S3_BUCKET = credentials('aws-s3-bucket')
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKER_IMAGE = credentials('docker-image')
         CLOUDFRONT_DISTRIBUTION_ID = credentials('cloudfront-distribution-id')
