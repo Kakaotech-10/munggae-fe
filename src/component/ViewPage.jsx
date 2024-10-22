@@ -6,7 +6,22 @@ import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import Comment from "./Comment";
 
-const ViewPage = ({ post, comments, commentError, onClose }) => {
+import { deletePost } from "../api/useDeletePost";
+
+const ViewPage = ({ post, comments, commentError, onClose, onPostDelete }) => {
+  const handleDeleteClick = async () => {
+    try {
+      if (window.confirm("게시물을 삭제하시겠습니까?")) {
+        await deletePost(post.id, post.author.id);
+        onPostDelete(post.id); // Community 컴포넌트에 삭제 알림
+        onClose(); // 뷰 페이지 닫기
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert("게시물 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleOverlayClick = (e) => {
     if (e.target.className === "view-form-overlay") {
       onClose();
@@ -89,6 +104,15 @@ const ViewPage = ({ post, comments, commentError, onClose }) => {
                   src={Trashicon}
                   alt="삭제하기"
                   className="trash-icon"
+                  onClick={handleDeleteClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleDeleteClick();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   style={{ cursor: "pointer" }}
                 />
                 <img
@@ -167,6 +191,7 @@ ViewPage.propTypes = {
   ).isRequired,
   onClose: PropTypes.func.isRequired,
   commentError: PropTypes.string,
+  onPostDelete: PropTypes.func.isRequired,
 };
 
 export default ViewPage;

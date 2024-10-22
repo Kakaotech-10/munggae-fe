@@ -101,6 +101,23 @@ const Community = () => {
     setComments([]); // ViewPage를 닫을 때 댓글 상태 초기화
   };
 
+  const handlePostDelete = async (postId) => {
+    try {
+      // 게시물 목록에서 삭제된 게시물 제거
+      setPosts((prevPosts) =>
+        prevPosts.filter((post) => post.post_id !== postId)
+      );
+
+      // 선택된 게시물 초기화 및 ViewPage 닫기
+      setSelectedPost(null);
+      setComments([]);
+
+      // 필요한 경우 게시물 목록 새로고침
+      await fetchPosts();
+    } catch (error) {
+      console.error("Error updating posts after deletion:", error);
+    }
+  };
   return (
     <div className="start-container">
       <div className="sidebar-area">
@@ -169,6 +186,7 @@ const Community = () => {
           comments={comments}
           commentError={commentError}
           onClose={handleCloseViewPage}
+          onPostDelete={handlePostDelete}
         />
       )}
     </div>
