@@ -9,7 +9,7 @@ import ViewPage from "../component/ViewPage";
 import "./styles/Community.scss";
 import { getPosts } from "../api/useGetPosts";
 import { getPost } from "../api/useGetPost";
-import { getComment } from "../api/useGetComment"; // 새로 추가된 import
+import { getPostComments } from "../api/useGetComment";
 
 const Community = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
@@ -18,7 +18,9 @@ const Community = () => {
   const [posts, setPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [comments, setComments] = useState([]); // 새로 추가된 상태
+  const [comments, setComments] = useState([]); // 빈 배열로 초기화
+  const [commentError, setCommentError] = useState(null);
+
   const pageSize = 5;
 
   useEffect(() => {
@@ -57,22 +59,23 @@ const Community = () => {
     setCurrentPage(page);
   };
 
-  const fetchComments = async (postId) => {
-    try {
-      const commentsData = await getComment(postId);
-      setComments(commentsData);
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-    }
-  };
-
   const handlePostClick = async (postId) => {
     try {
       const postData = await getPost(postId);
       setSelectedPost(postData);
-      await fetchComments(postId); // 댓글 조회 추가
+      const { error, comments } = await getPostComments(postId);
+      if (error) {
+        setCommentError(error);
+        setComments([]);
+      } else {
+        setCommentError(null);
+        // comments.content가 실제 댓글 배열이므로 이를 사용
+        setComments(comments.content || []);
+      }
     } catch (error) {
       console.error("Error fetching post details:", error);
+      setSelectedPost(null);
+      setCommentError("게시물을 불러오는 중 오류가 발생했습니다.");
     }
   };
 
@@ -138,7 +141,8 @@ const Community = () => {
       {selectedPost && (
         <ViewPage
           post={selectedPost}
-          comments={comments} // 댓글 데이터 전달
+          comments={comments}
+          commentError={commentError}
           onClose={handleCloseViewPage}
         />
       )}

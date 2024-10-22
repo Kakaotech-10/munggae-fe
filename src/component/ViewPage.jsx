@@ -1,14 +1,12 @@
-//ViewPage.jsx
-
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
 import Trashicon from "../image/Trash.svg";
 import Editicon from "../image/Edit.svg";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
-import Comment, { CommentPropType } from "./Comment";
+import Comment from "./Comment";
 
-const ViewPage = ({ post, comments = [], onClose }) => {
+const ViewPage = ({ post, comments, commentError, onClose }) => {
   const handleOverlayClick = (e) => {
     if (e.target.className === "view-form-overlay") {
       onClose();
@@ -43,23 +41,19 @@ const ViewPage = ({ post, comments = [], onClose }) => {
     const rootComments = [];
 
     commentsArray.forEach((comment) => {
-      commentMap[comment.comment_id] = { ...comment, replies: [] };
+      commentMap[comment.id] = { ...comment, replies: [] };
     });
 
     commentsArray.forEach((comment) => {
-      if (comment.parent_comment_id && commentMap[comment.parent_comment_id]) {
-        commentMap[comment.parent_comment_id].replies.push(
-          commentMap[comment.comment_id]
-        );
+      if (comment.parentId && commentMap[comment.parentId]) {
+        commentMap[comment.parentId].replies.push(commentMap[comment.id]);
       } else {
-        rootComments.push(commentMap[comment.comment_id]);
+        rootComments.push(commentMap[comment.id]);
       }
     });
 
     return rootComments;
   };
-
-  const organizedComments = organizeComments(comments);
 
   return (
     <div
@@ -117,13 +111,19 @@ const ViewPage = ({ post, comments = [], onClose }) => {
               </div>
               <hr className="comment-divider" />
               <div className="comment-area">
-                {organizedComments.map((comment) => (
-                  <Comment
-                    key={comment.comment_id}
-                    comment={comment}
-                    depth={0}
-                  />
-                ))}
+                {commentError ? (
+                  <div className="error-message">{commentError}</div>
+                ) : comments.length > 0 ? (
+                  comments.map((comment) => (
+                    <Comment
+                      key={`comment-${comment.id}`}
+                      comment={comment}
+                      depth={0}
+                    />
+                  ))
+                ) : (
+                  <div className="no-comments">댓글이 없습니다.</div>
+                )}
               </div>
             </div>
           </div>
@@ -150,8 +150,23 @@ ViewPage.propTypes = {
       profileImage: PropTypes.string.isRequired,
     }).isRequired,
   }).isRequired,
-  comments: PropTypes.arrayOf(CommentPropType),
+  comments: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      content: PropTypes.string.isRequired,
+      parentId: PropTypes.number,
+      depth: PropTypes.number,
+      createdAt: PropTypes.string,
+      updatedAt: PropTypes.string,
+      member: PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        name: PropTypes.string.isRequired,
+        nameEnglish: PropTypes.string.isRequired,
+      }).isRequired,
+    })
+  ).isRequired,
   onClose: PropTypes.func.isRequired,
+  commentError: PropTypes.string,
 };
 
 export default ViewPage;
