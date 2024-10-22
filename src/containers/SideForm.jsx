@@ -1,7 +1,7 @@
 //SideForm.jsx
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
-import Logo from "../image/Logo.png";
+import Logo from "../image/logo.png";
 import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
 import Noticeicon from "../image/Noticeicon.svg";

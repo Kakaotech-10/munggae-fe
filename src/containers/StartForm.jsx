@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import Button from "../component/Button";
-import Logo_black from "../image/Logo_black.png";
+import Logo_black from "../image/logo_black.png";
 import "./styles/StartForm.scss";
 import { KAKAO_AUTH_URL } from "../component/OAuth";
 
