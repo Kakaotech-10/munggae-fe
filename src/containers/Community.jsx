@@ -45,9 +45,26 @@ const Community = () => {
     setShowWriteForm(false);
   };
 
-  const handlePostCreated = (newPost) => {
-    setPosts((prevPosts) => [newPost, ...prevPosts]);
-    fetchPosts();
+  const handlePostCreated = async (newPost) => {
+    // API 응답 형식에 맞게 데이터 구조 변환
+    const formattedPost = {
+      post_id: newPost.id,
+      post_title: newPost.title,
+      post_content: newPost.content,
+      post_likes: 0,
+      created_at: newPost.createdAt,
+      updated_at: newPost.updatedAt,
+      member: newPost.member,
+    };
+
+    // 새 게시글을 목록 맨 앞에 추가
+    setPosts((prevPosts) => [formattedPost, ...prevPosts]);
+
+    // 게시글 작성 폼 닫기
+    setShowWriteForm(false);
+
+    // 전체 목록 새로고침
+    await fetchPosts();
   };
 
   const handleSort = (sortType) => {

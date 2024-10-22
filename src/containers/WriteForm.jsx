@@ -19,16 +19,15 @@ const WriteForm = ({ onClose, onPostCreated }) => {
 
   const handleSubmit = async () => {
     try {
+      if (!title.trim() || !content.trim()) {
+        alert("제목과 내용을 모두 입력해주세요.");
+        return;
+      }
+
       const postData = {
         title,
         content,
-        memberId: 1, // Replace with actual member ID
-        uploadDateTime: showUploadTime
-          ? `${uploadDate}T${uploadTime}:00`
-          : null,
-        deadlineDateTime: showDeadlineTime
-          ? `${deadlineDate}T${deadlineTime}:00`
-          : null,
+        memberId: 1, // 실제 로그인된 사용자의 ID로 변경 필요
       };
 
       const newPost = await createPost(postData);
@@ -41,7 +40,7 @@ const WriteForm = ({ onClose, onPostCreated }) => {
       onClose();
     } catch (error) {
       console.error("Error submitting post:", error);
-      // Add user-facing error message here
+      alert("게시글 작성 중 오류가 발생했습니다.");
     }
   };
 

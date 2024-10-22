@@ -1,8 +1,21 @@
+// api/useCreatePost.js
 import api from "./config";
 
-export const createPost = async (postData, memberId) => {
+export const createPost = async (postData) => {
   try {
-    const response = await api.post(`/posts?memberId=${memberId}`, postData);
+    const response = await api.post(
+      "/posts",
+      {
+        title: postData.title,
+        content: postData.content,
+      },
+      {
+        params: {
+          memberId: postData.memberId,
+        },
+      }
+    );
+
     return response.data;
   } catch (error) {
     console.error("Error creating post:", error);
