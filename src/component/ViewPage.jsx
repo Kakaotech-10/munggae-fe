@@ -8,6 +8,8 @@ import Commenticon from "../image/Commenticon.svg";
 import Comment from "./Comment";
 import { deletePost } from "../api/useDeletePost";
 import WriteForm from "../containers/WriteForm";
+import CommentInput from "./CommentInput";
+import { useCreateComment } from "../hooks/useComment";
 
 const ViewPage = ({
   post,
@@ -16,13 +18,79 @@ const ViewPage = ({
   onClose,
   onPostDelete,
   onPostEdit,
+  currentUserId,
+  onCommentsUpdate,
 }) => {
+  const [showEditForm, setShowEditForm] = useState(false);
+  const { handleCreateComment, isCreating, createError } = useCreateComment();
+
+  const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
+    if (deletedCommentId) {
+      const updatedComments = comments.filter((comment) => {
+        if (comment.id === deletedCommentId) return false;
+        if (comment.replies) {
+          comment.replies = comment.replies.filter(
+            (reply) => reply.id !== deletedCommentId
+          );
+        }
+        return true;
+      });
+      onCommentsUpdate(updatedComments);
+    } else if (updatedComment) {
+      const isEdit = comments.some(
+        (comment) => comment.id === updatedComment.id
+      );
+
+      if (isEdit) {
+        const updatedComments = comments.map((comment) => {
+          if (comment.id === updatedComment.id) {
+            return { ...comment, ...updatedComment };
+          }
+          if (comment.replies) {
+            comment.replies = comment.replies.map((reply) => {
+              if (reply.id === updatedComment.id) {
+                return { ...reply, ...updatedComment };
+              }
+              return reply;
+            });
+          }
+          return comment;
+        });
+        onCommentsUpdate(updatedComments);
+      } else {
+        if (updatedComment.parentId) {
+          const updatedComments = comments.map((comment) => {
+            if (comment.id === updatedComment.parentId) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), updatedComment],
+              };
+            }
+            return comment;
+          });
+          onCommentsUpdate(updatedComments);
+        } else {
+          onCommentsUpdate([...comments, updatedComment]);
+        }
+      }
+    }
+  };
+
+  const handleNewComment = async (postId, memberId, content) => {
+    try {
+      const newComment = await handleCreateComment(postId, memberId, content);
+      handleCommentUpdate(newComment);
+    } catch (error) {
+      console.error("댓글 생성 실패:", error);
+    }
+  };
+
   const handleDeleteClick = async () => {
     try {
       if (window.confirm("게시물을 삭제하시겠습니까?")) {
         await deletePost(post.id, post.author.id);
-        onPostDelete(post.id); // Community 컴포넌트에 삭제 알림
-        onClose(); // 뷰 페이지 닫기
+        onPostDelete(post.id);
+        onClose();
       }
     } catch (error) {
       console.error("Error deleting post:", error);
@@ -30,16 +98,16 @@ const ViewPage = ({
     }
   };
 
-  const [showEditForm, setShowEditForm] = useState(false);
-
   const handleEditClick = () => {
     setShowEditForm(true);
   };
+
   const handleEditComplete = async (updatedPost) => {
     await onPostEdit(updatedPost);
-    setShowEditForm(false); // 수정 폼 닫기
-    onClose(); // ViewPage 닫기
+    setShowEditForm(false);
+    onClose();
   };
+
   const handleOverlayClick = (e) => {
     if (e.target.className === "view-form-overlay") {
       onClose();
@@ -64,7 +132,6 @@ const ViewPage = ({
     return new Date(dateString).toLocaleDateString("ko-KR", options);
   };
 
-  // 댓글을 계층 구조로 정리하는 함수
   const organizeComments = (commentsArray) => {
     if (!Array.isArray(commentsArray) || commentsArray.length === 0) {
       return [];
@@ -153,7 +220,7 @@ const ViewPage = ({
                     editMode={true}
                     initialPost={post}
                     onClose={() => setShowEditForm(false)}
-                    onPostCreated={handleEditComplete} // handleEditComplete로 변경
+                    onPostCreated={handleEditComplete}
                   />
                 )}
               </div>
@@ -170,6 +237,16 @@ const ViewPage = ({
               </div>
               <hr className="comment-divider" />
               <div className="comment-area">
+                <CommentInput
+                  onSubmit={handleNewComment}
+                  postId={post.id}
+                  currentUserId={currentUserId}
+                  depth={0}
+                  isSubmitting={isCreating}
+                />
+                {createError && (
+                  <div className="error-message">{createError}</div>
+                )}
                 {commentError ? (
                   <div className="error-message">{commentError}</div>
                 ) : comments.length > 0 ? (
@@ -178,6 +255,9 @@ const ViewPage = ({
                       key={`comment-${comment.id}`}
                       comment={comment}
                       depth={0}
+                      currentUserId={currentUserId}
+                      postId={post.id}
+                      onCommentUpdate={handleCommentUpdate}
                     />
                   ))
                 ) : (
@@ -197,7 +277,7 @@ ViewPage.propTypes = {
     id: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
-    imageUrl: PropTypes.string, // optional로 변경
+    imageUrl: PropTypes.string,
     likes: PropTypes.string.isRequired,
     updatedAt: PropTypes.string.isRequired,
     author: PropTypes.shape({
@@ -206,7 +286,7 @@ ViewPage.propTypes = {
       course: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
       nameEnglish: PropTypes.string.isRequired,
-      profileImage: PropTypes.string, // optional로 변경
+      profileImage: PropTypes.string,
     }).isRequired,
   }).isRequired,
   comments: PropTypes.arrayOf(
@@ -224,9 +304,11 @@ ViewPage.propTypes = {
       }).isRequired,
     })
   ).isRequired,
+  currentUserId: PropTypes.number.isRequired,
+  onCommentsUpdate: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   onPostDelete: PropTypes.func.isRequired,
-  onPostEdit: PropTypes.func.isRequired, // 추가
+  onPostEdit: PropTypes.func.isRequired,
   commentError: PropTypes.string,
 };
 

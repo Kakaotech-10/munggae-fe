@@ -1,0 +1,135 @@
+.comment {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+
+  .comment-header {
+    margin-bottom: 8px;
+
+    .author-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .comment-author {
+        font-weight: 500;
+      }
+
+      .comment-actions {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .action-button {
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          color: #666;
+
+          &:hover {
+            color: #333;
+          }
+        }
+
+        .dropdown-menu {
+          position: absolute;
+          top: calc(100% + 5px);
+          right: 0;
+          width: 101px;
+          min-height: 36px; // 한 항목의 기본 높이
+          height: auto; // 높이를 자동으로 조정
+          border-radius: 10px;
+          opacity: 1;
+          background: #ffffff;
+          box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.3);
+          display: flex;
+          flex-direction: column;
+          padding: 4px 0;
+          z-index: 10;
+
+          div {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            height: 36px; // 각 항목의 고정 높이
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+
+            &:hover {
+              background-color: rgba(0, 0, 0, 0.05);
+            }
+
+            &:last-child {
+              color: #333;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .comment-content {
+    word-break: break-word;
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .comment-footer {
+    .comment-date {
+      font-size: 0.8em;
+      color: #666;
+    }
+  }
+
+  // 대댓글 스타일
+  &[class*="depth-"] {
+    margin-left: 20px;
+    margin-top: 10px;
+    background-color: #fff;
+    border: 1px solid #eee;
+  }
+
+  // 1단계 댓글은 마진 제거
+  &.depth-0 {
+    margin-left: 0;
+  }
+}
+
+// 모바일 대응
+@media (max-width: 767px) {
+  .comment {
+    padding: 10px;
+    font-size: 12px;
+
+    .comment-header {
+      .author-line {
+        gap: 4px;
+
+        .comment-actions {
+          .action-button {
+            width: 18px;
+            height: 18px;
+          }
+
+          .dropdown-menu {
+            div {
+              padding: 6px 14px;
+              height: 32px; // 모바일에서는 약간 작게
+              font-size: 13px;
+            }
+          }
+        }
+      }
+    }
+
+    &[class*="depth-"] {
+      margin-left: 12px;
+    }
+  }
+}
