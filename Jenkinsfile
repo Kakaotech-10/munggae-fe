@@ -13,28 +13,24 @@ pipeline {
     stages {
         stage('Install Dependencies') {
             steps {
-                dir('frontend') {
-                    script {
-                        sh 'npm ci'
-                    }
+                script {
+                    sh 'npm install'
                 }
             }
         }
+
         stage('Set Environment Variable') {
             steps {
-                dir('frontend') {
-                    script {
-                        sh 'echo "APP_ENDPOINT=${APP_ENDPOINT_MAIN}" >> .env'
-                    }
+                script {
+                    sh 'echo "APP_ENDPOINT=${APP_ENDPOINT_MAIN}" >> .env'
                 }
             }
         }
+        
         stage('Build Frontend') {
             steps {
-                dir('frontend') {
-                    script {
-                        sh 'CI=false npm run build'
-                    }
+                script {
+                    sh 'npm run build'
                 }
             }
         }
