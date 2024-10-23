@@ -6,25 +6,35 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
         AWS_DEFAULT_REGION = credentials('aws-region')
         S3_BUCKET = credentials('aws-s3-bucket')
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKER_IMAGE = credentials('docker-image')
         CLOUDFRONT_DISTRIBUTION_ID = credentials('cloudfront-distribution-id')
+        APP_ENDPOINT_MAIN = credentials('app-endpoint-main') //env 파일 설정
     }
 
     stages {
-        stage('Build') {
+        stage('Install Dependencies') {
             steps {
-                script {
-                    sh 'docker build -t $DOCKER_IMAGE .'
+                dir('frontend') {
+                    script {
+                        sh 'npm ci'
+                    }
                 }
             }
         }
-
-        stage('Push Docker Image to Docker Hub') {
+        stage('Set Environment Variable') {
             steps {
-                script {
-                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-                    sh 'docker push $DOCKER_IMAGE'
+                dir('frontend') {
+                    script {
+                        sh 'echo "APP_ENDPOINT=${APP_ENDPOINT_MAIN}" >> .env'
+                    }
+                }
+            }
+        }
+        stage('Build Frontend') {
+            steps {
+                dir('frontend') {
+                    script {
+                        sh 'CI=false npm run build'
+                    }
                 }
             }
         }
@@ -32,9 +42,15 @@ pipeline {
         stage('Upload to S3') {
             steps {
                 script {
-                    sh '''
-                    docker run --rm -v $(pwd):/app $DOCKER_IMAGE sh -c "aws s3 sync /app/dist s3://$S3_BUCKET/ --delete"
-                    '''
+                    sh "aws s3 sync build/ s3://${S3_BUCKET} --delete"
+                }
+            }
+        }
+        
+         stage('Invalidate CloudFront Cache') {
+            steps {
+                script {
+                    sh "aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION_ID} --paths '/*'"
                 }
             }
         }
