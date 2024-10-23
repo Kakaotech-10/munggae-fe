@@ -9,30 +9,45 @@ import Alertshow from "../image/alertshow.svg";
 import FirstIcon from "../image/1sticon.svg";
 import SecondIcon from "../image/2ndicon.svg";
 import ThirdIcon from "../image/3rdicon.svg";
+import { getPosts } from "../api/useGetPosts";
 
 const MainForm = () => {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      userName: "Mae.park(박세영)",
-      uploadDate: "2024.09.25 오후12:00",
-      postContent: "첫 번째 게시글입니다.",
-      imageUrl: "https://example.com/image1.jpg",
-      profileImageUrl: "https://example.com/profile1.jpg",
-    },
-    {
-      id: 2,
-      userName: "John Doe",
-      uploadDate: "2024.09.26 오전10:30",
-      postContent: "두 번째 게시글입니다.",
-      profileImageUrl: "https://example.com/profile2.jpg",
-    },
-  ]);
+  const [posts, setPosts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await getPosts(currentPage, 10);
+        setPosts(response.content);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to fetch posts:", error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [currentPage]);
 
   const addNewPost = (newPostData) => {
     setPosts((prevPosts) => [
       ...prevPosts,
-      { id: prevPosts.length + 1, ...newPostData },
+      {
+        post_id: prevPosts.length + 1,
+        post_title: newPostData.title,
+        post_content: newPostData.content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        member: {
+          member_id: newPostData.member_id,
+          member_name: newPostData.member_name,
+          member_name_english: newPostData.member_name_english,
+          course: newPostData.course,
+          role: "USER",
+        },
+      },
     ]);
   };
 
@@ -96,16 +111,11 @@ const MainForm = () => {
         </div>
         <div className="main-content">
           <div className="post-area">
-            {posts.map((post) => (
-              <Post
-                key={post.id}
-                userName={post.userName}
-                uploadDate={post.uploadDate}
-                postContent={post.postContent}
-                imageUrl={post.imageUrl}
-                profileImageUrl={post.profileImageUrl}
-              />
-            ))}
+            {isLoading ? (
+              <div>Loading...</div>
+            ) : (
+              posts.map((post) => <Post key={post.post_id} post={post} />)
+            )}
           </div>
           {(isRightAreaVisible || !isMobile) && (
             <div className="right-area">

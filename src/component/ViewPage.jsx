@@ -1,3 +1,4 @@
+//ViewPage.jsx
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
 import Trashicon from "../image/Trash.svg";
