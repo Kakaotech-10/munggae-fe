@@ -1,36 +1,34 @@
-// Post.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import "./styles/PostForm.scss";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import FullHearticon from "../image/FullHearticon.svg";
+import { getPosts } from "../api/useGetPosts";
+import Comment from "../component/Comment"; // 기존 Comment 컴포넌트 import
 
-const Post = ({
-  userName = "Mae.park(박세영)",
-  uploadDate = "2024.09.25 오후12:00",
-  postContent = "어떤 것이든 입력해주세요",
-  imageUrl = "",
-  profileImageUrl = "https://example.com/default-profile-image.jpg",
-  category = "커뮤니티", // 새로 추가된 prop
-}) => {
+const Post = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      content: "Great post!",
-      likes: 5,
-      isLiked: false,
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      content: "Thanks for sharing!",
-      likes: 3,
-      isLiked: false,
-    },
-  ]);
+  const [comments, setComments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        // API 호출 예시 (실제 API 엔드포인트에 맞게 수정 필요)
+        const response = await fetch(`/comments`);
+        const data = await response.json();
+        setComments(data);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to fetch comments:", error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchComments();
+  }, [post.post_id]);
 
   const handlePostLikeClick = () => {
     if (isLiked) {
@@ -41,41 +39,42 @@ const Post = ({
     setIsLiked((prevIsLiked) => !prevIsLiked);
   };
 
-  const handleCommentLikeClick = (commentId) => {
-    setComments(
-      comments.map((comment) =>
-        comment.id === commentId
-          ? {
-              ...comment,
-              likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
-              isLiked: !comment.isLiked,
-            }
-          : comment
-      )
-    );
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hour = date.getHours();
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    const ampm = hour >= 12 ? "오후" : "오전";
+    const hour12 = hour % 12 || 12;
+
+    return `${year}.${month}.${day} ${ampm}${hour12}:${minute}`;
   };
+
+  if (!post || !post.member) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="post">
       <div className="post-header">
         <div className="user-info">
           <div className="user-image">
-            <img src={profileImageUrl} alt="profile" />
+            <img
+              src="https://example.com/default-profile-image.jpg"
+              alt="profile"
+            />
           </div>
           <div className="user-details">
-            <h3>{userName}</h3>
-            <p>{uploadDate}</p>
+            <h3>{`${post.member.member_name}(${post.member.member_name_english})`}</h3>
+            <p>{formatDate(post.created_at)}</p>
           </div>
         </div>
-        <div className="post-category">[{category}]</div>
+        <div className="post-category">[{post.member.course}]</div>
       </div>
       <div className="post-content">
-        {imageUrl && (
-          <div className="post-image-container">
-            <img src={imageUrl} alt="Post" className="post-image" />
-          </div>
-        )}
-        <div className="post-text">{postContent}</div>
+        <div className="post-text">{post.post_content}</div>
       </div>
       <div className="post-footer">
         <div className="reactions">
@@ -89,24 +88,25 @@ const Post = ({
           </div>
         </div>
         <div className="comment-box">
-          {comments.map((comment) => (
-            <div key={comment.id} className="comment">
-              <div className="comment-content">
-                <strong>{comment.name}</strong>
-                <p>{comment.content}</p>
-              </div>
-              <div
-                className="comment-like"
-                onClick={() => handleCommentLikeClick(comment.id)}
-              >
-                <img
-                  src={comment.isLiked ? FullHearticon : Hearticon}
-                  alt="Like"
-                />
-                <span>{comment.likes}</span>
-              </div>
-            </div>
-          ))}
+          {isLoading ? (
+            <div>Loading comments...</div>
+          ) : comments.length > 0 ? (
+            comments.map((comment) => (
+              <Comment
+                key={comment.id}
+                comment={{
+                  ...comment,
+                  member: {
+                    name: comment.member.member_name,
+                    nameEnglish: comment.member.member_name_english,
+                  },
+                }}
+                depth={0}
+              />
+            ))
+          ) : (
+            <div>댓글이 없습니다.</div>
+          )}
         </div>
         <div className="comment-input">
           <input type="text" placeholder="댓글을 입력해주세요" />
@@ -115,6 +115,23 @@ const Post = ({
       </div>
     </div>
   );
+};
+
+Post.propTypes = {
+  post: PropTypes.shape({
+    post_id: PropTypes.number.isRequired,
+    post_title: PropTypes.string.isRequired,
+    post_content: PropTypes.string.isRequired,
+    created_at: PropTypes.string.isRequired,
+    updated_at: PropTypes.string.isRequired,
+    member: PropTypes.shape({
+      member_id: PropTypes.number.isRequired,
+      member_name: PropTypes.string.isRequired,
+      member_name_english: PropTypes.string.isRequired,
+      course: PropTypes.string.isRequired,
+      role: PropTypes.string.isRequired,
+    }).isRequired,
+  }).isRequired,
 };
 
 export default Post;

@@ -1,3 +1,5 @@
+// src/api/useGetPosts.jsx
+
 import api from "./config";
 
 export const getPosts = async (pageNo, pageSize) => {
