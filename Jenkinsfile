@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'node'
+    }
 
     environment {
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
@@ -15,6 +17,7 @@ pipeline {
             steps {
                 script {
                     sh 'npm install'
+                    sh 'npm install -D sass-embedded'
                 }
             }
         }
@@ -34,11 +37,19 @@ pipeline {
                 }
             }
         }
+        
+        stage('List Build Directory') {
+            steps {
+                script {
+                    sh 'ls -la' // 디렉토리 내용 출력
+                }
+            }
+        }
 
         stage('Upload to S3') {
             steps {
                 script {
-                    sh "aws s3 sync build/ s3://${S3_BUCKET} --delete"
+                    sh "aws s3 sync dist/ s3://${S3_BUCKET} --delete"
                 }
             }
         }
