@@ -12,6 +12,7 @@ const SettingForm = () => {
   const handleChangePassword = () => {
     navigate("/setting/changepassword");
   };
+
   return (
     <div className="start-container">
       <div className="sidebar-area">
@@ -25,7 +26,12 @@ const SettingForm = () => {
           <div className="signup-area">
             <h3>마이페이지</h3>
             <ProfileUpload />
-            <Input type="text" placeholder="아이디" />
+            <Input
+              type="text"
+              placeholder="아이디"
+              disabled={true}
+              value="아이디: user123" // 실제 사용자 아이디로 대체
+            />
             <Input type="text" placeholder="이름(한글)" />
             <Input type="text" placeholder="이름(영문)" />
 
