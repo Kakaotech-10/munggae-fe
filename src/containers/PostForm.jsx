@@ -4,19 +4,20 @@ import "./styles/PostForm.scss";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import FullHearticon from "../image/FullHearticon.svg";
-import { getPosts } from "../api/useGetPosts";
-import Comment from "../component/Comment"; // 기존 Comment 컴포넌트 import
+import Comment from "../component/Comment";
+import CommentInput from "../component/CommentInput";
+import { useCreateComment } from "../hooks/useComment";
 
 const Post = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { handleCreateComment, isCreating, createError } = useCreateComment();
 
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        // API 호출 예시 (실제 API 엔드포인트에 맞게 수정 필요)
         const response = await fetch(`/comments`);
         const data = await response.json();
         setComments(data);
@@ -29,6 +30,67 @@ const Post = ({ post }) => {
 
     fetchComments();
   }, [post.post_id]);
+
+  const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
+    if (deletedCommentId) {
+      const updatedComments = comments.filter((comment) => {
+        if (comment.id === deletedCommentId) return false;
+        if (comment.replies) {
+          comment.replies = comment.replies.filter(
+            (reply) => reply.id !== deletedCommentId
+          );
+        }
+        return true;
+      });
+      setComments(updatedComments);
+    } else if (updatedComment) {
+      const isEdit = comments.some(
+        (comment) => comment.id === updatedComment.id
+      );
+
+      if (isEdit) {
+        const updatedComments = comments.map((comment) => {
+          if (comment.id === updatedComment.id) {
+            return { ...comment, ...updatedComment };
+          }
+          if (comment.replies) {
+            comment.replies = comment.replies.map((reply) => {
+              if (reply.id === updatedComment.id) {
+                return { ...reply, ...updatedComment };
+              }
+              return reply;
+            });
+          }
+          return comment;
+        });
+        setComments(updatedComments);
+      } else {
+        if (updatedComment.parentId) {
+          const updatedComments = comments.map((comment) => {
+            if (comment.id === updatedComment.parentId) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), updatedComment],
+              };
+            }
+            return comment;
+          });
+          setComments(updatedComments);
+        } else {
+          setComments([...comments, updatedComment]);
+        }
+      }
+    }
+  };
+
+  const handleNewComment = async (postId, memberId, content) => {
+    try {
+      const newComment = await handleCreateComment(postId, memberId, content);
+      handleCommentUpdate(newComment);
+    } catch (error) {
+      console.error("댓글 생성 실패:", error);
+    }
+  };
 
   const handlePostLikeClick = () => {
     if (isLiked) {
@@ -87,30 +149,39 @@ const Post = ({ post }) => {
             <span>{comments.length}</span>
           </div>
         </div>
-        <div className="comment-box">
+        <hr className="comment-divider" />
+        <div className="comment-area">
+          <CommentInput
+            onSubmit={handleNewComment}
+            postId={post.post_id}
+            currentUserId={post.member.member_id}
+            depth={0}
+            isSubmitting={isCreating}
+          />
+          {createError && <div className="error-message">{createError}</div>}
           {isLoading ? (
             <div>Loading comments...</div>
           ) : comments.length > 0 ? (
             comments.map((comment) => (
               <Comment
-                key={comment.id}
+                key={`comment-${comment.id}`}
                 comment={{
                   ...comment,
                   member: {
+                    id: comment.member.member_id,
                     name: comment.member.member_name,
                     nameEnglish: comment.member.member_name_english,
                   },
                 }}
                 depth={0}
+                currentUserId={post.member.member_id}
+                postId={post.post_id}
+                onCommentUpdate={handleCommentUpdate}
               />
             ))
           ) : (
-            <div>댓글이 없습니다.</div>
+            <div className="no-comments">댓글이 없습니다.</div>
           )}
-        </div>
-        <div className="comment-input">
-          <input type="text" placeholder="댓글을 입력해주세요" />
-          <button>SEND</button>
         </div>
       </div>
     </div>
