@@ -1,7 +1,8 @@
+// src/api/config.js
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "/api", // 이 부분을 변경합니다.
+  baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
