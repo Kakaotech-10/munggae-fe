@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./styles/ProfileUpload.scss";
 
-const ProfileUpload = () => {
+const ProfileUpload = ({ initialImage, onImageUpload }) => {
   const [preview, setPreview] = useState(null);
+
+  useEffect(() => {
+    if (initialImage) {
+      setPreview(initialImage);
+    }
+  }, [initialImage]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview(reader.result);
+        const imageData = reader.result;
+        setPreview(imageData);
+        onImageUpload(imageData);
       };
       reader.readAsDataURL(file);
     }
