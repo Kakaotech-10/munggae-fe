@@ -1,4 +1,3 @@
-//PostForm.jsx
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "./styles/PostForm.scss";
@@ -8,28 +7,43 @@ import FullHearticon from "../image/FullHearticon.svg";
 import Comment from "../component/Comment";
 import CommentInput from "../component/CommentInput";
 import { useCreateComment } from "../hooks/useComment";
+import { getPostComments } from "../api/useGetComment";
 
-const Post = ({ post }) => {
+const Post = ({ post, currentUserId }) => {
+  // currentUserId prop 추가
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [commentError, setCommentError] = useState(null);
   const { handleCreateComment, isCreating, createError } = useCreateComment();
 
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const response = await fetch(`/comments`);
-        const data = await response.json();
-        setComments(data);
-        setIsLoading(false);
+        setIsLoading(true);
+        const { error, comments: commentsData } = await getPostComments(
+          post.post_id
+        );
+
+        if (error) {
+          setCommentError(error);
+          return;
+        }
+
+        setComments(commentsData.content); // content에 이미 계층구조가 포함되어 있음
+        setCommentError(null);
       } catch (error) {
         console.error("Failed to fetch comments:", error);
+        setCommentError("댓글을 불러오는데 실패했습니다.");
+      } finally {
         setIsLoading(false);
       }
     };
 
-    fetchComments();
+    if (post.post_id) {
+      fetchComments();
+    }
   }, [post.post_id]);
 
   const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
@@ -155,27 +169,22 @@ const Post = ({ post }) => {
           <CommentInput
             onSubmit={handleNewComment}
             postId={post.post_id}
-            currentUserId={post.member.member_id}
+            currentUserId={currentUserId}
             depth={0}
             isSubmitting={isCreating}
           />
           {createError && <div className="error-message">{createError}</div>}
-          {isLoading ? (
+          {commentError ? (
+            <div className="error-message">{commentError}</div>
+          ) : isLoading ? (
             <div>Loading comments...</div>
           ) : comments.length > 0 ? (
             comments.map((comment) => (
               <Comment
                 key={`comment-${comment.id}`}
-                comment={{
-                  ...comment,
-                  member: {
-                    id: comment.member.member_id,
-                    name: comment.member.member_name,
-                    nameEnglish: comment.member.member_name_english,
-                  },
-                }}
+                comment={comment}
                 depth={0}
-                currentUserId={post.member.member_id}
+                currentUserId={currentUserId}
                 postId={post.post_id}
                 onCommentUpdate={handleCommentUpdate}
               />
@@ -204,6 +213,7 @@ Post.propTypes = {
       role: PropTypes.string.isRequired,
     }).isRequired,
   }).isRequired,
+  currentUserId: PropTypes.number.isRequired, // 추가: currentUserId prop 정의
 };
 
 export default Post;
