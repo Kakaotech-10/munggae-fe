@@ -230,7 +230,7 @@ const Comment = ({
           parentId={comment.id}
           postId={postId} // 명시적으로 postId 전달
           currentUserId={currentUserId} // 명시적으로 currentUserId 전달
-          depth={depth}
+          depth={depth + 1}
         />
       )}
 
