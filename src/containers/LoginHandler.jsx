@@ -15,7 +15,10 @@ const LoginHandler = () => {
   useEffect(() => {
     const kakaoLogin = async () => {
       try {
+        console.log("Authorization Code:", code); // 인가 코드 확인
         const response = await fetchKakaoData(code);
+        console.log("Raw API Response:", response); // 전체 응답 확인
+        console.log("Response Data:", response.data); // 응답 데이터 확인
         handleLoginResponse(response.data);
       } catch (err) {
         handleError(err);
@@ -32,9 +35,12 @@ const LoginHandler = () => {
   }, [code, navigate]);
 
   const fetchKakaoData = async (code) => {
+    const url = `${import.meta.env.VITE_REACT_APP_SERVER_URL}/oauth2/callback/kakao?code=${code}`;
+    console.log("Requesting URL:", url); // API 요청 URL 확인
+
     return await axios({
       method: "GET",
-      url: `${import.meta.env.VITE_REACT_APP_SERVER_URL}/oauth2/callback/kakao?code=${code}`,
+      url: url,
       headers: {
         "Content-Type": "application/json;charset=utf-8",
         "Access-Control-Allow-Origin": "*",
@@ -43,22 +49,72 @@ const LoginHandler = () => {
   };
 
   const handleLoginResponse = (data) => {
-    console.log("Server response:", data);
+    console.log("=== Login Response Data ===");
+    console.log("Full response data:", data);
+    console.log("IsExistingUser:", data.isExistingUser);
+
     if (data.isExistingUser) {
-      localStorage.setItem("name", data.account.nickname);
+      console.log("=== Existing User Data ===");
+      console.log("Member data:", data.member);
+      console.log("Token:", data.token);
+
+      localStorage.setItem("member_id", data.member.member_id);
+      localStorage.setItem("member_name", data.member.member_name);
+      localStorage.setItem(
+        "member_name_english",
+        data.member.member_name_english
+      );
+      localStorage.setItem("role", data.member.role);
+      localStorage.setItem("course", data.member.course);
       localStorage.setItem("token", data.token);
+
+      if (data.member.profile_image) {
+        console.log("Profile image URL:", data.member.profile_image);
+        localStorage.setItem("profile_image", data.member.profile_image);
+      }
+
       navigate("/mainpage");
     } else {
-      localStorage.setItem("kakaoNickname", data.account.nickname);
-      if (data.account.profileImage) {
-        localStorage.setItem("kakaoProfileImage", data.account.profileImage);
-      }
+      console.log("=== New User Data ===");
+      // 카카오에서 받아온 데이터 구조 확인
+      console.log("Kakao account data:", data.kakaoAccount || data);
+
+      // 여러 가능한 데이터 구조 확인
+      const kakaoData = {
+        member_name:
+          data.kakaoAccount?.profile?.nickname ||
+          data.kakaoAccount?.nickname ||
+          data.profile?.nickname ||
+          data.nickname ||
+          "",
+        profile_image:
+          data.kakaoAccount?.profile?.profile_image_url ||
+          data.kakaoAccount?.profile_image_url ||
+          data.profile?.profile_image_url ||
+          data.profile_image_url ||
+          "",
+      };
+
+      console.log("Processed Kakao data to store:", kakaoData);
+      localStorage.setItem("tempKakaoData", JSON.stringify(kakaoData));
+
+      // localStorage에 제대로 저장되었는지 확인
+      const storedData = localStorage.getItem("tempKakaoData");
+      console.log("Data stored in localStorage:", JSON.parse(storedData));
+
       navigate("/kakaosignup");
     }
   };
 
   const handleError = (err) => {
-    console.error("Login error:", err);
+    console.error("=== Login Error ===");
+    console.error("Error object:", err);
+    console.error("Error message:", err.message);
+    if (err.response) {
+      console.error("Error response:", err.response);
+      console.error("Error response data:", err.response.data);
+    }
+
     setState((prev) => ({
       ...prev,
       error:
