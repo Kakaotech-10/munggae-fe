@@ -1,14 +1,24 @@
 //WriteForm.jsx
-
+import PropTypes from "prop-types";
 import { useState } from "react";
 import "./styles/WriteForm.scss";
 import Uploadicon from "../image/Uploadicon.svg";
 import { createPost } from "../api/useCreatePost";
 import { uploadAttachments } from "../api/useAttachment";
+import { editPost } from "../api/useEditPost";
 
-const WriteForm = ({ onClose, onPostCreated }) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+const WriteForm = ({
+  onClose,
+  onPostCreated,
+  editMode = false,
+  initialPost = null,
+}) => {
+  const [title, setTitle] = useState(
+    editMode && initialPost ? initialPost.title : ""
+  );
+  const [content, setContent] = useState(
+    editMode && initialPost ? initialPost.content : ""
+  );
   const [showUploadTime, setShowUploadTime] = useState(false);
   const [showDeadlineTime, setShowDeadlineTime] = useState(false);
   const [uploadDate, setUploadDate] = useState("");
@@ -19,32 +29,42 @@ const WriteForm = ({ onClose, onPostCreated }) => {
 
   const handleSubmit = async () => {
     try {
-      const postData = {
-        title,
-        content,
-        memberId: 1, // Replace with actual member ID
-        uploadDateTime: showUploadTime
-          ? `${uploadDate}T${uploadTime}:00`
-          : null,
-        deadlineDateTime: showDeadlineTime
-          ? `${deadlineDate}T${deadlineTime}:00`
-          : null,
-      };
-
-      const newPost = await createPost(postData);
-
-      if (files.length > 0) {
-        await uploadAttachments(newPost.id, files);
+      if (!title.trim() || !content.trim()) {
+        alert("제목과 내용을 모두 입력해주세요.");
+        return;
       }
 
-      onPostCreated(newPost);
-      onClose();
+      let updatedPost;
+      if (editMode) {
+        // 수정 모드일 때
+        updatedPost = await editPost(initialPost.id, initialPost.author.id, {
+          title,
+          content,
+        });
+      } else {
+        // 새 게시글 작성 모드일 때
+        const postData = {
+          title,
+          content,
+          memberId: 1,
+        };
+        updatedPost = await createPost(postData);
+      }
+
+      if (files.length > 0) {
+        await uploadAttachments(updatedPost.id, files);
+      }
+
+      onPostCreated(updatedPost); // 수정/생성된 게시물 전달
     } catch (error) {
       console.error("Error submitting post:", error);
-      // Add user-facing error message here
+      alert(
+        editMode
+          ? "게시글 수정 중 오류가 발생했습니다."
+          : "게시글 작성 중 오류가 발생했습니다."
+      );
     }
   };
-
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
   };
@@ -93,10 +113,12 @@ const WriteForm = ({ onClose, onPostCreated }) => {
                 alt="프로필"
                 className="profile-image"
               />
-              <span className="profile-name">Mae.park(박세영)</span>
+              <span className="profile-name">
+                {editMode ? initialPost.author.name : "Mae.park(박세영)"}
+              </span>
               <img
                 src={Uploadicon}
-                alt="업로드"
+                alt={editMode ? "수정" : "업로드"}
                 className="upload-icon"
                 onClick={handleSubmit}
                 style={{ cursor: "pointer" }}
@@ -176,4 +198,18 @@ const WriteForm = ({ onClose, onPostCreated }) => {
   );
 };
 
+WriteForm.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  onPostCreated: PropTypes.func.isRequired,
+  editMode: PropTypes.bool,
+  initialPost: PropTypes.shape({
+    id: PropTypes.number,
+    title: PropTypes.string,
+    content: PropTypes.string,
+    author: PropTypes.shape({
+      id: PropTypes.number,
+      name: PropTypes.string,
+    }),
+  }),
+};
 export default WriteForm;

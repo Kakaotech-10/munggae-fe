@@ -45,14 +45,60 @@ const Community = () => {
     setShowWriteForm(false);
   };
 
-  const handlePostCreated = (newPost) => {
-    setPosts((prevPosts) => [newPost, ...prevPosts]);
-    fetchPosts();
+  const handlePostCreated = async (newPost) => {
+    // API 응답 형식에 맞게 데이터 구조 변환
+    const formattedPost = {
+      post_id: newPost.id,
+      post_title: newPost.title,
+      post_content: newPost.content,
+      post_likes: 0,
+      created_at: newPost.createdAt,
+      updated_at: newPost.updatedAt,
+      member: newPost.member,
+    };
+
+    // 새 게시글을 목록 맨 앞에 추가
+    setPosts((prevPosts) => [formattedPost, ...prevPosts]);
+
+    // 게시글 작성 폼 닫기
+    setShowWriteForm(false);
+
+    // 전체 목록 새로고침
+    await fetchPosts();
   };
 
   const handleSort = (sortType) => {
     setSortBy(sortType);
     setCurrentPage(0);
+  };
+
+  const handlePostEdit = async (updatedPost) => {
+    try {
+      // 수정된 게시물로 목록 업데이트
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.post_id === updatedPost.id
+            ? {
+                post_id: updatedPost.id,
+                post_title: updatedPost.title,
+                post_content: updatedPost.content,
+                post_likes: post.post_likes,
+                created_at: updatedPost.createdAt,
+                updated_at: updatedPost.updatedAt,
+                member: updatedPost.member,
+              }
+            : post
+        )
+      );
+
+      // 선택된 게시물 초기화
+      setSelectedPost(null);
+
+      // 게시물 목록 새로고침
+      await fetchPosts();
+    } catch (error) {
+      console.error("Error updating posts after edit:", error);
+    }
   };
 
   const handlePageChange = (page) => {
@@ -84,6 +130,23 @@ const Community = () => {
     setComments([]); // ViewPage를 닫을 때 댓글 상태 초기화
   };
 
+  const handlePostDelete = async (postId) => {
+    try {
+      // 게시물 목록에서 삭제된 게시물 제거
+      setPosts((prevPosts) =>
+        prevPosts.filter((post) => post.post_id !== postId)
+      );
+
+      // 선택된 게시물 초기화 및 ViewPage 닫기
+      setSelectedPost(null);
+      setComments([]);
+
+      // 필요한 경우 게시물 목록 새로고침
+      await fetchPosts();
+    } catch (error) {
+      console.error("Error updating posts after deletion:", error);
+    }
+  };
   return (
     <div className="start-container">
       <div className="sidebar-area">
@@ -152,6 +215,8 @@ const Community = () => {
           comments={comments}
           commentError={commentError}
           onClose={handleCloseViewPage}
+          onPostDelete={handlePostDelete}
+          onPostEdit={handlePostEdit} // 추가
         />
       )}
     </div>

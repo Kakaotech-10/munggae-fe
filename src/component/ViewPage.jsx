@@ -1,4 +1,4 @@
-//ViewPage.jsx
+import { useState } from "react";
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
 import Trashicon from "../image/Trash.svg";
@@ -6,8 +6,108 @@ import Editicon from "../image/Edit.svg";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import Comment from "./Comment";
+import { deletePost } from "../api/useDeletePost";
+import WriteForm from "../containers/WriteForm";
+import CommentInput from "./CommentInput";
+import { useCreateComment } from "../hooks/useComment";
 
-const ViewPage = ({ post, comments, commentError, onClose }) => {
+const ViewPage = ({
+  post,
+  comments,
+  commentError,
+  onClose,
+  onPostDelete,
+  onPostEdit,
+  currentUserId,
+  onCommentsUpdate,
+}) => {
+  const [showEditForm, setShowEditForm] = useState(false);
+  const { handleCreateComment, isCreating, createError } = useCreateComment();
+
+  const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
+    if (deletedCommentId) {
+      const updatedComments = comments.filter((comment) => {
+        if (comment.id === deletedCommentId) return false;
+        if (comment.replies) {
+          comment.replies = comment.replies.filter(
+            (reply) => reply.id !== deletedCommentId
+          );
+        }
+        return true;
+      });
+      onCommentsUpdate(updatedComments);
+    } else if (updatedComment) {
+      const isEdit = comments.some(
+        (comment) => comment.id === updatedComment.id
+      );
+
+      if (isEdit) {
+        const updatedComments = comments.map((comment) => {
+          if (comment.id === updatedComment.id) {
+            return { ...comment, ...updatedComment };
+          }
+          if (comment.replies) {
+            comment.replies = comment.replies.map((reply) => {
+              if (reply.id === updatedComment.id) {
+                return { ...reply, ...updatedComment };
+              }
+              return reply;
+            });
+          }
+          return comment;
+        });
+        onCommentsUpdate(updatedComments);
+      } else {
+        if (updatedComment.parentId) {
+          const updatedComments = comments.map((comment) => {
+            if (comment.id === updatedComment.parentId) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), updatedComment],
+              };
+            }
+            return comment;
+          });
+          onCommentsUpdate(updatedComments);
+        } else {
+          onCommentsUpdate([...comments, updatedComment]);
+        }
+      }
+    }
+  };
+
+  const handleNewComment = async (postId, memberId, content) => {
+    try {
+      const newComment = await handleCreateComment(postId, memberId, content);
+      handleCommentUpdate(newComment);
+    } catch (error) {
+      console.error("댓글 생성 실패:", error);
+    }
+  };
+
+  const handleDeleteClick = async () => {
+    try {
+      if (window.confirm("게시물을 삭제하시겠습니까?")) {
+        await deletePost(post.id, post.author.id);
+        onPostDelete(post.id);
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert("게시물 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleEditClick = () => {
+    setShowEditForm(true);
+  };
+
+  const handleEditComplete = async (updatedPost) => {
+    await onPostEdit(updatedPost);
+    setShowEditForm(false);
+    onClose();
+  };
+
   const handleOverlayClick = (e) => {
     if (e.target.className === "view-form-overlay") {
       onClose();
@@ -32,7 +132,6 @@ const ViewPage = ({ post, comments, commentError, onClose }) => {
     return new Date(dateString).toLocaleDateString("ko-KR", options);
   };
 
-  // 댓글을 계층 구조로 정리하는 함수
   const organizeComments = (commentsArray) => {
     if (!Array.isArray(commentsArray) || commentsArray.length === 0) {
       return [];
@@ -90,14 +189,40 @@ const ViewPage = ({ post, comments, commentError, onClose }) => {
                   src={Trashicon}
                   alt="삭제하기"
                   className="trash-icon"
+                  onClick={handleDeleteClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleDeleteClick();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   style={{ cursor: "pointer" }}
                 />
                 <img
                   src={Editicon}
                   alt="수정하기"
                   className="edit-icon"
+                  onClick={handleEditClick}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleEditClick();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   style={{ cursor: "pointer" }}
                 />
+                {showEditForm && (
+                  <WriteForm
+                    editMode={true}
+                    initialPost={post}
+                    onClose={() => setShowEditForm(false)}
+                    onPostCreated={handleEditComplete}
+                  />
+                )}
               </div>
             </div>
             <div className="form-group">
@@ -112,6 +237,16 @@ const ViewPage = ({ post, comments, commentError, onClose }) => {
               </div>
               <hr className="comment-divider" />
               <div className="comment-area">
+                <CommentInput
+                  onSubmit={handleNewComment}
+                  postId={post.id}
+                  currentUserId={currentUserId}
+                  depth={0}
+                  isSubmitting={isCreating}
+                />
+                {createError && (
+                  <div className="error-message">{createError}</div>
+                )}
                 {commentError ? (
                   <div className="error-message">{commentError}</div>
                 ) : comments.length > 0 ? (
@@ -120,6 +255,9 @@ const ViewPage = ({ post, comments, commentError, onClose }) => {
                       key={`comment-${comment.id}`}
                       comment={comment}
                       depth={0}
+                      currentUserId={currentUserId}
+                      postId={post.id}
+                      onCommentUpdate={handleCommentUpdate}
                     />
                   ))
                 ) : (
@@ -139,7 +277,7 @@ ViewPage.propTypes = {
     id: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
-    imageUrl: PropTypes.string.isRequired,
+    imageUrl: PropTypes.string,
     likes: PropTypes.string.isRequired,
     updatedAt: PropTypes.string.isRequired,
     author: PropTypes.shape({
@@ -148,7 +286,7 @@ ViewPage.propTypes = {
       course: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
       nameEnglish: PropTypes.string.isRequired,
-      profileImage: PropTypes.string.isRequired,
+      profileImage: PropTypes.string,
     }).isRequired,
   }).isRequired,
   comments: PropTypes.arrayOf(
@@ -166,7 +304,11 @@ ViewPage.propTypes = {
       }).isRequired,
     })
   ).isRequired,
+  currentUserId: PropTypes.number.isRequired,
+  onCommentsUpdate: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
+  onPostDelete: PropTypes.func.isRequired,
+  onPostEdit: PropTypes.func.isRequired,
   commentError: PropTypes.string,
 };
 
