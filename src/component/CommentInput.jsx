@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
+import "./styles/CommentInput.scss";
 
 const CommentInput = ({
   onSubmit,
@@ -17,16 +18,15 @@ const CommentInput = ({
     if (!content.trim() || isSubmitting) return;
 
     try {
-      // 모든 필요한 파라미터를 명시적으로 전달
       await onSubmit(postId, currentUserId, content.trim(), parentId, depth);
-      setContent(""); // 입력 성공 시 초기화
+      setContent("");
     } catch (error) {
       console.error("댓글 작성 실패:", error);
     }
   };
 
   return (
-    <form className="comment-input-container" onSubmit={handleSubmit}>
+    <form className="comment-input-form" onSubmit={handleSubmit}>
       <input
         type="text"
         value={content}
@@ -37,7 +37,7 @@ const CommentInput = ({
       />
       <button
         type="submit"
-        className="send-button"
+        className="comment-submit-button"
         disabled={isSubmitting || !content.trim()}
       >
         {isSubmitting ? "..." : "SEND"}
