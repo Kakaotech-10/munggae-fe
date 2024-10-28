@@ -87,8 +87,7 @@ const SignupForm_kakao = () => {
         localStorage.getItem("tempUserData") || "{}"
       );
 
-      // 서버로 회원가입 요청
-      const response = await api.post("/auth/signup", {
+      const response = await api.post("/kakaosignup", {
         kakaoId: tempUserData.kakaoId,
         memberName: formData.memberName,
         memberNameEnglish: formData.memberNameEnglish,
@@ -97,28 +96,13 @@ const SignupForm_kakao = () => {
         profileImage: formData.profileImage,
       });
 
-      // 회원가입 성공 처리
-      if (response.data.token) {
-        // 토큰 저장
-        localStorage.setItem("accessToken", response.data.token.accessToken);
-        localStorage.setItem(
-          "tokenType",
-          response.data.token.grantType || "Bearer"
-        );
-        if (response.data.token.refreshToken) {
-          localStorage.setItem(
-            "refreshToken",
-            response.data.token.refreshToken
-          );
+      if (response.data.accessToken) {
+        localStorage.setItem("accessToken", response.data.accessToken);
+        if (response.data.refreshToken) {
+          localStorage.setItem("refreshToken", response.data.refreshToken);
         }
 
-        // 사용자 정보 저장
-        localStorage.setItem("userId", response.data.id);
-        localStorage.setItem("nickname", formData.memberName);
-
-        // 임시 데이터 삭제
         localStorage.removeItem("tempUserData");
-
         navigate("/mainpage");
       } else {
         throw new Error("회원가입 처리 중 오류가 발생했습니다.");

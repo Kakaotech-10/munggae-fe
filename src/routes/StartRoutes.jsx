@@ -18,9 +18,9 @@ function StartRoutes() {
       <Route path="/kakaosignup" element={<SignupForm_kakao />} />
       <Route path="/signup" element={<SignupForm />} />
       <Route path="/mainpage" element={<MainForm />} />
-      {<Route path="/noticepage" element={<NoticeForm />} />}
-      {<Route path="/communitypage" element={<Community />} />}
-      {<Route path="/clubpage" element={<ClubForm />} />}
+      <Route path="/noticepage" element={<NoticeForm />} />
+      <Route path="/communitypage" element={<Community />} />
+      <Route path="/clubpage" element={<ClubForm />} />
     </Routes>
   );
 }

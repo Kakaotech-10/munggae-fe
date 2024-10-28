@@ -1,68 +1,96 @@
-// LoginHandler.jsx
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { kakaoLogin } from "../api/auth";
+import { useEffect, useRef } from "react";
+import api from "../api/config";
 
-const LoginHandler = () => {
-  const navigate = useNavigate();
-  const code = new URL(window.location.href).searchParams.get("code");
+export default function KakaoLogin() {
+  const processedRef = useRef(false);
 
   useEffect(() => {
-    const handleKakaoLogin = async () => {
+    const kakaoLogin = async () => {
+      if (processedRef.current) return;
+      processedRef.current = true;
+
       try {
+        const code = new URL(window.location.href).searchParams.get("code");
+
         if (!code) {
-          console.error("인가 코드가 없습니다.");
-          navigate("/login");
+          console.error("No authorization code found");
+          window.location.href = "/login";
           return;
         }
 
-        console.log("인가 코드:", code);
-        const response = await kakaoLogin(code);
-        console.log("응답 데이터:", response);
+        console.log("Starting login with code:", code);
 
-        // 응답 데이터 구조 확인
-        if (!response.data) {
-          console.error("응답 데이터가 없습니다.");
-          navigate("/login");
-          return;
+        const response = await api.get(
+          `/api/v1/auth/login/oauth2/callback/kakao`,
+          {
+            params: { code },
+          }
+        );
+
+        console.log("Full response:", response);
+        console.log("Response status:", response.status);
+        console.log("Response headers:", response.headers);
+        console.log("Response data:", response.data);
+
+        const data = response.data;
+
+        // 서버 에러 응답 상세 로깅
+        if (data.code === "COM_001" || data.status === 500) {
+          console.error("Server Error Details:", {
+            code: data.code,
+            status: data.status,
+            message: data.message,
+            fullData: data,
+          });
+          throw new Error(
+            "로그인 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.\n" +
+              (data.message || "알 수 없는 오류가 발생했습니다.")
+          );
         }
 
-        // 회원가입 필요 여부 확인
-        if (!response.data.id) {
-          // 사용자 ID가 없으면 신규 사용자로 판단
-          const tempData = {
-            kakaoId: response.data.kakaoId,
-            email: response.data.email,
-            nickname: response.data.nickname,
-            profileImage: response.data.profileImage,
-          };
-          console.log("신규 사용자 데이터:", tempData);
-          localStorage.setItem("tempUserData", JSON.stringify(tempData));
-          navigate("/kakaosignup");
-          return;
-        }
+        if (data.accessToken) {
+          console.log("Login successful, storing tokens and user info");
+          localStorage.setItem("accessToken", data.accessToken);
+          if (data.id) localStorage.setItem("userId", data.id);
+          if (data.nickname) localStorage.setItem("nickname", data.nickname);
 
-        // 기존 회원인 경우 토큰 처리
-        if (response.data.token) {
-          localStorage.setItem("accessToken", response.data.token);
-          navigate("/mainpage");
+          window.location.href = "/kakaosignup"; // 일단 무조건 추가정보 입력 페이지로 이동
         } else {
-          console.error("토큰이 없습니다:", response.data);
-          navigate("/login");
+          console.error("Missing access token in response:", data);
+          throw new Error("로그인 정보가 올바르지 않습니다.");
         }
-      } catch (err) {
-        console.error("로그인 에러:", err);
-        if (err.response) {
-          console.error("서버 응답:", err.response.data);
+      } catch (error) {
+        console.error("Detailed error information:", {
+          message: error.message,
+          responseData: error.response?.data,
+          responseStatus: error.response?.status,
+          responseHeaders: error.response?.headers,
+          originalError: error,
+          errorStack: error.stack,
+        });
+
+        let errorMessage =
+          "카카오 로그인 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.";
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
         }
-        navigate("/login");
+
+        alert(errorMessage);
+        window.location.href = "/login";
       }
     };
 
-    handleKakaoLogin();
-  }, [code, navigate]);
+    kakaoLogin();
+  }, []);
 
-  return null;
-};
-
-export default LoginHandler;
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h2 className="text-xl mb-4">카카오 로그인 처리중...</h2>
+        <p className="text-gray-600">잠시만 기다려주세요.</p>
+      </div>
+    </div>
+  );
+}

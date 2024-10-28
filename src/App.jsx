@@ -7,8 +7,10 @@ import "./App.css";
 function App() {
   return (
     <Router>
-      <StartRoutes />
-      <SettingRoutes />
+      <div>
+        <StartRoutes />
+        <SettingRoutes />
+      </div>
     </Router>
   );
 }
