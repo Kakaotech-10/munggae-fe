@@ -48,13 +48,19 @@ export default function KakaoLogin() {
           );
         }
 
-        if (data.accessToken) {
+        if (data.token && data.token.accessToken) {
           console.log("Login successful, storing tokens and user info");
-          localStorage.setItem("accessToken", data.accessToken);
+          localStorage.setItem("accessToken", data.token.accessToken);
           if (data.id) localStorage.setItem("userId", data.id);
           if (data.nickname) localStorage.setItem("nickname", data.nickname);
 
-          window.location.href = "/kakaosignup"; // 일단 무조건 추가정보 입력 페이지로 이동
+          if (data.isRegistered) {
+            // 이미 회원가입된 사용자의 경우, 메인 페이지로 이동
+            window.location.href = "/mainpage";
+          } else {
+            // 회원가입이 안 된 사용자의 경우, 추가 정보 입력 페이지로 이동
+            window.location.href = "/kakaosignup";
+          }
         } else {
           console.error("Missing access token in response:", data);
           throw new Error("로그인 정보가 올바르지 않습니다.");
