@@ -47,6 +47,7 @@ export const refreshToken = async () => {
     return response.data;
   } catch (error) {
     console.error("Token refresh error:", error);
+    window.location.href = "/login";
     throw error;
   }
 };
