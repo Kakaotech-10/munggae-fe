@@ -4,7 +4,7 @@ import Button from "../component/Button";
 import Input from "../component/Input";
 import Logo_black from "../image/logo_black.png";
 import "./styles/LoginForm.scss";
-import { KAKAO_AUTH_URL } from "../component/OAuth";
+import { KAKAO_AUTH_URL } from "../api/auth";
 
 const LoginForm = () => {
   const navigate = useNavigate();

@@ -9,7 +9,11 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+        headers: {
+          // Origin 헤더 제거
+        },
       },
     },
   },

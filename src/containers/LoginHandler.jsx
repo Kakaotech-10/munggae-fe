@@ -1,163 +1,102 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import axios from "axios";
-import PropTypes from "prop-types";
+import { useEffect, useRef } from "react";
+import api from "../api/config";
 
-const LoginHandler = () => {
-  const navigate = useNavigate();
-  const [state, setState] = useState({
-    isLoading: true,
-    error: null,
-  });
-
-  const code = new URL(window.location.href).searchParams.get("code");
+export default function KakaoLogin() {
+  const processedRef = useRef(false);
 
   useEffect(() => {
     const kakaoLogin = async () => {
+      if (processedRef.current) return;
+      processedRef.current = true;
+
       try {
-        console.log("Authorization Code:", code); // 인가 코드 확인
-        const response = await fetchKakaoData(code);
-        console.log("Raw API Response:", response); // 전체 응답 확인
-        console.log("Response Data:", response.data); // 응답 데이터 확인
-        handleLoginResponse(response.data);
-      } catch (err) {
-        handleError(err);
-      } finally {
-        setState((prev) => ({ ...prev, isLoading: false }));
+        const code = new URL(window.location.href).searchParams.get("code");
+
+        if (!code) {
+          console.error("No authorization code found");
+          window.location.href = "/login";
+          return;
+        }
+
+        console.log("Starting login with code:", code);
+
+        const response = await api.get(
+          `/api/v1/auth/login/oauth2/callback/kakao`,
+          {
+            params: { code },
+          }
+        );
+
+        console.log("Full response:", response);
+        console.log("Response status:", response.status);
+        console.log("Response headers:", response.headers);
+        console.log("Response data:", response.data);
+
+        const data = response.data;
+
+        // 서버 에러 응답 상세 로깅
+        if (data.code === "COM_001" || data.status === 500) {
+          console.error("Server Error Details:", {
+            code: data.code,
+            status: data.status,
+            message: data.message,
+            fullData: data,
+          });
+          throw new Error(
+            "로그인 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.\n" +
+              (data.message || "알 수 없는 오류가 발생했습니다.")
+          );
+        }
+
+        if (data.token && data.token.accessToken) {
+          console.log("Login successful, storing tokens and user info");
+          localStorage.setItem("accessToken", data.token.accessToken);
+          if (data.id) localStorage.setItem("userId", data.id);
+          if (data.nickname) localStorage.setItem("nickname", data.nickname);
+
+          if (data.isRegistered) {
+            // 이미 회원가입된 사용자의 경우, 메인 페이지로 이동
+            window.location.href = "/mainpage";
+          } else {
+            // 회원가입이 안 된 사용자의 경우, 추가 정보 입력 페이지로 이동
+            window.location.href = "/kakaosignup";
+          }
+        } else {
+          console.error("Missing access token in response:", data);
+          throw new Error("로그인 정보가 올바르지 않습니다.");
+        }
+      } catch (error) {
+        console.error("Detailed error information:", {
+          message: error.message,
+          responseData: error.response?.data,
+          responseStatus: error.response?.status,
+          responseHeaders: error.response?.headers,
+          originalError: error,
+          errorStack: error.stack,
+        });
+
+        let errorMessage =
+          "카카오 로그인 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.";
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        alert(errorMessage);
+        window.location.href = "/login";
       }
     };
 
-    if (code) {
-      kakaoLogin();
-    } else {
-      handleError(new Error("인가 코드를 찾을 수 없습니다."));
-    }
-  }, [code, navigate]);
+    kakaoLogin();
+  }, []);
 
-  const fetchKakaoData = async (code) => {
-    const url = `${import.meta.env.VITE_REACT_APP_SERVER_URL}/oauth2/callback/kakao?code=${code}`;
-    console.log("Requesting URL:", url); // API 요청 URL 확인
-
-    return await axios({
-      method: "GET",
-      url: url,
-      headers: {
-        "Content-Type": "application/json;charset=utf-8",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  };
-
-  const handleLoginResponse = (data) => {
-    console.log("=== Login Response Data ===");
-    console.log("Full response data:", data);
-    console.log("IsExistingUser:", data.isExistingUser);
-
-    if (data.isExistingUser) {
-      console.log("=== Existing User Data ===");
-      console.log("Member data:", data.member);
-      console.log("Token:", data.token);
-
-      localStorage.setItem("member_id", data.member.member_id);
-      localStorage.setItem("member_name", data.member.member_name);
-      localStorage.setItem(
-        "member_name_english",
-        data.member.member_name_english
-      );
-      localStorage.setItem("role", data.member.role);
-      localStorage.setItem("course", data.member.course);
-      localStorage.setItem("token", data.token);
-
-      if (data.member.profile_image) {
-        console.log("Profile image URL:", data.member.profile_image);
-        localStorage.setItem("profile_image", data.member.profile_image);
-      }
-
-      navigate("/mainpage");
-    } else {
-      console.log("=== New User Data ===");
-      // 카카오에서 받아온 데이터 구조 확인
-      console.log("Kakao account data:", data.kakaoAccount || data);
-
-      // 여러 가능한 데이터 구조 확인
-      const kakaoData = {
-        member_name:
-          data.kakaoAccount?.profile?.nickname ||
-          data.kakaoAccount?.nickname ||
-          data.profile?.nickname ||
-          data.nickname ||
-          "",
-        profile_image:
-          data.kakaoAccount?.profile?.profile_image_url ||
-          data.kakaoAccount?.profile_image_url ||
-          data.profile?.profile_image_url ||
-          data.profile_image_url ||
-          "",
-      };
-
-      console.log("Processed Kakao data to store:", kakaoData);
-      localStorage.setItem("tempKakaoData", JSON.stringify(kakaoData));
-
-      // localStorage에 제대로 저장되었는지 확인
-      const storedData = localStorage.getItem("tempKakaoData");
-      console.log("Data stored in localStorage:", JSON.parse(storedData));
-
-      navigate("/kakaosignup");
-    }
-  };
-
-  const handleError = (err) => {
-    console.error("=== Login Error ===");
-    console.error("Error object:", err);
-    console.error("Error message:", err.message);
-    if (err.response) {
-      console.error("Error response:", err.response);
-      console.error("Error response data:", err.response.data);
-    }
-
-    setState((prev) => ({
-      ...prev,
-      error:
-        err.response?.data?.message ||
-        err.message ||
-        "로그인 중 오류가 발생했습니다.",
-      isLoading: false,
-    }));
-  };
-
-  if (state.isLoading) {
-    return <LoadingView />;
-  }
-
-  if (state.error) {
-    return <ErrorView error={state.error} onRetry={() => navigate("/login")} />;
-  }
-
-  return null;
-};
-
-const LoadingView = () => (
-  <div className="LoginHandler">
-    <div className="notice">
-      <p>로그인 중입니다.</p>
-      <p>잠시만 기다려주세요.</p>
-      <div className="spinner"></div>
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h2 className="text-xl mb-4">카카오 로그인 처리중...</h2>
+        <p className="text-gray-600">잠시만 기다려주세요.</p>
+      </div>
     </div>
-  </div>
-);
-
-const ErrorView = ({ error, onRetry }) => (
-  <div className="LoginHandler">
-    <div className="notice">
-      <p>{error}</p>
-      <button onClick={onRetry}>로그인 페이지로 돌아가기</button>
-    </div>
-  </div>
-);
-
-ErrorView.propTypes = {
-  error: PropTypes.string.isRequired,
-  onRetry: PropTypes.func.isRequired,
-};
-
-export default LoginHandler;
+  );
+}

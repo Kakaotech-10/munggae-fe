@@ -4,7 +4,7 @@ import Search from "../component/Search";
 import Button from "../component/Button";
 import Logo_black from "../image/logo_black.png";
 import "./styles/StartForm.scss";
-import { KAKAO_AUTH_URL } from "../component/OAuth";
+import { KAKAO_AUTH_URL } from "../api/auth"; // 경로 수정
 
 const StartForm = () => {
   const navigate = useNavigate();

@@ -1,19 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Sidebar from "./SideForm";
 import Button from "../component/Button";
 import Input from "../component/Input";
 import Select from "../component/Select";
 import ProfileUpload from "../component/ProfileUpload";
+import api from "../api/config"; // api instance 사용
 import "./styles/SignupForm.scss";
 
 const SignupForm_kakao = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    koreanName: "",
-    englishName: "",
-    field: "",
+    memberName: "",
+    memberNameEnglish: "",
+    course: "",
     role: "",
     profileImage: null,
   });
@@ -21,21 +21,20 @@ const SignupForm_kakao = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Load kakao profile data from localStorage
-    const kakaoNickname = localStorage.getItem("kakaoNickname");
-    const kakaoProfileImage = localStorage.getItem("kakaoProfileImage");
-
-    if (kakaoNickname) {
+    // 카카오 데이터 불러오기
+    const tempUserData = JSON.parse(
+      localStorage.getItem("tempUserData") || "{}"
+    );
+    if (tempUserData.nickname) {
       setFormData((prev) => ({
         ...prev,
-        koreanName: kakaoNickname,
+        memberName: tempUserData.nickname,
       }));
     }
-
-    if (kakaoProfileImage) {
+    if (tempUserData.profileImage) {
       setFormData((prev) => ({
         ...prev,
-        profileImage: kakaoProfileImage,
+        profileImage: tempUserData.profileImage,
       }));
     }
   }, []);
@@ -45,6 +44,20 @@ const SignupForm_kakao = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleCourseChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      course: e.target.value,
+    }));
+  };
+
+  const handleRoleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      role: e.target.value,
     }));
   };
 
@@ -60,40 +73,42 @@ const SignupForm_kakao = () => {
       setIsLoading(true);
       setError(null);
 
-      // Validate form data
+      // 입력값 검증
       if (
-        !formData.koreanName ||
-        !formData.englishName ||
-        !formData.field ||
+        !formData.memberName ||
+        !formData.memberNameEnglish ||
+        !formData.course ||
         !formData.role
       ) {
         throw new Error("모든 필드를 입력해주세요.");
       }
 
-      // Send data to server
-      const response = await axios.post(
-        `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/signup`,
-        {
-          memberName: formData.koreanName,
-          memberNameEnglish: formData.englishName,
-          course: formData.field,
-          role: formData.role,
-          profileImage: formData.profileImage,
-        }
+      const tempUserData = JSON.parse(
+        localStorage.getItem("tempUserData") || "{}"
       );
 
-      if (response.data.success) {
-        // Store necessary data in localStorage
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("name", formData.koreanName);
+      const response = await api.post("/kakaosignup", {
+        kakaoId: tempUserData.kakaoId,
+        memberName: formData.memberName,
+        memberNameEnglish: formData.memberNameEnglish,
+        course: formData.course,
+        role: formData.role,
+        profileImage: formData.profileImage,
+      });
 
-        // Clear temporary kakao data
-        localStorage.removeItem("kakaoNickname");
-        localStorage.removeItem("kakaoProfileImage");
+      if (response.data.accessToken) {
+        localStorage.setItem("accessToken", response.data.accessToken);
+        if (response.data.refreshToken) {
+          localStorage.setItem("refreshToken", response.data.refreshToken);
+        }
 
+        localStorage.removeItem("tempUserData");
         navigate("/mainpage");
+      } else {
+        throw new Error("회원가입 처리 중 오류가 발생했습니다.");
       }
     } catch (err) {
+      console.error("Signup error:", err);
       setError(err.response?.data?.message || err.message);
     } finally {
       setIsLoading(false);
@@ -118,33 +133,29 @@ const SignupForm_kakao = () => {
 
           <Input
             type="text"
-            name="koreanName"
-            value={formData.koreanName}
+            name="memberName"
+            value={formData.memberName}
             onChange={handleInputChange}
             placeholder="이름(한글)"
           />
 
           <Input
             type="text"
-            name="englishName"
-            value={formData.englishName}
+            name="memberNameEnglish"
+            value={formData.memberNameEnglish}
             onChange={handleInputChange}
             placeholder="이름(영문)"
           />
 
           <Select
-            name="field"
-            value={formData.field}
             options={["풀스택", "클라우드", "인공지능"]}
-            onChange={handleInputChange}
+            onChange={handleCourseChange}
             placeholder="분야 선택"
           />
 
           <Select
-            name="role"
-            value={formData.role}
             options={["STUDENT", "MANAGER"]}
-            onChange={handleInputChange}
+            onChange={handleRoleChange}
             placeholder="역할 선택"
           />
 
