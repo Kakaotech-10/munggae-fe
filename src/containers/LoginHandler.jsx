@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import api from "../api/config";
 
-export default function LoginHandler() {
+export default function KakaoLogin() {
   const processedRef = useRef(false);
 
   useEffect(() => {
@@ -20,9 +20,12 @@ export default function LoginHandler() {
 
         console.log("Starting login with code:", code);
 
-        const response = await api.get(`/v1/auth/login/oauth2/callback/kakao`, {
-          params: { code },
-        });
+        const response = await api.get(
+          `/api/v1/auth/login/oauth2/callback/kakao`,
+          {
+            params: { code },
+          }
+        );
 
         console.log("Full response:", response);
         console.log("Response status:", response.status);
