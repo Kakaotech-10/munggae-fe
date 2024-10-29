@@ -1,6 +1,7 @@
+// interceptors.jsx
 import api from "./config";
 
-// Request Interceptor
+// Request Interceptor - 모든 요청에 토큰 추가
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
@@ -12,7 +13,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor
+// Response Interceptor - 401 에러 처리
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -23,25 +24,23 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // refreshToken은 쿠키로 자동 전송되므로 body 없이 요청
-        const { data } = await api.post("/api/v1/auth/refresh");
+        // 토큰 재발급 요청
+        const { data } = await api.post("/v1/auth/refresh");
         const newAccessToken = data.accessToken;
 
         // 새 액세스 토큰 저장
         localStorage.setItem("accessToken", newAccessToken);
-
-        // 새 토큰으로 헤더 업데이트
         api.defaults.headers.common["Authorization"] =
           `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         // 원래 요청 재시도
         return api(originalRequest);
-      } catch (error) {
+      } catch (refreshError) {
         // 리프레시 토큰도 만료된 경우
-        localStorage.clear();
+        localStorage.removeItem("accessToken");
         window.location.href = "/login";
-        return Promise.reject(error);
+        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error);
