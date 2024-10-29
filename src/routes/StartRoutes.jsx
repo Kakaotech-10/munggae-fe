@@ -7,14 +7,17 @@ import SignupForm_kakao from "../containers/SignupForm_kakao";
 import NoticeForm from "../containers/NoticeForm";
 import Community from "../containers/Community";
 import ClubForm from "../containers/ClubForm";
-import LoginHandler from "../containers/LoginHandler";
+import LoginHandelr from "../containers/LoginHandler";
 
 function StartRoutes() {
   return (
     <Routes>
       <Route path="/" element={<StartForm />} />
       <Route path="/login" element={<LoginForm />} />
-      <Route path="/login/oauth2/callback/kakao" element={<LoginHandler />} />
+      <Route
+        path="/api/v1/auth/login/oauth2/callback/kakao"
+        element={<LoginHandelr />}
+      />
       <Route path="/kakaosignup" element={<SignupForm_kakao />} />
       <Route path="/signup" element={<SignupForm />} />
       <Route path="/mainpage" element={<MainForm />} />
