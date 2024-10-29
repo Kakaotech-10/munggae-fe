@@ -1,74 +1,47 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
-import api from "../api/config";
+import Sidebar from "./SideForm";
+import Button from "../component/Button";
+import Input from "../component/Input";
+import Logo_black from "../image/logo_black.png";
+import "./styles/LoginForm.scss";
+import { KAKAO_AUTH_URL } from "../api/auth";
 
-const LoginHandler = () => {
+const LoginForm = () => {
   const navigate = useNavigate();
-  const processedRef = useRef(false);
 
-  useEffect(() => {
-    const handleKakaoLogin = async () => {
-      if (processedRef.current) return;
-      processedRef.current = true;
+  const handleSignup = () => {
+    navigate("/signup");
+  };
 
-      try {
-        const code = new URL(window.location.href).searchParams.get("code");
-
-        if (!code) {
-          throw new Error("인가 코드를 찾을 수 없습니다.");
-        }
-
-        console.log("Received auth code:", code);
-
-        const response = await api.get("/v1/auth/login/oauth2/callback/kakao", {
-          params: { code },
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        });
-
-        console.log("Login response:", response.data);
-
-        const { data } = response;
-
-        if (data.accessToken) {
-          // 토큰 저장
-          localStorage.setItem("accessToken", data.accessToken);
-
-          // 사용자 정보 저장
-          if (data.id) localStorage.setItem("userId", data.id);
-          if (data.nickname) localStorage.setItem("nickname", data.nickname);
-
-          // 추가 정보 입력이 필요한 경우
-          navigate("/kakaosignup");
-        } else {
-          throw new Error("로그인 응답에 토큰이 없습니다.");
-        }
-      } catch (error) {
-        console.error("Login error:", error);
-        console.error("Error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-        });
-
-        alert("로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
-        navigate("/login");
-      }
-    };
-
-    handleKakaoLogin();
-  }, [navigate]);
+  const handleKakaoLogin = () => {
+    window.location.href = KAKAO_AUTH_URL;
+  };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <h2 className="text-xl mb-4">카카오 로그인 처리중...</h2>
-        <p className="text-gray-600">잠시만 기다려주세요.</p>
+    <div className="start-container">
+      <div className="sidebar-area">
+        <Sidebar showLogout={false} />
+      </div>
+      <div className="content-wrapper">
+        <div className="login-area">
+          <img className="logo_black" src={Logo_black} alt="Logo_black" />
+
+          <Input type="text" placeholder="아이디를 입력하세요" />
+          <Input type="password" placeholder="비밀번호를 입력하세요" />
+          <Button text="로그인" />
+          <Button
+            text="카카오로 로그인"
+            backgroundColor="#FEE500"
+            color="#3D3D3D"
+            onClick={handleKakaoLogin}
+          />
+          <p className="no-account" onClick={handleSignup}>
+            아직 계정이 없나요?
+          </p>
+        </div>
       </div>
     </div>
   );
 };
 
-export default LoginHandler;
+export default LoginForm;
