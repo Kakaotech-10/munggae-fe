@@ -22,74 +22,48 @@ export default function KakaoLogin() {
 
         const response = await api.get(
           `/api/v1/auth/login/oauth2/callback/kakao`,
-          {
-            params: { code },
-          }
+          { params: { code } }
         );
 
         console.log("Full response:", response);
-        console.log("Response status:", response.status);
-        console.log("Response headers:", response.headers);
-        console.log("Response data:", response.data);
-
         const data = response.data;
 
-        // 서버 에러 응답 상세 로깅
-        if (data.code === "COM_001" || data.status === 500) {
-          console.error("Server Error Details:", {
-            code: data.code,
-            status: data.status,
-            message: data.message,
-            fullData: data,
-          });
-          throw new Error(
-            "로그인 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.\n" +
-              (data.message || "알 수 없는 오류가 발생했습니다.")
-          );
-        }
-
-        if (data.token && data.token.accessToken) {
+        // 서버 응답에서 memberId와 kakaoId, nickname 추출
+        if (
+          data.memberId &&
+          data.kakaoId &&
+          data.nickname &&
+          data.token.accessToken
+        ) {
           console.log("Login successful, storing tokens and user info");
+
+          // 토큰 및 사용자 정보 저장
           localStorage.setItem("accessToken", data.token.accessToken);
-
-          // member_id를 데이터베이스에서 가져온 값을 저장
-          if (data.member_id) {
-            localStorage.setItem("userId", data.member_id); // member_id를 userId로 저장
-            localStorage.setItem("memberId", data.member_id); // memberId에도 동일하게 저장
-          } else {
-            console.error("No member_id found in response data:", data); // 전체 data 객체 로그 출력
-          }
-
-          if (data.nickname) {
-            localStorage.setItem("nickname", data.nickname);
-          }
+          localStorage.setItem("userId", data.memberId); // memberId를 userId로 저장
+          localStorage.setItem("kakaoId", data.kakaoId); // kakaoId 저장
+          localStorage.setItem("nickname", data.nickname); // nickname 저장
 
           console.log("Stored data in localStorage:", {
             userId: localStorage.getItem("userId"),
-            memberId: localStorage.getItem("memberId"),
+            kakaoId: localStorage.getItem("kakaoId"),
             nickname: localStorage.getItem("nickname"),
           });
 
           if (data.isRegistered) {
-            // 이미 회원가입된 사용자의 경우, 메인 페이지로 이동
-            window.location.href = "/mainpage";
+            window.location.href = "/mainpage"; // 이미 등록된 사용자
           } else {
-            // 회원가입이 안 된 사용자의 경우, 추가 정보 입력 페이지로 이동
-            console.log("Redirecting to /kakaosignup");
             setTimeout(() => {
-              window.location.href = "/kakaosignup";
-            }, 5000); // 5초 후에 리다이렉트
+              window.location.href = "/kakaosignup"; // 등록되지 않은 사용자
+            }, 5000);
           }
         } else {
-          console.error("Missing access token in response:", data);
+          console.error("Missing required fields in response:", data);
           throw new Error("로그인 정보가 올바르지 않습니다.");
         }
       } catch (error) {
         console.error("Detailed error information:", {
           message: error.message,
           responseData: error.response?.data,
-          responseStatus: error.response?.status,
-          responseHeaders: error.response?.headers,
           originalError: error,
           errorStack: error.stack,
         });
