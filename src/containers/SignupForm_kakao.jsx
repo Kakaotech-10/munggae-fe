@@ -66,7 +66,7 @@ const SignupForm_kakao = () => {
 
       // localStorage에서 memberId 가져오기
       const memberId = localStorage.getItem("userId");
-      console.log("Current memberId:", memberId); // 디버깅용
+      console.log("Current memberId:", memberId);
 
       if (!memberId) {
         throw new Error("회원 정보를 찾을 수 없습니다.");
@@ -89,8 +89,18 @@ const SignupForm_kakao = () => {
           nameEnglish: response.data.nameEnglish,
         };
 
-        // localStorage에 업데이트된 정보 저장
+        // localStorage에 개별 정보 저장
         localStorage.setItem("memberInfo", JSON.stringify(memberInfo));
+        localStorage.setItem("memberName", formData.member_name);
+        localStorage.setItem("memberNameEnglish", formData.member_name_english);
+        localStorage.setItem("course", formData.course);
+
+        console.log("Updated localStorage:", {
+          memberInfo: localStorage.getItem("memberInfo"),
+          memberName: localStorage.getItem("memberName"),
+          memberNameEnglish: localStorage.getItem("memberNameEnglish"),
+          course: localStorage.getItem("course"),
+        });
 
         // 메인 페이지로 이동
         navigate("/mainpage", {
@@ -105,12 +115,14 @@ const SignupForm_kakao = () => {
         error: err,
         response: err.response,
         data: err.response?.data,
-        currentUserId: localStorage.getItem("userId"), // 현재 저장된 userId 확인
+        currentUserId: localStorage.getItem("userId"),
         allStorage: {
-          // 모든 localStorage 데이터 확인
           userId: localStorage.getItem("userId"),
           nickname: localStorage.getItem("nickname"),
           accessToken: localStorage.getItem("accessToken"),
+          memberName: localStorage.getItem("memberName"),
+          memberNameEnglish: localStorage.getItem("memberNameEnglish"),
+          course: localStorage.getItem("course"),
         },
       });
     } finally {
