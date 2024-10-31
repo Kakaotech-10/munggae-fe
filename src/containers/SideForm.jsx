@@ -1,6 +1,6 @@
-//SideForm.jsx
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Logo from "../image/logo.png";
 import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
@@ -47,8 +47,28 @@ NavItem.propTypes = {
   path: PropTypes.string.isRequired,
 };
 
-const Sidebar = ({ userName, profileImageUrl, showLogout }) => {
+const Sidebar = ({ showLogout }) => {
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState({
+    userName: "",
+    profileImageUrl: "",
+    isLoggedIn: false,
+  });
+
+  useEffect(() => {
+    // 로컬 스토리지에서 사용자 정보 확인
+    const memberName = localStorage.getItem("memberName");
+    const memberNameEnglish = localStorage.getItem("memberNameEnglish");
+    const profileImage = localStorage.getItem("profileImage");
+
+    if (memberName && memberNameEnglish) {
+      setUserInfo({
+        userName: `${memberNameEnglish}(${memberName})`,
+        profileImageUrl: profileImage || "",
+        isLoggedIn: true,
+      });
+    }
+  }, []);
 
   const handleLogoClick = () => {
     navigate("/mainpage");
@@ -59,6 +79,23 @@ const Sidebar = ({ userName, profileImageUrl, showLogout }) => {
       event.preventDefault();
       handleLogoClick();
     }
+  };
+
+  const getWelcomeMessage = () => {
+    if (userInfo.isLoggedIn) {
+      return (
+        <p>
+          <span className="user-name">{userInfo.userName}</span>님, <br />
+          환영합니다
+        </p>
+      );
+    }
+    return (
+      <p>
+        안녕하세요 <br />
+        뭉게뭉게에 오신 것을 환영합니다.
+      </p>
+    );
   };
 
   return (
@@ -74,12 +111,11 @@ const Sidebar = ({ userName, profileImageUrl, showLogout }) => {
       </div>
       <div className="user-info">
         <div className="user-image">
-          <img src={profileImageUrl} alt="profile" />
+          {userInfo.profileImageUrl && (
+            <img src={userInfo.profileImageUrl} alt="profile" />
+          )}
         </div>
-        <p>
-          <span className="user-name">{userName}</span>님, <br />
-          환영합니다
-        </p>
+        {getWelcomeMessage()}
       </div>
       <nav>
         <ul>
@@ -108,7 +144,7 @@ const Sidebar = ({ userName, profileImageUrl, showLogout }) => {
             text="마이페이지"
             path="/setting"
           />
-          {showLogout && (
+          {showLogout && userInfo.isLoggedIn && (
             <li>
               <button className="nav-item logout">
                 <img src={Logouticon} alt="Logout" />
@@ -123,14 +159,10 @@ const Sidebar = ({ userName, profileImageUrl, showLogout }) => {
 };
 
 Sidebar.propTypes = {
-  userName: PropTypes.string,
-  profileImageUrl: PropTypes.string,
   showLogout: PropTypes.bool,
 };
 
 Sidebar.defaultProps = {
-  userName: "Mae.park(박세영)",
-  profileImageUrl: "https://example.com/default-profile-image.jpg",
   showLogout: true,
 };
 
