@@ -49,12 +49,11 @@ export default function KakaoLogin() {
             nickname: localStorage.getItem("nickname"),
           });
 
-          if (data.isRegistered) {
-            window.location.href = "/mainpage"; // 이미 등록된 사용자
+          // member_name_english나 course가 없는 경우에만 kakaosignup으로 이동
+          if (data.memberNameEnglish && data.course) {
+            window.location.href = "/mainpage";
           } else {
-            setTimeout(() => {
-              window.location.href = "/kakaosignup"; // 등록되지 않은 사용자
-            }, 5000);
+            window.location.href = "/kakaosignup";
           }
         } else {
           console.error("Missing required fields in response:", data);
