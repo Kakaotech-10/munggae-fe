@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import api from "../api/config";
+import { useNavigate } from "react-router-dom";
 
 export default function KakaoLogin() {
   const processedRef = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const kakaoLogin = async () => {
@@ -14,7 +16,7 @@ export default function KakaoLogin() {
 
         if (!code) {
           console.error("No authorization code found");
-          window.location.href = "/login";
+          navigate("/login");
           return;
         }
 
@@ -33,34 +35,11 @@ export default function KakaoLogin() {
           }
         );
 
-        // 응답 상세 로깅
-        console.log("Login response status:", response.status);
-        console.log("Login response headers:", response.headers);
-        console.log("Set-Cookie header:", response.headers["set-cookie"]);
-        console.log("Login response data:", response.data);
+        // 응답 헤더에서 Set-Cookie 확인
+        console.log("Response headers:", response.headers);
+        console.log("All cookies:", document.cookie);
 
         const data = response.data;
-        console.log("Token data:", data.token);
-
-        // refresh token을 응답 데이터에서 직접 가져와서 쿠키에 설정
-        if (data.token?.refreshToken) {
-          const cookieOptions = [
-            `refresh-token=${data.token.refreshToken}`,
-            "path=/",
-            "SameSite=Lax",
-            import.meta.env.PROD ? "Secure" : "", // process.env 대신 import.meta.env 사용
-          ]
-            .filter(Boolean)
-            .join("; ");
-
-          document.cookie = cookieOptions;
-          console.log("Manually set refresh-token cookie");
-        } else {
-          console.warn("No refresh token in response data");
-        }
-
-        // 쿠키 설정 확인
-        console.log("Cookies after setting:", document.cookie);
 
         if (
           data.memberId &&
@@ -78,33 +57,30 @@ export default function KakaoLogin() {
           api.defaults.headers.common["Authorization"] =
             `Bearer ${data.token.accessToken}`;
 
+          // 쿠키 확인
+          console.log("Cookies after login:", document.cookie);
+
           if (data.memberNameEnglish && data.course) {
             localStorage.setItem("memberNameEnglish", data.memberNameEnglish);
             localStorage.setItem("course", data.course);
-            window.location.href = "/mainpage";
+            navigate("/mainpage");
           } else {
-            window.location.href = "/kakaosignup";
+            navigate("/kakaosignup");
           }
         } else {
           throw new Error("필수 로그인 정보가 누락되었습니다.");
         }
       } catch (error) {
-        console.error("Login error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          headers: error.response?.headers,
-          cookies: document.cookie,
-        });
+        console.error("Login error details:", error);
         alert(
           "카카오 로그인 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요."
         );
-        window.location.href = "/login";
+        navigate("/login");
       }
     };
 
     kakaoLogin();
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
