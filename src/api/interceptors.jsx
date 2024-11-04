@@ -1,5 +1,5 @@
 import api from "./config";
-
+//bug 수정완료
 const handleLogout = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("userId");
