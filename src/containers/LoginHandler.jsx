@@ -52,26 +52,34 @@ export default function KakaoLogin() {
           localStorage.setItem("userId", data.memberId);
           localStorage.setItem("kakaoId", data.kakaoId);
           localStorage.setItem("nickname", data.nickname);
+          localStorage.setItem("memberJoin", data.memberJoin);
 
           // axios 기본 헤더 설정
           api.defaults.headers.common["Authorization"] =
             `Bearer ${data.token.accessToken}`;
 
-          // 쿠키 확인
-          console.log("Cookies after login:", document.cookie);
-
-          if (data.memberNameEnglish && data.course) {
-            localStorage.setItem("memberNameEnglish", data.memberNameEnglish);
-            localStorage.setItem("course", data.course);
+          if (data.memberJoin) {
+            // 이미 회원가입이 완료된 경우
+            if (data.memberNameEnglish && data.course) {
+              localStorage.setItem("memberNameEnglish", data.memberNameEnglish);
+              localStorage.setItem("course", data.course);
+            }
             navigate("/mainpage");
           } else {
+            // 처음 가입하는 경우
             navigate("/kakaosignup");
           }
         } else {
           throw new Error("필수 로그인 정보가 누락되었습니다.");
         }
       } catch (error) {
-        console.error("Login error details:", error);
+        if (import.meta.env.DEV) {
+          console.error("Login error details:", {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+          });
+        }
         alert(
           "카카오 로그인 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요."
         );
