@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import api from "../api/config";
+import { useNavigate } from "react-router-dom";
 
 export default function KakaoLogin() {
   const processedRef = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const kakaoLogin = async () => {
@@ -14,74 +16,71 @@ export default function KakaoLogin() {
 
         if (!code) {
           console.error("No authorization code found");
-          window.location.href = "/login";
+          navigate("/login");
           return;
         }
 
         console.log("Starting login with code:", code);
 
+        // 로그인 요청
         const response = await api.get(
           `/api/v1/auth/login/oauth2/callback/kakao`,
-          { params: { code } }
+          {
+            params: { code },
+            withCredentials: true,
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+          }
         );
 
-        console.log("Full response:", response);
+        // 응답 헤더에서 Set-Cookie 확인
+        console.log("Response headers:", response.headers);
+        console.log("All cookies:", document.cookie);
+
         const data = response.data;
 
-        // 서버 응답에서 memberId와 kakaoId, nickname 추출
         if (
           data.memberId &&
           data.kakaoId &&
           data.nickname &&
-          data.token.accessToken
+          data.token?.accessToken
         ) {
-          console.log("Login successful, storing tokens and user info");
-
-          // 토큰 및 사용자 정보 저장
+          // Access Token 저장
           localStorage.setItem("accessToken", data.token.accessToken);
-          localStorage.setItem("userId", data.memberId); // memberId를 userId로 저장
-          localStorage.setItem("kakaoId", data.kakaoId); // kakaoId 저장
-          localStorage.setItem("nickname", data.nickname); // nickname 저장
+          localStorage.setItem("userId", data.memberId);
+          localStorage.setItem("kakaoId", data.kakaoId);
+          localStorage.setItem("nickname", data.nickname);
 
-          console.log("Stored data in localStorage:", {
-            userId: localStorage.getItem("userId"),
-            kakaoId: localStorage.getItem("kakaoId"),
-            nickname: localStorage.getItem("nickname"),
-          });
+          // axios 기본 헤더 설정
+          api.defaults.headers.common["Authorization"] =
+            `Bearer ${data.token.accessToken}`;
 
-          // member_name_english나 course가 없는 경우에만 kakaosignup으로 이동
+          // 쿠키 확인
+          console.log("Cookies after login:", document.cookie);
+
           if (data.memberNameEnglish && data.course) {
-            window.location.href = "/mainpage";
+            localStorage.setItem("memberNameEnglish", data.memberNameEnglish);
+            localStorage.setItem("course", data.course);
+            navigate("/mainpage");
           } else {
-            window.location.href = "/kakaosignup";
+            navigate("/kakaosignup");
           }
         } else {
-          console.error("Missing required fields in response:", data);
-          throw new Error("로그인 정보가 올바르지 않습니다.");
+          throw new Error("필수 로그인 정보가 누락되었습니다.");
         }
       } catch (error) {
-        console.error("Detailed error information:", {
-          message: error.message,
-          responseData: error.response?.data,
-          originalError: error,
-          errorStack: error.stack,
-        });
-
-        let errorMessage =
-          "카카오 로그인 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.";
-        if (error.response?.data?.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-
-        alert(errorMessage);
-        window.location.href = "/login";
+        console.error("Login error details:", error);
+        alert(
+          "카카오 로그인 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요."
+        );
+        navigate("/login");
       }
     };
 
     kakaoLogin();
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

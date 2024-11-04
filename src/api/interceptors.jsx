@@ -1,48 +1,74 @@
-// interceptors.jsx
 import api from "./config";
+//bug 수정완료
+const handleLogout = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("kakaoId");
+  localStorage.removeItem("nickname");
+  localStorage.removeItem("memberName");
+  localStorage.removeItem("memberNameEnglish");
+  localStorage.removeItem("course");
+  localStorage.removeItem("profileImage");
+  localStorage.removeItem("memberInfo");
 
-// Request Interceptor - 모든 요청에 토큰 추가
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  document.cookie =
+    "refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  delete api.defaults.headers.common["Authorization"];
+  window.location.href = "/login";
+};
 
-// Response Interceptor - 401 에러 처리
+// Response Interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // 401 에러이고 재시도하지 않은 요청인 경우
+    // refresh 토큰 갱신 요청이 실패한 경우
+    if (
+      originalRequest.url === "/api/v1/auth/refresh" &&
+      error.response?.status === 401
+    ) {
+      console.log("Refresh token has expired");
+      alert("로그인이 만료되었습니다. 다시 로그인해 주세요.");
+      handleLogout();
+      return Promise.reject(error);
+    }
+
+    // access 토큰이 만료되어 401이 발생하고, 아직 재시도하지 않은 경우
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // 토큰 재발급 요청
-        const { data } = await api.post("/v1/auth/refresh");
-        const newAccessToken = data.accessToken;
+        console.log("Access token expired, attempting to refresh...");
 
-        // 새 액세스 토큰 저장
-        localStorage.setItem("accessToken", newAccessToken);
-        api.defaults.headers.common["Authorization"] =
-          `Bearer ${newAccessToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        const response = await api.post("/api/v1/auth/refresh", null, {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
 
-        // 원래 요청 재시도
-        return api(originalRequest);
+        if (response.data?.accessToken) {
+          // 새로운 access token 저장
+          const newAccessToken = response.data.accessToken;
+          localStorage.setItem("accessToken", newAccessToken);
+          api.defaults.headers.common["Authorization"] =
+            `Bearer ${newAccessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          return api(originalRequest);
+        } else {
+          throw new Error("Failed to get new access token");
+        }
       } catch (refreshError) {
-        // 리프레시 토큰도 만료된 경우
-        localStorage.removeItem("accessToken");
-        window.location.href = "/login";
+        console.error("Failed to refresh token:", refreshError);
+        alert("로그인이 만료되었습니다. 다시 로그인해 주세요.");
+        handleLogout();
         return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );
