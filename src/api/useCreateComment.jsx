@@ -3,7 +3,7 @@ import api from "./config";
 
 export const createComment = async (postId, commentData) => {
   try {
-    const response = await api.post(`/comments`, {
+    const response = await api.post(`/api/v1/comments`, {
       post_id: postId,
       member_id: commentData.memberId,
       parent_comment_id: commentData.parentId || null,

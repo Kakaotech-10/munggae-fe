@@ -1,6 +1,6 @@
 //WriteForm.jsx
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./styles/WriteForm.scss";
 import Uploadicon from "../image/Uploadicon.svg";
 import { createPost } from "../api/useCreatePost";
@@ -26,6 +26,28 @@ const WriteForm = ({
   const [deadlineDate, setDeadlineDate] = useState("");
   const [deadlineTime, setDeadlineTime] = useState("");
   const [files, setFiles] = useState([]);
+  const [userInfo, setUserInfo] = useState({
+    memberName: "",
+    memberNameEnglish: "",
+  });
+
+  useEffect(() => {
+    // localStorage에서 사용자 정보 가져오기
+    const memberName = localStorage.getItem("memberName");
+    const memberNameEnglish = localStorage.getItem("memberNameEnglish");
+    setUserInfo({
+      memberName: memberName || "",
+      memberNameEnglish: memberNameEnglish || "",
+    });
+  }, []);
+
+  // 사용자 이름을 표시하는 함수
+  const displayName = () => {
+    if (editMode && initialPost) {
+      return `${initialPost.author.nameEnglish}(${initialPost.author.name})`;
+    }
+    return `${userInfo.memberNameEnglish}(${userInfo.memberName})`;
+  };
 
   const handleSubmit = async () => {
     try {
@@ -43,10 +65,11 @@ const WriteForm = ({
         });
       } else {
         // 새 게시글 작성 모드일 때
+        const memberId = localStorage.getItem("userId");
         const postData = {
           title,
           content,
-          memberId: 1,
+          memberId: parseInt(memberId),
         };
         updatedPost = await createPost(postData);
       }
@@ -55,7 +78,7 @@ const WriteForm = ({
         await uploadAttachments(updatedPost.id, files);
       }
 
-      onPostCreated(updatedPost); // 수정/생성된 게시물 전달
+      onPostCreated(updatedPost);
     } catch (error) {
       console.error("Error submitting post:", error);
       alert(
@@ -65,6 +88,7 @@ const WriteForm = ({
       );
     }
   };
+
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
   };
@@ -113,9 +137,7 @@ const WriteForm = ({
                 alt="프로필"
                 className="profile-image"
               />
-              <span className="profile-name">
-                {editMode ? initialPost.author.name : "Mae.park(박세영)"}
-              </span>
+              <span className="profile-name">{displayName()}</span>
               <img
                 src={Uploadicon}
                 alt={editMode ? "수정" : "업로드"}

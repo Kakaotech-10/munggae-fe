@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
 import Trashicon from "../image/Trash.svg";
@@ -18,11 +18,18 @@ const ViewPage = ({
   onClose,
   onPostDelete,
   onPostEdit,
-  currentUserId,
   onCommentsUpdate,
 }) => {
   const [showEditForm, setShowEditForm] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const { handleCreateComment, isCreating, createError } = useCreateComment();
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    setCurrentUserId(userId ? parseInt(userId) : null);
+  }, []);
+
+  const isAuthor = currentUserId === post.author.id;
 
   const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
     if (deletedCommentId) {
@@ -76,9 +83,18 @@ const ViewPage = ({
     }
   };
 
-  const handleNewComment = async (postId, memberId, content) => {
+  const handleNewComment = async (postId, content) => {
+    if (!currentUserId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
     try {
-      const newComment = await handleCreateComment(postId, memberId, content);
+      const newComment = await handleCreateComment(
+        postId,
+        currentUserId,
+        content
+      );
       handleCommentUpdate(newComment);
     } catch (error) {
       console.error("댓글 생성 실패:", error);
@@ -87,8 +103,13 @@ const ViewPage = ({
 
   const handleDeleteClick = async () => {
     try {
+      if (!isAuthor) {
+        alert("게시물 작성자만 삭제할 수 있습니다.");
+        return;
+      }
+
       if (window.confirm("게시물을 삭제하시겠습니까?")) {
-        await deletePost(post.id, post.author.id);
+        await deletePost(post.id, currentUserId);
         onPostDelete(post.id);
         onClose();
       }
@@ -99,6 +120,10 @@ const ViewPage = ({
   };
 
   const handleEditClick = () => {
+    if (!isAuthor) {
+      alert("게시물 작성자만 수정할 수 있습니다.");
+      return;
+    }
     setShowEditForm(true);
   };
 
@@ -132,29 +157,6 @@ const ViewPage = ({
     return new Date(dateString).toLocaleDateString("ko-KR", options);
   };
 
-  const organizeComments = (commentsArray) => {
-    if (!Array.isArray(commentsArray) || commentsArray.length === 0) {
-      return [];
-    }
-
-    const commentMap = {};
-    const rootComments = [];
-
-    commentsArray.forEach((comment) => {
-      commentMap[comment.id] = { ...comment, replies: [] };
-    });
-
-    commentsArray.forEach((comment) => {
-      if (comment.parentId && commentMap[comment.parentId]) {
-        commentMap[comment.parentId].replies.push(commentMap[comment.id]);
-      } else {
-        rootComments.push(commentMap[comment.id]);
-      }
-    });
-
-    return rootComments;
-  };
-
   return (
     <div
       className="view-form-overlay"
@@ -184,46 +186,48 @@ const ViewPage = ({
                   {formatDate(post.updatedAt)}
                 </span>
               </div>
-              <div className="icons">
-                <img
-                  src={Trashicon}
-                  alt="삭제하기"
-                  className="trash-icon"
-                  onClick={handleDeleteClick}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleDeleteClick();
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  style={{ cursor: "pointer" }}
-                />
-                <img
-                  src={Editicon}
-                  alt="수정하기"
-                  className="edit-icon"
-                  onClick={handleEditClick}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleEditClick();
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  style={{ cursor: "pointer" }}
-                />
-                {showEditForm && (
-                  <WriteForm
-                    editMode={true}
-                    initialPost={post}
-                    onClose={() => setShowEditForm(false)}
-                    onPostCreated={handleEditComplete}
+              {isAuthor && (
+                <div className="icons">
+                  <img
+                    src={Trashicon}
+                    alt="삭제하기"
+                    className="trash-icon"
+                    onClick={handleDeleteClick}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleDeleteClick();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
                   />
-                )}
-              </div>
+                  <img
+                    src={Editicon}
+                    alt="수정하기"
+                    className="edit-icon"
+                    onClick={handleEditClick}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleEditClick();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
+                  />
+                  {showEditForm && (
+                    <WriteForm
+                      editMode={true}
+                      initialPost={post}
+                      onClose={() => setShowEditForm(false)}
+                      onPostCreated={handleEditComplete}
+                    />
+                  )}
+                </div>
+              )}
             </div>
             <div className="form-group">
               <div className="title">제목: {post.title}</div>
@@ -240,8 +244,6 @@ const ViewPage = ({
                 <CommentInput
                   onSubmit={handleNewComment}
                   postId={post.id}
-                  currentUserId={currentUserId}
-                  depth={0}
                   isSubmitting={isCreating}
                 />
                 {createError && (
@@ -304,7 +306,6 @@ ViewPage.propTypes = {
       }).isRequired,
     })
   ).isRequired,
-  currentUserId: PropTypes.number.isRequired,
   onCommentsUpdate: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   onPostDelete: PropTypes.func.isRequired,

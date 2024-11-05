@@ -3,7 +3,7 @@ import api from "./config";
 
 export const deletePost = async (postId, memberId) => {
   try {
-    await api.delete(`/posts/${postId}`, {
+    await api.delete(`/api/v1/posts/${postId}`, {
       params: {
         memberId: memberId,
       },

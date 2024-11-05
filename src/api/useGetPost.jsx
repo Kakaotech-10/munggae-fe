@@ -2,7 +2,7 @@ import api from "./config";
 
 export const getPost = async (postId) => {
   try {
-    const response = await api.get(`/posts/${postId}`);
+    const response = await api.get(`/api/v1/posts/${postId}`);
 
     // Log the entire response for debugging
     console.log("API Response:", response);

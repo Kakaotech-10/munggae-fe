@@ -3,7 +3,7 @@ import api from "./config";
 export const updatePost = async (postId, postData, memberId) => {
   try {
     const response = await api.put(
-      `/posts/${postId}?memberId=${memberId}`,
+      `/api/v1/posts/${postId}?memberId=${memberId}`,
       postData
     );
     return response.data;

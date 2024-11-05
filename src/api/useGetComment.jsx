@@ -3,7 +3,7 @@ import api from "./config";
 
 export const getPostComments = async (postId) => {
   try {
-    const response = await api.get("/comments", {
+    const response = await api.get("/api/v1/comments", {
       params: {
         postId: postId,
       },

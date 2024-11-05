@@ -9,7 +9,7 @@ export const replyComment = async (commentId, memberId, content) => {
 
     // URL에 쿼리 파라미터를 명시적으로 포함
     const response = await api.post(
-      `/comments/${commentId}?memberId=${memberId}`,
+      `/api/v1/comments/${commentId}?memberId=${memberId}`,
       { content }
     );
     return response.data;
