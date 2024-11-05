@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { MoreHorizontal } from "lucide-react";
-import CommentInput from "../component/CommentInput";
+import CommentInput from "./CommentInput";
+import { getCommentDetail } from "../api/useGetCommentDetail";
 import {
+  useCreateComment,
   useEditComment,
   useDeleteComment,
-  useCreateComment,
 } from "../hooks/useComment";
 import "./styles/Comment.scss";
 
@@ -20,19 +21,21 @@ const Comment = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const dropdownRef = useRef(null);
   const actionButtonRef = useRef(null);
 
-  const { editComment, isEditing, editError } = useEditComment();
-  const { deleteComment, isDeleting, deleteError } = useDeleteComment();
-  const { handleCreateComment, isCreating } = useCreateComment();
+  const { handleEditComment, isEditing, editError } = useEditComment();
+  const { handleDeleteComment, isDeleting } = useDeleteComment();
+  const { handleCreateComment, isCreating, createError } = useCreateComment();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target) &&
-        !actionButtonRef.current.contains(event.target)
+        !actionButtonRef.current?.contains(event.target)
       ) {
         setShowDropdown(false);
       }
@@ -44,149 +47,135 @@ const Comment = ({
 
   const isOwnComment = currentUserId === comment.member.id;
 
-  const handleReply = (e) => {
-    e.stopPropagation();
-    setShowReplyForm(true);
-    setShowDropdown(false);
-  };
-
-  const handleReplySubmit = async (
-    postId,
-    memberId,
-    content,
-    parentId,
-    depth
-  ) => {
-    console.log("Received params:", {
-      postId,
-      memberId,
-      content,
-      parentId,
-      depth,
-    });
-
-    if (!postId || !memberId || !content || !parentId) {
-      console.error("Missing parameters:", {
-        postId,
-        memberId,
-        content,
-        parentId,
-        depth,
-      });
-      return;
-    }
-
-    try {
-      const newReply = await handleCreateComment(
-        postId,
-        memberId,
-        content,
-        parentId,
-        depth + 1
-      );
-      if (onCommentUpdate) {
-        onCommentUpdate(newReply);
-      }
-      setShowReplyForm(false);
-    } catch (error) {
-      console.error("답글 작성 실패:", error);
-    }
-  };
-
-  const handleEdit = (e) => {
-    e.stopPropagation();
-    if (isOwnComment) {
-      setIsEditMode(true);
-      setShowDropdown(false);
-    }
-  };
-
-  const handleEditSubmit = async () => {
+  const handleEdit = async () => {
     if (!editContent.trim()) {
       alert("댓글 내용을 입력해주세요.");
       return;
     }
 
     try {
-      const updatedComment = await editComment({
-        commentId: comment.id,
-        memberId: currentUserId,
-        content: editContent,
-      });
+      const updatedComment = await handleEditComment(
+        comment.id,
+        editContent.trim()
+      );
+      const formattedComment = {
+        ...comment,
+        content: updatedComment.content,
+        updatedAt: updatedComment.updatedAt,
+      };
+
+      onCommentUpdate(formattedComment);
       setIsEditMode(false);
-      if (onCommentUpdate) {
-        onCommentUpdate(updatedComment);
-      }
+      setShowDropdown(false);
     } catch (error) {
       console.error("댓글 수정 실패:", error);
+      alert(error.message || "댓글 수정 중 오류가 발생했습니다.");
     }
   };
 
-  const handleEditCancel = () => {
-    setIsEditMode(false);
-    setEditContent(comment.content);
+  const handleDelete = async () => {
+    if (!isOwnComment || !window.confirm("댓글을 삭제하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      await handleDeleteComment(comment.id);
+      onCommentUpdate(null, comment.id);
+      setShowDropdown(false);
+    } catch (error) {
+      console.error("댓글 삭제 실패:", error);
+      alert(error.message || "댓글 삭제 중 오류가 발생했습니다.");
+    }
   };
 
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    if (isOwnComment && window.confirm("댓글을 삭제하시겠습니까?")) {
-      try {
-        await deleteComment({
-          commentId: comment.id,
-          memberId: currentUserId,
-        });
-        if (onCommentUpdate) {
-          onCommentUpdate(null, comment.id);
-        }
-        setShowDropdown(false);
-      } catch (error) {
-        console.error("댓글 삭제 실패:", error);
+  const handleReply = async (content) => {
+    if (!content || typeof content !== "string") {
+      console.error("Invalid content:", content);
+      return;
+    }
+
+    try {
+      const validContent = String(content).trim();
+      if (!validContent) {
+        alert("댓글 내용을 입력해주세요.");
+        return;
       }
+
+      const newReply = await handleCreateComment(
+        postId,
+        currentUserId,
+        validContent,
+        comment.id
+      );
+
+      if (newReply) {
+        const replyWithParentInfo = {
+          ...newReply,
+          replies: [],
+          member: {
+            ...newReply.member,
+            id: currentUserId,
+            name: localStorage.getItem("memberName"),
+            nameEnglish: localStorage.getItem("memberNameEnglish"),
+          },
+        };
+        onCommentUpdate(replyWithParentInfo);
+        setShowReplyForm(false);
+      }
+    } catch (error) {
+      console.error("답글 작성 실패:", error);
+      alert(error.message || "답글 작성 중 오류가 발생했습니다.");
     }
   };
 
-  if (isEditMode) {
-    return (
-      <div className={`comment depth-${depth}`}>
-        <div className="comment-header">
-          <div className="author-line">
-            <span className="comment-author">{`${comment.member.name}(${comment.member.nameEnglish})`}</span>
-          </div>
-        </div>
-        <div className="comment-edit-form">
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className="edit-textarea"
-            disabled={isEditing}
-          />
-          {editError && <div className="error-message">{editError}</div>}
-          <div className="edit-actions">
-            <button
-              onClick={handleEditSubmit}
-              disabled={isEditing}
-              className="save-button"
-            >
-              {isEditing ? "저장 중..." : "저장"}
-            </button>
-            <button
-              onClick={handleEditCancel}
-              disabled={isEditing}
-              className="cancel-button"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleShowReplies = async () => {
+    try {
+      setIsLoadingReplies(true);
+      const commentDetail = await getCommentDetail(comment.id);
+
+      if (commentDetail) {
+        // 기존 댓글 정보에 replies 추가하여 업데이트
+        const updatedComment = {
+          ...comment,
+          replies: commentDetail.replies || [],
+        };
+        onCommentUpdate(updatedComment);
+        setShowReplies(true);
+      }
+    } catch (error) {
+      console.error("Failed to load replies:", error);
+      alert("대댓글을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoadingReplies(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    };
+    return new Date(dateString).toLocaleDateString("ko-KR", options);
+  };
 
   return (
-    <div className={`comment depth-${depth}`}>
+    <div className={`comment ${depth > 0 ? "reply" : ""}`}>
+      {comment.parentId && (
+        <div className="reply-indicator">
+          <span className="reply-arrow">↳</span>
+          <span>답글</span>
+        </div>
+      )}
+
       <div className="comment-header">
         <div className="author-line">
-          <span className="comment-author">{`${comment.member.name}(${comment.member.nameEnglish})`}</span>
+          <span className="comment-author">
+            {`${comment.member.nameEnglish}(${comment.member.name})`}
+          </span>
           <div className="comment-actions">
             <div
               ref={actionButtonRef}
@@ -200,11 +189,30 @@ const Comment = ({
             </div>
             {showDropdown && (
               <div className="dropdown-menu" ref={dropdownRef}>
-                <div onClick={handleReply}>답글 달기</div>
+                {depth === 0 && (
+                  <div
+                    onClick={() => {
+                      setShowReplyForm(true);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    답글 달기
+                  </div>
+                )}
                 {isOwnComment && (
                   <>
-                    <div onClick={handleEdit}>수정하기</div>
-                    <div onClick={handleDelete}>
+                    <div
+                      onClick={() => {
+                        setIsEditMode(true);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      수정하기
+                    </div>
+                    <div
+                      onClick={handleDelete}
+                      className={isDeleting ? "disabled" : ""}
+                    >
                       {isDeleting ? "삭제 중..." : "삭제하기"}
                     </div>
                   </>
@@ -214,37 +222,86 @@ const Comment = ({
           </div>
         </div>
       </div>
-      <div className="comment-content">{comment.content}</div>
-      <div className="comment-footer">
-        <span className="comment-date">
-          {new Date(comment.createdAt).toLocaleString()}
-        </span>
+
+      <div className="comment-content">
+        {isEditMode ? (
+          <div className="comment-edit-form">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              disabled={isEditing}
+              placeholder="댓글을 입력하세요"
+            />
+            {editError && <div className="error-message">{editError}</div>}
+            <div className="edit-actions">
+              <button
+                onClick={handleEdit}
+                disabled={isEditing || !editContent.trim()}
+                className="save-button"
+              >
+                {isEditing ? "저장 중..." : "저장"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditMode(false);
+                  setEditContent(comment.content);
+                }}
+                disabled={isEditing}
+                className="cancel-button"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="content-text">{comment.content}</div>
+            <div className="comment-footer">
+              <span className="comment-date">
+                {formatDate(comment.createdAt)}
+              </span>
+              {!showReplies && depth === 0 && (
+                <button
+                  onClick={handleShowReplies}
+                  disabled={isLoadingReplies}
+                  className="show-replies-button"
+                >
+                  {isLoadingReplies ? "불러오는 중..." : "대댓글 확인하기"}
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
-      {deleteError && <div className="error-message">{deleteError}</div>}
 
       {showReplyForm && (
-        <CommentInput
-          onSubmit={handleReplySubmit}
-          placeholder="답글을 입력하세요"
-          isSubmitting={isCreating}
-          parentId={comment.id}
-          postId={postId} // 명시적으로 postId 전달
-          currentUserId={currentUserId} // 명시적으로 currentUserId 전달
-          depth={depth + 1}
-        />
+        <div className="reply-form">
+          <div className="reply-to-text">
+            {`${comment.member.nameEnglish}(${comment.member.name})님에게 답글 작성 중`}
+          </div>
+          <CommentInput
+            onSubmit={handleReply}
+            placeholder="답글을 입력하세요"
+            isSubmitting={isCreating}
+          />
+          {createError && <div className="error-message">{createError}</div>}
+        </div>
       )}
 
-      {comment.replies &&
-        comment.replies.map((reply) => (
-          <Comment
-            key={`reply-${reply.id}`}
-            comment={reply}
-            depth={depth + 1}
-            currentUserId={currentUserId}
-            onCommentUpdate={onCommentUpdate}
-            postId={postId}
-          />
-        ))}
+      {showReplies && comment.replies && comment.replies.length > 0 && (
+        <div className="replies">
+          {comment.replies.map((reply) => (
+            <Comment
+              key={`reply-${reply.id}`}
+              comment={reply}
+              depth={depth + 1}
+              currentUserId={currentUserId}
+              onCommentUpdate={onCommentUpdate}
+              postId={postId}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -254,6 +311,8 @@ Comment.propTypes = {
     id: PropTypes.number.isRequired,
     content: PropTypes.string.isRequired,
     createdAt: PropTypes.string.isRequired,
+    parentId: PropTypes.number,
+    depth: PropTypes.number.isRequired,
     member: PropTypes.shape({
       id: PropTypes.number.isRequired,
       name: PropTypes.string.isRequired,
@@ -263,7 +322,7 @@ Comment.propTypes = {
   }).isRequired,
   depth: PropTypes.number.isRequired,
   currentUserId: PropTypes.number.isRequired,
-  onCommentUpdate: PropTypes.func,
+  onCommentUpdate: PropTypes.func.isRequired,
   postId: PropTypes.number.isRequired,
 };
 

@@ -4,7 +4,7 @@ import api from "./config";
 export const createPost = async (postData) => {
   try {
     const response = await api.post(
-      "/posts",
+      "/api/v1/posts",
       {
         title: postData.title,
         content: postData.content,

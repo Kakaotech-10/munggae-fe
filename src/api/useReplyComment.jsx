@@ -1,20 +1,20 @@
 import api from "./config";
+export const replyCommentAPI = async (commentId, content) => {
+  const memberId = localStorage.getItem("userId");
+  if (!memberId) throw new Error("로그인이 필요합니다.");
 
-export const replyComment = async (commentId, memberId, content) => {
   try {
-    // memberId와 commentId가 유효한 숫자인지 확인
-    if (!commentId || !memberId) {
-      throw new Error("Invalid commentId or memberId");
-    }
+    console.log("Sending reply request:", { commentId, content }); // 로그 추가
 
-    // URL에 쿼리 파라미터를 명시적으로 포함
-    const response = await api.post(
-      `/comments/${commentId}?memberId=${memberId}`,
-      { content }
-    );
+    const response = await api.post(`/api/v1/comments/${commentId}`, {
+      content,
+    });
+
+    console.log("Reply API response:", response.data); // 로그 추가
+
     return response.data;
   } catch (error) {
-    console.error("Error creating reply:", error);
+    console.error("Reply comment error:", error);
     throw error;
   }
 };
