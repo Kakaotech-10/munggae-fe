@@ -65,6 +65,24 @@
     align-items: center;
     font-size: 0.85em;
     color: #666;
+
+    .show-replies-button {
+      background: none;
+      border: none;
+      color: #3d3d3d;
+      font-size: 0.9em;
+      cursor: pointer;
+      padding: 4px 8px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      &:disabled {
+        color: #999;
+        cursor: not-allowed;
+      }
+    }
   }
 
   .comment-edit-form {

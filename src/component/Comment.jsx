@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { MoreHorizontal } from "lucide-react";
 import CommentInput from "./CommentInput";
+import { getCommentDetail } from "../api/useGetCommentDetail";
 import {
   useCreateComment,
   useEditComment,
@@ -20,6 +21,8 @@ const Comment = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const dropdownRef = useRef(null);
   const actionButtonRef = useRef(null);
 
@@ -55,7 +58,6 @@ const Comment = ({
         comment.id,
         editContent.trim()
       );
-
       const formattedComment = {
         ...comment,
         content: updatedComment.content,
@@ -103,13 +105,13 @@ const Comment = ({
         postId,
         currentUserId,
         validContent,
-        comment.id // parentId만 전달
+        comment.id
       );
 
       if (newReply) {
         const replyWithParentInfo = {
           ...newReply,
-          replies: [], // 새 댓글은 빈 replies 배열을 가짐
+          replies: [],
           member: {
             ...newReply.member,
             id: currentUserId,
@@ -123,6 +125,28 @@ const Comment = ({
     } catch (error) {
       console.error("답글 작성 실패:", error);
       alert(error.message || "답글 작성 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleShowReplies = async () => {
+    try {
+      setIsLoadingReplies(true);
+      const commentDetail = await getCommentDetail(comment.id);
+
+      if (commentDetail) {
+        // 기존 댓글 정보에 replies 추가하여 업데이트
+        const updatedComment = {
+          ...comment,
+          replies: commentDetail.replies || [],
+        };
+        onCommentUpdate(updatedComment);
+        setShowReplies(true);
+      }
+    } catch (error) {
+      console.error("Failed to load replies:", error);
+      alert("대댓글을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoadingReplies(false);
     }
   };
 
@@ -236,6 +260,15 @@ const Comment = ({
               <span className="comment-date">
                 {formatDate(comment.createdAt)}
               </span>
+              {!showReplies && depth === 0 && (
+                <button
+                  onClick={handleShowReplies}
+                  disabled={isLoadingReplies}
+                  className="show-replies-button"
+                >
+                  {isLoadingReplies ? "불러오는 중..." : "대댓글 확인하기"}
+                </button>
+              )}
             </div>
           </>
         )}
@@ -255,7 +288,7 @@ const Comment = ({
         </div>
       )}
 
-      {comment.replies && comment.replies.length > 0 && (
+      {showReplies && comment.replies && comment.replies.length > 0 && (
         <div className="replies">
           {comment.replies.map((reply) => (
             <Comment
