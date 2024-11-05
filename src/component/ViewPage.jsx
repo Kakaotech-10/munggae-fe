@@ -31,7 +31,7 @@ const ViewPage = ({
 
   const isAuthor = currentUserId === post.author.id;
 
-  // ViewPage.jsx의 handleCommentUpdate 수정
+  // ViewPage.jsx
   const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
     if (!onCommentsUpdate) {
       console.error("onCommentsUpdate function is not provided");
@@ -41,28 +41,59 @@ const ViewPage = ({
     let updatedComments = [...comments];
 
     if (deletedCommentId) {
-      // 삭제된 댓글 처리
-      updatedComments = updatedComments.filter(
-        (comment) =>
-          comment.id !== deletedCommentId &&
-          (!comment.replies ||
-            !comment.replies.some((reply) => reply.id === deletedCommentId))
-      );
+      // 삭제된 댓글과 그 대댓글들을 제거
+      updatedComments = updatedComments.filter((comment) => {
+        if (comment.id === deletedCommentId) return false;
+        if (comment.replies) {
+          comment.replies = comment.replies.filter(
+            (reply) => reply.id !== deletedCommentId
+          );
+        }
+        return true;
+      });
     } else if (updatedComment) {
-      const existingCommentIndex = updatedComments.findIndex(
-        (comment) => comment.id === updatedComment.id
-      );
+      const parentId = updatedComment.parentId;
 
-      if (existingCommentIndex >= 0) {
-        // 기존 댓글 수정
-        updatedComments[existingCommentIndex] = updatedComment;
+      if (parentId) {
+        // 대댓글인 경우
+        updatedComments = updatedComments.map((comment) => {
+          if (comment.id === parentId) {
+            // 부모 댓글을 찾아서 replies에 추가
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), updatedComment].sort(
+                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+              ),
+            };
+          }
+          return comment;
+        });
       } else {
-        // 새 댓글 추가
-        updatedComments.push(updatedComment);
+        // 일반 댓글인 경우
+        const existingCommentIndex = updatedComments.findIndex(
+          (comment) => comment.id === updatedComment.id
+        );
+
+        if (existingCommentIndex !== -1) {
+          // 기존 댓글 수정
+          updatedComments[existingCommentIndex] = {
+            ...updatedComments[existingCommentIndex],
+            ...updatedComment,
+          };
+        } else {
+          // 새 댓글 추가
+          updatedComments = [
+            {
+              ...updatedComment,
+              replies: [],
+            },
+            ...updatedComments,
+          ];
+        }
       }
     }
 
-    console.log("Sending updated comments to parent:", updatedComments);
+    console.log("Sending updated comments:", updatedComments);
     onCommentsUpdate(updatedComments);
   };
 
