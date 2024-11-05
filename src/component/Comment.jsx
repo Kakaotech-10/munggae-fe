@@ -55,6 +55,7 @@ const Comment = ({
         comment.id,
         editContent.trim()
       );
+
       const formattedComment = {
         ...comment,
         content: updatedComment.content,
@@ -102,15 +103,18 @@ const Comment = ({
         postId,
         currentUserId,
         validContent,
-        comment.id
+        comment.id // parentId만 전달
       );
 
       if (newReply) {
         const replyWithParentInfo = {
           ...newReply,
-          parentAuthor: {
-            name: comment.member.name,
-            nameEnglish: comment.member.nameEnglish,
+          replies: [], // 새 댓글은 빈 replies 배열을 가짐
+          member: {
+            ...newReply.member,
+            id: currentUserId,
+            name: localStorage.getItem("memberName"),
+            nameEnglish: localStorage.getItem("memberNameEnglish"),
           },
         };
         onCommentUpdate(replyWithParentInfo);
@@ -136,10 +140,10 @@ const Comment = ({
 
   return (
     <div className={`comment ${depth > 0 ? "reply" : ""}`}>
-      {depth > 0 && (
+      {comment.parentId && (
         <div className="reply-indicator">
           <span className="reply-arrow">↳</span>
-          <span>{`${comment.parentAuthor?.nameEnglish}(${comment.parentAuthor?.name})님에 대한 답글`}</span>
+          <span>답글</span>
         </div>
       )}
 
@@ -161,7 +165,7 @@ const Comment = ({
             </div>
             {showDropdown && (
               <div className="dropdown-menu" ref={dropdownRef}>
-                {depth < 1 && (
+                {depth === 0 && (
                   <div
                     onClick={() => {
                       setShowReplyForm(true);
@@ -251,7 +255,7 @@ const Comment = ({
         </div>
       )}
 
-      {comment.replies?.length > 0 && (
+      {comment.replies && comment.replies.length > 0 && (
         <div className="replies">
           {comment.replies.map((reply) => (
             <Comment
@@ -274,16 +278,13 @@ Comment.propTypes = {
     id: PropTypes.number.isRequired,
     content: PropTypes.string.isRequired,
     createdAt: PropTypes.string.isRequired,
+    parentId: PropTypes.number,
+    depth: PropTypes.number.isRequired,
     member: PropTypes.shape({
       id: PropTypes.number.isRequired,
       name: PropTypes.string.isRequired,
       nameEnglish: PropTypes.string.isRequired,
     }).isRequired,
-    parentAuthor: PropTypes.shape({
-      // parentAuthor 추가
-      name: PropTypes.string.isRequired,
-      nameEnglish: PropTypes.string.isRequired,
-    }),
     replies: PropTypes.array,
   }).isRequired,
   depth: PropTypes.number.isRequired,

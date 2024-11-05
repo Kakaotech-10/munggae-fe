@@ -76,13 +76,70 @@ const Community = () => {
     setCurrentPage(0);
   };
 
+  // Community.jsx의 handleCommentsUpdate 수정
   const handleCommentsUpdate = async (updatedComments) => {
     try {
-      console.log("Updating comments:", updatedComments);
+      console.log("Original comments:", comments);
+      console.log("Received updated comments:", updatedComments);
+
+      // 댓글을 계층 구조로 정리하는 함수
+      const organizeComments = (commentsArray) => {
+        const commentMap = new Map();
+        const rootComments = [];
+
+        // 모든 댓글을 맵에 저장
+        commentsArray.forEach((comment) => {
+          commentMap.set(comment.id, { ...comment, replies: [] });
+        });
+
+        // 계층 구조 구성
+        commentsArray.forEach((comment) => {
+          const processedComment = commentMap.get(comment.id);
+          if (comment.parentId) {
+            const parentComment = commentMap.get(comment.parentId);
+            if (parentComment) {
+              if (!parentComment.replies) {
+                parentComment.replies = [];
+              }
+              parentComment.replies.push(processedComment);
+            } else {
+              rootComments.push(processedComment);
+            }
+          } else {
+            rootComments.push(processedComment);
+          }
+        });
+
+        return rootComments;
+      };
+
       if (!Array.isArray(updatedComments)) {
-        throw new Error("Invalid comments data");
+        console.error("Invalid comments data received:", updatedComments);
+        return;
       }
-      setComments(updatedComments);
+
+      // 현재 댓글 목록과 새로운 댓글을 합치기
+      let allComments = [...comments];
+
+      // 새로운 댓글이나 수정된 댓글 처리
+      updatedComments.forEach((newComment) => {
+        const existingIndex = allComments.findIndex(
+          (c) => c.id === newComment.id
+        );
+        if (existingIndex >= 0) {
+          // 기존 댓글 수정
+          allComments[existingIndex] = newComment;
+        } else {
+          // 새 댓글 추가
+          allComments.push(newComment);
+        }
+      });
+
+      // 댓글을 계층 구조로 정리
+      const organizedComments = organizeComments(allComments);
+
+      console.log("Final organized comments:", organizedComments);
+      setComments(organizedComments);
     } catch (error) {
       console.error("Error updating comments:", error);
       setCommentError("댓글 업데이트 중 오류가 발생했습니다.");

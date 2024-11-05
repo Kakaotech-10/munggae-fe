@@ -21,12 +21,12 @@ export const useCreateComment = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
 
+  // useComment.jsx의 handleCreateComment 수정
   const handleCreateComment = async (
     postId,
     memberId,
     content,
-    parentId = null,
-    depth = 0
+    parentId = null
   ) => {
     if (!postId || !memberId) {
       throw new Error("필수 정보가 누락되었습니다.");
@@ -36,29 +36,22 @@ export const useCreateComment = () => {
       setIsCreating(true);
       setCreateError(null);
 
-      // content가 유효한 문자열인지 확인
-      if (!content || typeof content !== "string") {
-        throw new Error("댓글 내용이 유효하지 않습니다.");
-      }
-
-      const validContent = content.trim();
-      if (!validContent) {
-        throw new Error("댓글 내용을 입력해주세요.");
-      }
-
       const commentData = {
+        postId: Number(postId),
         memberId: Number(memberId),
-        content: validContent,
+        content: content.trim(),
         parentId: parentId ? Number(parentId) : null,
-        depth: Number(depth),
+        // depth는 서버에서 자동으로 설정되므로 제거
       };
 
-      console.log("Creating comment with data:", {
-        postId,
-        ...commentData,
-      });
+      console.log("Creating comment with data:", commentData);
 
-      const newComment = await createCommentAPI(Number(postId), commentData);
+      const newComment = parentId
+        ? await replyCommentAPI(parentId, content)
+        : await createCommentAPI(postId, commentData);
+
+      console.log("API Response:", newComment);
+
       return newComment;
     } catch (error) {
       console.error("Comment creation error:", error);
