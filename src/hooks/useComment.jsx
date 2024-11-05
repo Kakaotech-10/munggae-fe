@@ -1,8 +1,21 @@
 import { useState } from "react";
-import { editComment } from "../api/useEditComment";
-import { deleteComment } from "../api/useDeleteComment";
-import { replyComment } from "../api/useReplyComment";
-import { createComment } from "../api/useCreateComment";
+import { editCommentAPI } from "../api/useEditComment";
+import { deleteCommentAPI } from "../api/useDeleteComment";
+import { replyCommentAPI } from "../api/useReplyComment";
+import { createCommentAPI } from "../api/useCreateComment";
+
+const validateContent = (content) => {
+  if (!content || typeof content !== "string") {
+    throw new Error("댓글 내용이 유효하지 않습니다.");
+  }
+
+  const trimmedContent = String(content).trim();
+  if (!trimmedContent) {
+    throw new Error("댓글 내용을 입력해주세요.");
+  }
+
+  return trimmedContent;
+};
 
 export const useCreateComment = () => {
   const [isCreating, setIsCreating] = useState(false);
@@ -15,148 +28,118 @@ export const useCreateComment = () => {
     parentId = null,
     depth = 0
   ) => {
-    if (!postId || !memberId || !content) {
-      console.error("Missing required parameters in handleCreateComment:", {
-        postId,
-        memberId,
-        content,
-        parentId,
-        depth,
-      });
-      throw new Error("Missing required parameters");
+    if (!postId || !memberId) {
+      throw new Error("필수 정보가 누락되었습니다.");
     }
 
-    setIsCreating(true);
-    setCreateError(null);
-
     try {
+      setIsCreating(true);
+      setCreateError(null);
+
+      // content가 유효한 문자열인지 확인
+      if (!content || typeof content !== "string") {
+        throw new Error("댓글 내용이 유효하지 않습니다.");
+      }
+
+      const validContent = content.trim();
+      if (!validContent) {
+        throw new Error("댓글 내용을 입력해주세요.");
+      }
+
       const commentData = {
         memberId: Number(memberId),
-        content: content.trim(),
+        content: validContent,
         parentId: parentId ? Number(parentId) : null,
         depth: Number(depth),
       };
 
-      console.log("Sending comment data:", { postId, commentData });
-      const newComment = await createComment(Number(postId), commentData);
-      setIsCreating(false);
+      console.log("Creating comment with data:", {
+        postId,
+        ...commentData,
+      });
+
+      const newComment = await createCommentAPI(Number(postId), commentData);
       return newComment;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "댓글 작성 중 오류가 발생했습니다.";
-
-      console.error("Comment creation error:", errorMessage);
-      setCreateError(errorMessage);
-      setIsCreating(false);
+      console.error("Comment creation error:", error);
+      setCreateError(error.message || "댓글 작성 중 오류가 발생했습니다.");
       throw error;
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  return {
-    handleCreateComment,
-    isCreating,
-    createError,
-  };
+  return { handleCreateComment, isCreating, createError };
 };
 
-// 댓글 수정 훅
 export const useEditComment = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editError, setEditError] = useState(null);
 
-  const handleEditComment = async (commentId, memberId, content) => {
-    setIsEditing(true);
-    setEditError(null);
-
+  const handleEditComment = async (commentId, content) => {
     try {
-      const updatedComment = await editComment(commentId, memberId, {
-        content,
-      });
-      setIsEditing(false);
-      return updatedComment;
+      setIsEditing(true);
+      setEditError(null);
+
+      const validContent = validateContent(content);
+      const result = await editCommentAPI(commentId, validContent);
+
+      return result;
     } catch (error) {
-      setEditError(
-        error.response?.data?.message || "댓글 수정 중 오류가 발생했습니다."
-      );
-      setIsEditing(false);
+      console.error("Comment edit error:", error);
+      setEditError(error.message || "댓글 수정 중 오류가 발생했습니다.");
       throw error;
+    } finally {
+      setIsEditing(false);
     }
   };
 
-  return {
-    handleEditComment,
-    isEditing,
-    editError,
-  };
+  return { handleEditComment, isEditing, editError };
 };
 
-// 댓글 삭제 훅
 export const useDeleteComment = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
-  const handleDeleteComment = async (commentId, memberId) => {
-    setIsDeleting(true);
-    setDeleteError(null);
-
+  const handleDeleteComment = async (commentId) => {
     try {
-      const success = await deleteComment(commentId, memberId);
-      setIsDeleting(false);
-      return success;
+      setIsDeleting(true);
+      setDeleteError(null);
+
+      return await deleteCommentAPI(commentId);
     } catch (error) {
-      setDeleteError(
-        error.response?.data?.message || "댓글 삭제 중 오류가 발생했습니다."
-      );
-      setIsDeleting(false);
+      console.error("Comment deletion error:", error);
+      setDeleteError(error.message || "댓글 삭제 중 오류가 발생했습니다.");
       throw error;
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  return {
-    handleDeleteComment,
-    isDeleting,
-    deleteError,
-  };
+  return { handleDeleteComment, isDeleting, deleteError };
 };
 
-//대댓글 달기
 export const useReplyComment = () => {
   const [isReplying, setIsReplying] = useState(false);
   const [replyError, setReplyError] = useState(null);
   const [showReplyForm, setShowReplyForm] = useState(false);
 
-  const handleReplyComment = async (commentId, memberId, content) => {
-    if (!commentId || !memberId || !content) {
-      throw new Error("Missing required parameters");
-    }
-
-    setIsReplying(true);
-    setReplyError(null);
-
+  const handleReplyComment = async (commentId, content) => {
     try {
-      // ID들을 숫자로 변환
-      const numCommentId = Number(commentId);
-      const numMemberId = Number(memberId);
+      setIsReplying(true);
+      setReplyError(null);
 
-      if (isNaN(numCommentId) || isNaN(numMemberId)) {
-        throw new Error("Invalid ID format");
-      }
+      const validContent = validateContent(content);
+      const reply = await replyCommentAPI(commentId, validContent);
 
-      const newReply = await replyComment(numCommentId, numMemberId, content);
-      setIsReplying(false);
       setShowReplyForm(false);
-      return newReply;
+      return reply;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "답글 작성 중 오류가 발생했습니다.";
-
-      setReplyError(errorMessage);
-      setIsReplying(false);
+      console.error("Comment reply error:", error);
+      setReplyError(error.message || "답글 작성 중 오류가 발생했습니다.");
       throw error;
+    } finally {
+      setIsReplying(false);
     }
   };
 

@@ -31,73 +31,106 @@ const ViewPage = ({
 
   const isAuthor = currentUserId === post.author.id;
 
+  const filterDeletedComments = (comments, deletedId) => {
+    return comments.filter((comment) => {
+      // 현재 댓글이 삭제된 댓글이면 제외
+      if (comment.id === deletedId) return false;
+
+      // 대댓글이 있는 경우 재귀적으로 처리
+      if (comment.replies && comment.replies.length > 0) {
+        comment.replies = comment.replies.filter(
+          (reply) => reply.id !== deletedId
+        );
+      }
+
+      return true;
+    });
+  };
+
   const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
+    if (!onCommentsUpdate) {
+      console.error("onCommentsUpdate function is not provided");
+      return;
+    }
+
+    let updatedComments = [...comments];
+
     if (deletedCommentId) {
-      const updatedComments = comments.filter((comment) => {
-        if (comment.id === deletedCommentId) return false;
-        if (comment.replies) {
-          comment.replies = comment.replies.filter(
-            (reply) => reply.id !== deletedCommentId
-          );
-        }
-        return true;
-      });
-      onCommentsUpdate(updatedComments);
+      // 삭제된 댓글과 그에 속한 대댓글을 완전히 제거
+      updatedComments = filterDeletedComments(
+        updatedComments,
+        deletedCommentId
+      );
     } else if (updatedComment) {
-      const isEdit = comments.some(
+      const isEdit = updatedComments.some(
         (comment) => comment.id === updatedComment.id
       );
 
       if (isEdit) {
-        const updatedComments = comments.map((comment) => {
+        updatedComments = updatedComments.map((comment) => {
           if (comment.id === updatedComment.id) {
             return { ...comment, ...updatedComment };
           }
+          // 대댓글 수정 처리
           if (comment.replies) {
-            comment.replies = comment.replies.map((reply) => {
-              if (reply.id === updatedComment.id) {
-                return { ...reply, ...updatedComment };
-              }
-              return reply;
-            });
+            comment.replies = comment.replies.map((reply) =>
+              reply.id === updatedComment.id
+                ? { ...reply, ...updatedComment }
+                : reply
+            );
           }
           return comment;
         });
-        onCommentsUpdate(updatedComments);
+      } else if (updatedComment.parentId) {
+        // 새 답글 추가
+        updatedComments = updatedComments.map((comment) => {
+          if (comment.id === updatedComment.parentId) {
+            return {
+              ...comment,
+              replies: comment.replies
+                ? [updatedComment, ...comment.replies]
+                : [updatedComment],
+            };
+          }
+          return comment;
+        });
       } else {
-        if (updatedComment.parentId) {
-          const updatedComments = comments.map((comment) => {
-            if (comment.id === updatedComment.parentId) {
-              return {
-                ...comment,
-                replies: [...(comment.replies || []), updatedComment],
-              };
-            }
-            return comment;
-          });
-          onCommentsUpdate(updatedComments);
-        } else {
-          onCommentsUpdate([...comments, updatedComment]);
-        }
+        // 새 댓글 추가
+        updatedComments = [updatedComment, ...updatedComments];
       }
     }
+
+    onCommentsUpdate(updatedComments);
   };
 
-  const handleNewComment = async (postId, content) => {
-    if (!currentUserId) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-
+  const handleNewComment = async (content, parentId = null, depth = 0) => {
     try {
+      if (!content?.trim()) {
+        throw new Error("댓글 내용을 입력해주세요.");
+      }
+
+      if (!currentUserId) {
+        throw new Error("로그인이 필요합니다.");
+      }
+
+      if (!post.id) {
+        throw new Error("게시글 정보가 없습니다.");
+      }
+
       const newComment = await handleCreateComment(
-        postId,
-        currentUserId,
-        content
+        post.id, // postId
+        currentUserId, // memberId
+        content.trim(),
+        parentId, // parentId (답글인 경우에만 값이 있음)
+        depth // depth
       );
-      handleCommentUpdate(newComment);
+
+      if (newComment) {
+        handleCommentUpdate(newComment);
+      }
     } catch (error) {
       console.error("댓글 생성 실패:", error);
+      alert(error.message || "댓글 작성 중 오류가 발생했습니다.");
     }
   };
 
@@ -243,8 +276,9 @@ const ViewPage = ({
               <div className="comment-area">
                 <CommentInput
                   onSubmit={handleNewComment}
-                  postId={post.id}
+                  placeholder="댓글을 입력하세요"
                   isSubmitting={isCreating}
+                  depth={0}
                 />
                 {createError && (
                   <div className="error-message">{createError}</div>

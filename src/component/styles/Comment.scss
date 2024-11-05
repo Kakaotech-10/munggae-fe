@@ -10,7 +10,7 @@
     .author-line {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
 
       .comment-author {
         font-weight: 500;
@@ -23,11 +23,7 @@
 
         .action-button {
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 20px;
-          height: 20px;
+          padding: 4px;
           color: #666;
 
           &:hover {
@@ -37,35 +33,20 @@
 
         .dropdown-menu {
           position: absolute;
-          top: calc(100% + 5px);
+          top: 100%;
           right: 0;
-          width: 101px;
-          min-height: 36px; // 한 항목의 기본 높이
-          height: auto; // 높이를 자동으로 조정
-          border-radius: 10px;
-          opacity: 1;
-          background: #ffffff;
-          box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.3);
-          display: flex;
-          flex-direction: column;
-          padding: 4px 0;
-          z-index: 10;
+          width: 120px;
+          background: white;
+          border-radius: 4px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
 
           div {
             padding: 8px 16px;
             cursor: pointer;
-            font-size: 14px;
-            height: 36px; // 각 항목의 고정 높이
-            display: flex;
-            align-items: center;
-            white-space: nowrap;
 
             &:hover {
-              background-color: rgba(0, 0, 0, 0.05);
-            }
-
-            &:last-child {
-              color: #333;
+              background-color: #f5f5f5;
             }
           }
         }
@@ -74,62 +55,97 @@
   }
 
   .comment-content {
+    margin: 8px 0;
     word-break: break-word;
-    margin-bottom: 8px;
-    font-size: 14px;
-    line-height: 1.5;
   }
 
   .comment-footer {
-    .comment-date {
-      font-size: 0.8em;
-      color: #666;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85em;
+    color: #666;
+  }
+
+  .comment-edit-form {
+    margin-top: 8px;
+
+    textarea {
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
     }
-  }
 
-  // 대댓글 스타일
-  &[class*="depth-"] {
-    margin-left: 20px;
-    margin-top: 10px;
-    background-color: #fff;
-    border: 1px solid #eee;
-  }
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
 
-  // 1단계 댓글은 마진 제거
-  &.depth-0 {
-    margin-left: 0;
-  }
-}
+      button {
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
 
-// 모바일 대응
-@media (max-width: 767px) {
-  .comment {
-    padding: 10px;
-    font-size: 12px;
+        &.save-button {
+          background-color: #007bff;
+          color: white;
+        }
 
-    .comment-header {
-      .author-line {
-        gap: 4px;
+        &.cancel-button {
+          background-color: #6c757d;
+          color: white;
+        }
 
-        .comment-actions {
-          .action-button {
-            width: 18px;
-            height: 18px;
-          }
-
-          .dropdown-menu {
-            div {
-              padding: 6px 14px;
-              height: 32px; // 모바일에서는 약간 작게
-              font-size: 13px;
-            }
-          }
+        &:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
         }
       }
     }
+  }
 
-    &[class*="depth-"] {
-      margin-left: 12px;
+  &.reply {
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    margin-left: 20px;
+
+    .reply-indicator {
+      font-size: 0.85em;
+      color: #6c757d;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+
+      .reply-arrow {
+        margin-right: 4px;
+      }
     }
   }
+
+  .replies {
+    margin-top: 12px;
+    padding-left: 20px;
+    border-left: 2px solid #e9ecef;
+  }
+
+  .reply-form {
+    margin-top: 8px;
+    padding-left: 20px;
+
+    .reply-to-text {
+      font-size: 0.85em;
+      color: #6c757d;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+.error-message {
+  color: #dc3545;
+  margin-top: 8px;
+  font-size: 0.9em;
 }
