@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import "./styles/Postlist.scss";
 import Hearticon from "../image/Hearticon.svg";
-
+//pr test
 const Postlist = ({ id, title, imageUrl, likes }) => {
   return (
     <div className="postlist-container" data-post-id={id}>
