@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import "./styles/WriteForm.scss";
 import Uploadicon from "../image/Uploadicon.svg";
 import { createPost } from "../api/useCreatePost";
-import { uploadAttachments } from "../api/useAttachment";
 import { editPost } from "../api/useEditPost";
+import { useImageUpload } from "../api/useImageUpload"; // 추가된 import
 
 const WriteForm = ({
   onClose,
@@ -30,6 +30,8 @@ const WriteForm = ({
     memberName: "",
     memberNameEnglish: "",
   });
+  const [isUploading, setIsUploading] = useState(false); // 업로드 상태 추가
+  const { handleImageUpload } = useImageUpload(); // useImageUpload hook 사용
 
   useEffect(() => {
     // localStorage에서 사용자 정보 가져오기
@@ -48,6 +50,8 @@ const WriteForm = ({
     }
     return `${userInfo.memberNameEnglish}(${userInfo.memberName})`;
   };
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   const handleSubmit = async () => {
     try {
@@ -56,42 +60,84 @@ const WriteForm = ({
         return;
       }
 
-      let updatedPost;
-      if (editMode) {
-        // 수정 모드일 때
-        updatedPost = await editPost(initialPost.id, initialPost.author.id, {
-          title,
-          content,
-        });
-      } else {
-        // 새 게시글 작성 모드일 때
-        const memberId = localStorage.getItem("userId");
-        const postData = {
-          title,
-          content,
-          memberId: parseInt(memberId),
-        };
-        updatedPost = await createPost(postData);
-      }
+      setIsUploading(true);
+      setUploadStatus("게시글 저장 중...");
 
+      // 게시글 저장
+      const memberId = localStorage.getItem("userId");
+      const postData = {
+        title,
+        content,
+        memberId: parseInt(memberId),
+      };
+
+      let updatedPost = editMode
+        ? await editPost(initialPost.id, initialPost.author.id, postData)
+        : await createPost(postData);
+
+      // 이미지 업로드
       if (files.length > 0) {
-        await uploadAttachments(updatedPost.id, files);
+        try {
+          setUploadStatus("이미지 업로드 중...");
+
+          const images = await handleImageUpload(
+            updatedPost.id,
+            files,
+            (progress) => {
+              setUploadProgress(progress);
+              setUploadStatus(`이미지 업로드 중... ${Math.round(progress)}%`);
+            }
+          );
+
+          updatedPost = { ...updatedPost, images };
+          setUploadStatus("업로드 완료!");
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          const shouldProceed = window.confirm(
+            `이미지 업로드 실패: ${uploadError.message}\n\n이미지 없이 게시글을 저장하시겠습니까?`
+          );
+          if (!shouldProceed) {
+            throw new Error("사용자가 게시글 저장을 취소했습니다.");
+          }
+        }
       }
 
       onPostCreated(updatedPost);
+      onClose();
     } catch (error) {
-      console.error("Error submitting post:", error);
-      alert(
-        editMode
-          ? "게시글 수정 중 오류가 발생했습니다."
-          : "게시글 작성 중 오류가 발생했습니다."
-      );
+      console.error("Post submission failed:", error);
+      alert(error.message || "게시글 저장 중 오류가 발생했습니다.");
+    } finally {
+      setIsUploading(false);
+      setUploadStatus("");
+      setUploadProgress(0);
     }
   };
 
   const handleFileChange = (e) => {
-    setFiles(Array.from(e.target.files));
+    const selectedFiles = Array.from(e.target.files);
+
+    // 파일 크기 및 형식 검증
+    const validFiles = selectedFiles.filter((file) => {
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      const validTypes = ["image/jpeg", "image/png", "image/gif"];
+
+      if (file.size > maxSize) {
+        alert(`${file.name}의 크기가 5MB를 초과합니다.`);
+        return false;
+      }
+      if (!validTypes.includes(file.type)) {
+        alert(
+          `${file.name}은(는) 지원하지 않는 파일 형식입니다. (지원 형식: JPG, PNG, GIF)`
+        );
+        return false;
+      }
+      return true;
+    });
+
+    setFiles(validFiles);
   };
+
   const handleOverlayClick = (e) => {
     if (e.target.className === "write-form-overlay") {
       onClose();
@@ -127,7 +173,27 @@ const WriteForm = ({
               <label htmlFor="file-upload" className="upload-button">
                 사진 업로드
               </label>
-              {files.length > 0 && <p>{files.length}개의 파일이 선택됨</p>}
+              {files.length > 0 && (
+                <div className="file-list">
+                  <p>{files.length}개의 파일이 선택됨</p>
+                  <ul>
+                    {Array.from(files).map((file, index) => (
+                      <li key={index}>{file.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {isUploading && uploadProgress > 0 && (
+                <div className="upload-progress">
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <span className="progress-text">{uploadStatus}</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="right-section">
@@ -143,7 +209,8 @@ const WriteForm = ({
                 alt={editMode ? "수정" : "업로드"}
                 className="upload-icon"
                 onClick={handleSubmit}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: isUploading ? "not-allowed" : "pointer" }}
+                disabled={isUploading}
               />
             </div>
             <div className="form-group">
@@ -154,6 +221,7 @@ const WriteForm = ({
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="제목"
                 required
+                disabled={isUploading}
               />
             </div>
             <div className="form-group">
@@ -163,6 +231,7 @@ const WriteForm = ({
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="내용을 입력하세요"
                 required
+                disabled={isUploading}
               />
             </div>
             <div className="time-settings">

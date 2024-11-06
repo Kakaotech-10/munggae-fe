@@ -152,6 +152,18 @@ const Post = ({ post, currentUserId }) => {
       </div>
       <div className="post-content">
         <div className="post-text">{post.post_content}</div>
+        {post.imageUrls && post.imageUrls.length > 0 && (
+          <div className="post-image-container">
+            {post.imageUrls.map((url, index) => (
+              <img
+                key={index}
+                src={url}
+                alt={`게시물 이미지 ${index + 1}`}
+                className="post-image"
+              />
+            ))}
+          </div>
+        )}
       </div>
       <div className="post-footer">
         <div className="reactions">
@@ -205,6 +217,8 @@ Post.propTypes = {
     post_content: PropTypes.string.isRequired,
     created_at: PropTypes.string.isRequired,
     updated_at: PropTypes.string.isRequired,
+    imageUrls: PropTypes.arrayOf(PropTypes.string), // 이미지 URL 배열 추가
+    s3ImageUrls: PropTypes.arrayOf(PropTypes.string), // S3 URL 배열 추가
     member: PropTypes.shape({
       member_id: PropTypes.number.isRequired,
       member_name: PropTypes.string.isRequired,
@@ -213,7 +227,13 @@ Post.propTypes = {
       role: PropTypes.string.isRequired,
     }).isRequired,
   }).isRequired,
-  currentUserId: PropTypes.number.isRequired, // 추가: currentUserId prop 정의
+  currentUserId: PropTypes.number.isRequired,
 };
 
+Post.defaultProps = {
+  post: {
+    imageUrls: [], // 기본값 설정
+    s3ImageUrls: [], // 기본값 설정
+  },
+};
 export default Post;

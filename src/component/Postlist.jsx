@@ -6,7 +6,19 @@ const Postlist = ({ id, title, imageUrl, likes }) => {
   return (
     <div className="postlist-container" data-post-id={id}>
       <div className="postlist-img">
-        <img src={imageUrl} alt="게시물 이미지" />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt="게시물 이미지"
+            onError={(e) => {
+              console.error("Image load error:", imageUrl);
+              e.target.onerror = null;
+              e.target.src = "/default-image.png"; // 기본 이미지 경로
+            }}
+          />
+        ) : (
+          <div className="no-image"></div>
+        )}
       </div>
       <div className="postlist-title">{title}</div>
 
@@ -21,8 +33,12 @@ const Postlist = ({ id, title, imageUrl, likes }) => {
 Postlist.propTypes = {
   id: PropTypes.number.isRequired,
   title: PropTypes.string.isRequired,
-  imageUrl: PropTypes.string.isRequired,
+  imageUrl: PropTypes.string,
   likes: PropTypes.string.isRequired,
+};
+
+Postlist.defaultProps = {
+  imageUrl: "",
 };
 
 export default Postlist;
