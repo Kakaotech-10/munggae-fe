@@ -89,16 +89,7 @@ const WriteForm = ({
             }
           );
 
-          // 이미지 정보 추가
-          updatedPost = {
-            ...updatedPost,
-            images: images.map((image) => ({
-              id: image.id,
-              originalName: image.originalName,
-              url: image.url,
-            })),
-          };
-
+          updatedPost = { ...updatedPost, images };
           setUploadStatus("업로드 완료!");
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);

@@ -1,88 +1,36 @@
+import axios from "axios";
 import api from "./config";
 
 export const uploadToS3 = async (presignedUrl, file, onProgress = () => {}) => {
   try {
-    console.log("Starting S3 upload:", {
+    console.log("Starting upload:", {
       fileName: file.name,
       fileType: file.type,
       fileSize: file.size,
-      url: presignedUrl,
     });
 
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-
-      // withCredentials를 false로 설정
-      xhr.withCredentials = false;
-
-      xhr.open("PUT", presignedUrl, true);
-
-      // 필수 헤더만 설정
-      xhr.setRequestHeader("Content-Type", file.type);
-
-      // 타임아웃 설정
-      xhr.timeout = 30000; // 30초
-
-      // 업로드 진행률
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100;
-          console.log(`Upload progress: ${percentComplete}%`);
-          onProgress(percentComplete);
+    const response = await axios.put(presignedUrl, file, {
+      headers: {
+        "Content-Type": file.type,
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          onProgress(percentCompleted);
         }
-      };
-
-      // 성공 처리
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const s3Url = presignedUrl.split("?")[0];
-          console.log("Upload successful. S3 URL:", s3Url);
-          resolve(s3Url);
-        } else {
-          console.error("Upload failed with status:", xhr.status);
-          console.error("Response:", xhr.responseText);
-          reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
-        }
-      };
-
-      // 에러 처리
-      xhr.onerror = (event) => {
-        console.error("XHR Error details:", {
-          type: event.type,
-          target: event.target,
-          status: xhr.status,
-          statusText: xhr.statusText,
-          responseText: xhr.responseText,
-        });
-        reject(new Error(`Network error during upload: ${xhr.statusText}`));
-      };
-
-      // 타임아웃 처리
-      xhr.ontimeout = () => {
-        reject(new Error("Upload timed out"));
-      };
-
-      // 업로드 취소 처리
-      xhr.onabort = () => {
-        reject(new Error("Upload was aborted"));
-      };
-
-      try {
-        // 실제 전송
-        xhr.send(file);
-      } catch (sendError) {
-        console.error("Error sending file:", sendError);
-        reject(new Error(`Failed to send file: ${sendError.message}`));
-      }
+      },
     });
+
+    console.log("Upload response:", response);
+
+    // 성공 시 S3 URL 반환
+    const s3Url = presignedUrl.split("?")[0];
+    return s3Url;
   } catch (error) {
-    console.error("S3 upload error:", {
-      error,
-      fileName: file.name,
-      fileSize: file.size,
-      url: presignedUrl,
-    });
-    throw error;
+    console.error("Upload error:", error);
+    throw new Error(`파일 업로드 실패: ${error.message}`);
   }
 };
 
