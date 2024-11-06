@@ -153,7 +153,7 @@ const Post = ({ post, currentUserId }) => {
       <div className="post-content">
         <div className="post-text">{post.post_content}</div>
         {post.imageUrls && post.imageUrls.length > 0 && (
-          <div className="post-images">
+          <div className="post-image-container">
             {post.imageUrls.map((url, index) => (
               <img
                 key={index}
