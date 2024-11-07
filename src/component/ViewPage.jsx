@@ -198,7 +198,20 @@ const ViewPage = ({
         <div className="form-layout">
           <div className="left-section">
             <div className="image-area">
-              <img src={post.imageUrl} alt="게시물 이미지" />
+              {post.imageUrls && post.imageUrls.length > 0 ? (
+                <img
+                  src={post.imageUrls[0]}
+                  alt="게시물 이미지"
+                  onError={(e) => {
+                    console.error("Image load error:", post.imageUrls[0]);
+                    e.target.onerror = null;
+                    e.target.src = "/default-image.png";
+                  }}
+                />
+              ) : (
+                <div className="no-image"></div>
+              )}
+              {/* 추가 이미지가 있는 경우 표시할 수 있는 갤러리나 슬라이더를 여기에 추가할 수 있습니다 */}
             </div>
           </div>
           <div className="right-section">
@@ -311,7 +324,7 @@ ViewPage.propTypes = {
     id: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
-    imageUrl: PropTypes.string,
+    imageUrls: PropTypes.arrayOf(PropTypes.string), // 문자열 배열로 변경
     likes: PropTypes.string.isRequired,
     updatedAt: PropTypes.string.isRequired,
     clean: PropTypes.bool.isRequired, // isClean에서 clean으로 변경

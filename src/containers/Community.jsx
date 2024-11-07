@@ -33,6 +33,7 @@ const Community = () => {
     try {
       setIsLoading(true);
       const data = await getPosts(currentPage, pageSize);
+      console.log("Fetched posts:", data.content); // 디버깅 로그 추가
       setPosts(data.content);
       setTotalPages(data.totalPages);
     } catch (error) {
@@ -59,7 +60,8 @@ const Community = () => {
         post_likes: 0,
         created_at: newPost.createdAt,
         updated_at: newPost.updatedAt,
-        clean: newPost.clean, // clean 필드 추가
+        clean: newPost.clean,
+        imageUrls: newPost.imageUrls || [], // 이미지 URL 배열 추가
         member: newPost.member,
       };
 
@@ -103,10 +105,14 @@ const Community = () => {
       setIsLoading(true);
       setCommentError(null);
 
+      console.log("Fetching post with ID:", postId);
       const [postData, commentsData] = await Promise.all([
         getPost(postId),
         getPostComments(postId),
       ]);
+
+      console.log("Received post data:", postData); // 로깅 추가
+      console.log("Post images:", postData.imageUrls); // 이미지 URL 로깅
 
       setSelectedPost(postData);
 
@@ -139,14 +145,14 @@ const Community = () => {
                 post_likes: post.post_likes,
                 created_at: updatedPost.createdAt,
                 updated_at: updatedPost.updatedAt,
-                clean: updatedPost.clean, // clean 필드 추가
+                clean: updatedPost.clean,
+                imageUrls: updatedPost.imageUrls || [], // 이미지 URL 배열 추가
                 member: updatedPost.member,
               }
             : post
         )
       );
 
-      // 댓글 새로 로드
       if (updatedPost.id) {
         const { error, comments: newComments } = await getPostComments(
           updatedPost.id
@@ -236,11 +242,12 @@ const Community = () => {
                 <Postlist
                   id={post.post_id}
                   title={post.post_title}
+                  imageUrls={post.imageUrls} // 이미지 URL 배열 전달
                   likes={(post.post_likes !== undefined
                     ? post.post_likes
                     : 0
                   ).toString()}
-                  clean={post.clean} // clean prop 추가
+                  clean={post.clean}
                 />
               </div>
             ))

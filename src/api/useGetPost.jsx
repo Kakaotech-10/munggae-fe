@@ -23,12 +23,13 @@ export const getPost = async (postId) => {
       "createdAt",
       "updatedAt",
       "member",
-      "clean", // clean 필드로 수정
+      "clean",
+      "imageUrls", // imageUrls를 필수 필드에 추가
     ];
 
     for (const field of requiredFields) {
       if (!(field in postData)) {
-        throw new Error(`Missing required field: ${field}`);
+        console.warn(`Missing field in response: ${field}`);
       }
     }
 
@@ -40,16 +41,16 @@ export const getPost = async (postId) => {
       }
     }
 
+    // API 응답을 프론트엔드 데이터 구조로 변환
     return {
       id: postData.id,
       title: postData.title,
       content: postData.content,
       createdAt: postData.createdAt,
       updatedAt: postData.updatedAt,
-      imageUrls: postData.cloudFrontPaths || [],
-      s3ImageUrls: postData.s3ImagePaths || [],
+      imageUrls: postData.imageUrls || [], // API 응답의 imageUrls 필드 직접 사용
       likes: (postData.likes !== undefined ? postData.likes : 0).toString(),
-      clean: postData.clean, // clean 필드로 수정
+      clean: postData.clean,
       author: {
         id: postData.member.id,
         role: postData.member.role,
@@ -61,10 +62,15 @@ export const getPost = async (postId) => {
     };
   } catch (error) {
     console.error("Error fetching post:", error);
-    console.error(
-      "Error details:",
-      error.response ? error.response.data : "No response data"
-    );
-    throw error;
+    if (error.response) {
+      console.error("Error response data:", error.response.data);
+      console.error("Error response status:", error.response.status);
+      console.error("Error response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("No response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    throw new Error(`Failed to fetch post: ${error.message}`);
   }
 };
