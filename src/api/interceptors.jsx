@@ -1,5 +1,5 @@
 import api from "./config";
-//bug 수정완료
+
 const handleLogout = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("userId");
@@ -17,6 +17,20 @@ const handleLogout = () => {
   window.location.href = "/login";
 };
 
+// 토큰 만료 체크 함수
+const isTokenExpired = (error) => {
+  const status = error.response?.status;
+  const errorCode = error.response?.data?.code;
+  const errorMessage = error.response?.data?.message;
+
+  return (
+    status === 401 &&
+    (errorCode === "JWT_003" ||
+      errorMessage?.includes("만료된 토큰") ||
+      errorMessage?.includes("expired token"))
+  );
+};
+
 // Response Interceptor
 api.interceptors.response.use(
   (response) => response,
@@ -26,20 +40,29 @@ api.interceptors.response.use(
     // refresh 토큰 갱신 요청이 실패한 경우
     if (
       originalRequest.url === "/api/v1/auth/refresh" &&
-      error.response?.status === 401
+      (error.response?.status === 401 ||
+        error.response?.data?.code === "JWT_003")
     ) {
-      console.log("Refresh token has expired");
+      console.log("Refresh token has expired:", {
+        status: error.response?.status,
+        code: error.response?.data?.code,
+        message: error.response?.data?.message,
+      });
       alert("로그인이 만료되었습니다. 다시 로그인해 주세요.");
       handleLogout();
       return Promise.reject(error);
     }
 
-    // access 토큰이 만료되어 401이 발생하고, 아직 재시도하지 않은 경우
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // access 토큰이 만료되고 아직 재시도하지 않은 경우
+    if (isTokenExpired(error) && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        console.log("Access token expired, attempting to refresh...");
+        console.log("Token expired, attempting to refresh...", {
+          status: error.response?.status,
+          code: error.response?.data?.code,
+          message: error.response?.data?.message,
+        });
 
         const response = await api.post("/api/v1/auth/refresh", null, {
           withCredentials: true,
@@ -57,18 +80,30 @@ api.interceptors.response.use(
             `Bearer ${newAccessToken}`;
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
+          console.log("Token refresh successful, retrying original request");
           return api(originalRequest);
         } else {
+          console.error("Refresh response did not contain access token");
           throw new Error("Failed to get new access token");
         }
       } catch (refreshError) {
-        console.error("Failed to refresh token:", refreshError);
+        console.error("Failed to refresh token:", {
+          status: refreshError.response?.status,
+          code: refreshError.response?.data?.code,
+          message: refreshError.response?.data?.message,
+        });
+
+        if (refreshError.response?.data?.code === "JWT_003") {
+          console.log("JWT_003 error during refresh attempt");
+        }
+
         alert("로그인이 만료되었습니다. 다시 로그인해 주세요.");
         handleLogout();
         return Promise.reject(refreshError);
       }
     }
 
+    // 다른 종류의 에러인 경우 원본 에러 반환
     return Promise.reject(error);
   }
 );
