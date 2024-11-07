@@ -10,18 +10,20 @@ export const getPosts = async (pageNo = 0, pageSize = 10) => {
       },
     });
 
-    console.log("API Response:", response.data); // API 응답 로깅 추가
+    console.log("API Response:", response.data);
 
     const transformedData = {
       content: response.data.content.map((post) => {
-        console.log("Individual post data:", post); // 개별 게시물 데이터 로깅
+        console.log("Individual post data:", post);
+        // imageUrls 처리 추가
+        const imageUrls = post.imageUrls || post.cloudFrontPaths || [];
         return {
           post_id: post.id,
           post_title: post.title,
           post_content: post.content,
           created_at: post.createdAt,
           updated_at: post.updatedAt,
-          clean: post.clean === undefined ? true : post.clean, // clean 필드 처리 수정
+          clean: post.clean === undefined ? true : post.clean,
           member: {
             member_id: post.member.id,
             member_name: post.member.name,
@@ -29,9 +31,8 @@ export const getPosts = async (pageNo = 0, pageSize = 10) => {
             course: post.member.course,
             role: post.member.role,
           },
-          imageUrls: post.cloudFrontPaths || [],
-          mainImageUrl: post.cloudFrontPaths?.[0] || "",
-          s3ImageUrls: post.s3ImagePaths || [],
+          imageUrls: imageUrls, // 이미지 URL 배열 저장
+          thumbnailUrl: imageUrls[0] || "", // 첫 번째 이미지를 썸네일로 사용
           likes: post.likes?.toString() || "0",
         };
       }),
@@ -43,8 +44,7 @@ export const getPosts = async (pageNo = 0, pageSize = 10) => {
       last: response.data.last,
     };
 
-    console.log("Transformed data:", transformedData); // 변환된 데이터 로깅
-
+    console.log("Transformed data:", transformedData);
     return transformedData;
   } catch (error) {
     console.error("Error fetching posts:", error);

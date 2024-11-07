@@ -61,19 +61,45 @@
     margin-bottom: 15px;
 
     .post-image-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
       width: 100%;
-      padding-bottom: 56.25%;
-      position: relative;
-      overflow: hidden;
-      margin-bottom: 15px;
+      margin: 15px 0;
 
       .post-image {
-        position: absolute;
-        top: 0;
-        left: 0;
         width: 100%;
-        height: 100%;
+        aspect-ratio: 1 / 1; // 정사각형 비율 설정
         object-fit: cover;
+        border-radius: 8px;
+        transition: transform 0.2s ease;
+
+        &:hover {
+          transform: scale(1.02);
+        }
+      }
+
+      // 단일 이미지일 경우
+      &:has(.post-image:only-child) {
+        max-width: 500px; // 단일 이미지의 최대 너비
+        margin: 15px auto;
+
+        .post-image {
+          width: 100%;
+          aspect-ratio: 1 / 1;
+        }
+      }
+
+      // 2개의 이미지일 경우
+      &:has(.post-image:nth-child(2):last-child) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      // 3개 이상의 이미지일 경우
+      &:has(.post-image:nth-child(3)) {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        max-height: 800px;
+        overflow-y: auto;
       }
     }
 
@@ -168,6 +194,39 @@
 
         &:hover {
           background-color: #365899;
+        }
+      }
+    }
+  }
+}
+@media (max-width: 768px) {
+  .post {
+    .post-content {
+      .post-image-container {
+        grid-template-columns: 1fr; // 모바일에서는 한 열로
+
+        .post-image {
+          aspect-ratio: 1 / 1; // 정사각형 유지
+        }
+
+        // 모바일에서 2개 이미지일 경우
+        &:has(.post-image:nth-child(2):last-child) {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .post {
+    .post-content {
+      .post-image-container {
+        grid-template-columns: 1fr; // 매우 작은 화면에서는 모든 이미지를 한 열로
+
+        // 작은 화면에서도 2개 이미지는 2열 유지
+        &:has(.post-image:nth-child(2):last-child) {
+          grid-template-columns: repeat(2, 1fr);
         }
       }
     }
