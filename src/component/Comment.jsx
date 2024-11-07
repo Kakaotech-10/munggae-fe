@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { MoreHorizontal } from "lucide-react";
 import CommentInput from "./CommentInput";
 import { getCommentDetail } from "../api/useGetCommentDetail";
+import FilteredCommentContent from "./ FilteredComment";
 import {
   useCreateComment,
   useEditComment,
@@ -255,7 +256,10 @@ const Comment = ({
           </div>
         ) : (
           <>
-            <div className="content-text">{comment.content}</div>
+            <FilteredCommentContent
+              content={comment.content}
+              clean={comment.clean}
+            />
             <div className="comment-footer">
               <span className="comment-date">
                 {formatDate(comment.createdAt)}
@@ -310,6 +314,7 @@ Comment.propTypes = {
   comment: PropTypes.shape({
     id: PropTypes.number.isRequired,
     content: PropTypes.string.isRequired,
+    clean: PropTypes.bool, // clean 필드 추가
     createdAt: PropTypes.string.isRequired,
     parentId: PropTypes.number,
     depth: PropTypes.number.isRequired,

@@ -1,0 +1,44 @@
+.filtered-comment {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  overflow: hidden;
+
+  .filtered-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+
+    .warning-text {
+      color: #6c757d;
+      font-size: 0.9rem;
+      flex: 1;
+    }
+
+    .reveal-button {
+      padding: 0.25rem 0.75rem;
+      background-color: #3f51b5;
+      border: none;
+      border-radius: 15px;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+
+      &:hover {
+        background-color: #303f9f;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      &:active {
+        transform: translateY(1px);
+      }
+    }
+  }
+
+  .comment-content {
+    padding: 0;
+    word-break: break-word;
+  }
+}
