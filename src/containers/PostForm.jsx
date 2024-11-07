@@ -6,11 +6,11 @@ import Commenticon from "../image/Commenticon.svg";
 import FullHearticon from "../image/FullHearticon.svg";
 import Comment from "../component/Comment";
 import CommentInput from "../component/CommentInput";
+import FilteredContent from "../component/FilteredContent";
 import { useCreateComment } from "../hooks/useComment";
 import { getPostComments } from "../api/useGetComment";
 
 const Post = ({ post, currentUserId }) => {
-  // currentUserId prop 추가
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState([]);
@@ -151,7 +151,11 @@ const Post = ({ post, currentUserId }) => {
         <div className="post-category">[{post.member.course}]</div>
       </div>
       <div className="post-content">
-        <div className="post-text">{post.post_content}</div>
+        <FilteredContent
+          title={post.post_title}
+          content={post.post_content}
+          clean={post.clean}
+        />
         {post.imageUrls && post.imageUrls.length > 0 && (
           <div className="post-image-container">
             {post.imageUrls.map((url, index) => (
@@ -217,8 +221,9 @@ Post.propTypes = {
     post_content: PropTypes.string.isRequired,
     created_at: PropTypes.string.isRequired,
     updated_at: PropTypes.string.isRequired,
-    imageUrls: PropTypes.arrayOf(PropTypes.string), // 이미지 URL 배열 추가
-    s3ImageUrls: PropTypes.arrayOf(PropTypes.string), // S3 URL 배열 추가
+    clean: PropTypes.bool, // clean 필드 추가
+    imageUrls: PropTypes.arrayOf(PropTypes.string),
+    s3ImageUrls: PropTypes.arrayOf(PropTypes.string),
     member: PropTypes.shape({
       member_id: PropTypes.number.isRequired,
       member_name: PropTypes.string.isRequired,
@@ -232,8 +237,10 @@ Post.propTypes = {
 
 Post.defaultProps = {
   post: {
-    imageUrls: [], // 기본값 설정
-    s3ImageUrls: [], // 기본값 설정
+    imageUrls: [],
+    s3ImageUrls: [],
+    clean: true, // clean의 기본값 추가
   },
 };
+
 export default Post;

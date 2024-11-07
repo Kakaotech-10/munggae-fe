@@ -1,0 +1,58 @@
+// FilteredContent.scss
+.filtered-content {
+  width: 100%;
+  background-color: white;
+  border-radius: 8px;
+  margin: 0; // 여백 제거
+  padding: 0; // 여백 제거
+
+  .filtered-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 1rem; // 내부 여백만 유지
+
+    .warning-text {
+      color: #6c757d;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .reveal-button {
+      padding: 0.5rem 1.5rem;
+      background-color: #3f51b5;
+      border: none;
+      border-radius: 20px;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        background-color: #303f9f;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+}
+
+// Postlist용 심플 스타일
+.simple-filtered-content {
+  padding: 0;
+  margin: 0;
+
+  .warning-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+}

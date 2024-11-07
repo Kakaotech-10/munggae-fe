@@ -10,6 +10,7 @@ import { deletePost } from "../api/useDeletePost";
 import WriteForm from "../containers/WriteForm";
 import CommentInput from "./CommentInput";
 import { useCreateComment } from "../hooks/useComment";
+import FilteredContent from "./FilteredContent";
 
 const ViewPage = ({
   post,
@@ -257,8 +258,11 @@ const ViewPage = ({
               )}
             </div>
             <div className="form-group">
-              <div className="title">제목: {post.title}</div>
-              <div className="content">{post.content}</div>
+              <FilteredContent
+                title={post.title}
+                content={post.content}
+                clean={post.clean}
+              />
               <div className="reaction">
                 <img className="hearts" src={Hearticon} alt="하트 아이콘" />
                 <span>{post.likes}</span>
@@ -310,6 +314,7 @@ ViewPage.propTypes = {
     imageUrl: PropTypes.string,
     likes: PropTypes.string.isRequired,
     updatedAt: PropTypes.string.isRequired,
+    clean: PropTypes.bool.isRequired, // isClean에서 clean으로 변경
     author: PropTypes.shape({
       id: PropTypes.number.isRequired,
       role: PropTypes.string.isRequired,

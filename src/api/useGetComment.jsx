@@ -80,12 +80,12 @@ export const getPostComments = async (postId) => {
   }
 };
 
-// transformCommentData 함수도 약간 수정
 const transformCommentData = (commentData) => ({
   id: commentData.id,
   postId: commentData.postId,
   parentId: commentData.parentId,
   content: commentData.content,
+  clean: commentData.clean ?? true, // clean 필드 추가, 기본값은 true
   depth: commentData.depth,
   createdAt: commentData.createdAt,
   updatedAt: commentData.updatedAt,
@@ -94,5 +94,5 @@ const transformCommentData = (commentData) => ({
     name: commentData.member.name,
     nameEnglish: commentData.member.nameEnglish,
   },
-  replies: [], // 초기 replies 배열 추가
+  replies: [],
 });

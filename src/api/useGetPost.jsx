@@ -23,6 +23,7 @@ export const getPost = async (postId) => {
       "createdAt",
       "updatedAt",
       "member",
+      "clean", // clean 필드로 수정
     ];
 
     for (const field of requiredFields) {
@@ -45,9 +46,10 @@ export const getPost = async (postId) => {
       content: postData.content,
       createdAt: postData.createdAt,
       updatedAt: postData.updatedAt,
-      imageUrls: postData.cloudFrontPaths || [], // cloudFrontPath 사용
-      s3ImageUrls: postData.s3ImagePaths || [], // s3ImagePaths 보관
+      imageUrls: postData.cloudFrontPaths || [],
+      s3ImageUrls: postData.s3ImagePaths || [],
       likes: (postData.likes !== undefined ? postData.likes : 0).toString(),
+      clean: postData.clean, // clean 필드로 수정
       author: {
         id: postData.member.id,
         role: postData.member.role,
@@ -64,59 +66,5 @@ export const getPost = async (postId) => {
       error.response ? error.response.data : "No response data"
     );
     throw error;
-  }
-};
-
-// useGetPosts.jsx
-export const getPosts = async (pageNo = 0, pageSize = 10) => {
-  try {
-    const response = await api.get("/api/v1/posts", {
-      params: {
-        pageNo,
-        pageSize,
-      },
-    });
-
-    const transformedData = {
-      content: response.data.content.map((post) => ({
-        post_id: post.id,
-        post_title: post.title,
-        post_content: post.content,
-        created_at: post.createdAt,
-        updated_at: post.updatedAt,
-        member: {
-          member_id: post.member.id,
-          member_name: post.member.name,
-          member_name_english: post.member.nameEnglish,
-          course: post.member.course,
-          role: post.member.role,
-        },
-        // cloudFrontPaths 사용
-        imageUrls: post.cloudFrontPaths || [],
-        // 첫 번째 이미지를 대표 이미지로 사용
-        mainImageUrl: post.cloudFrontPaths?.[0] || "",
-        // S3 URL도 보관
-        s3ImageUrls: post.s3ImagePaths || [],
-      })),
-      totalPages: response.data.totalPages,
-      totalElements: response.data.totalElements,
-      size: response.data.size,
-      number: response.data.number,
-      first: response.data.first,
-      last: response.data.last,
-    };
-
-    return transformedData;
-  } catch (error) {
-    console.error("Error fetching posts:", error);
-    return {
-      content: [],
-      totalPages: 0,
-      totalElements: 0,
-      size: pageSize,
-      number: pageNo,
-      first: true,
-      last: true,
-    };
   }
 };

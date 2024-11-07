@@ -59,6 +59,7 @@ const Community = () => {
         post_likes: 0,
         created_at: newPost.createdAt,
         updated_at: newPost.updatedAt,
+        clean: newPost.clean, // clean 필드 추가
         member: newPost.member,
       };
 
@@ -76,7 +77,6 @@ const Community = () => {
     setCurrentPage(0);
   };
 
-  // Community.jsx
   const handleCommentsUpdate = async (updatedComments) => {
     try {
       console.log("Received updated comments:", updatedComments);
@@ -139,6 +139,7 @@ const Community = () => {
                 post_likes: post.post_likes,
                 created_at: updatedPost.createdAt,
                 updated_at: updatedPost.updatedAt,
+                clean: updatedPost.clean, // clean 필드 추가
                 member: updatedPost.member,
               }
             : post
@@ -239,6 +240,7 @@ const Community = () => {
                     ? post.post_likes
                     : 0
                   ).toString()}
+                  clean={post.clean} // clean prop 추가
                 />
               </div>
             ))
