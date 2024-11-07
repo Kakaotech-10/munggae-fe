@@ -22,7 +22,7 @@ export default function KakaoLogin() {
 
         console.log("Starting login with code:", code);
 
-        // 로그인 요청
+        // 카카오 로그인 요청
         const response = await api.get(
           `/api/v1/auth/login/oauth2/callback/kakao`,
           {
@@ -35,40 +35,70 @@ export default function KakaoLogin() {
           }
         );
 
-        // 응답 헤더에서 Set-Cookie 확인
-        console.log("Response headers:", response.headers);
-        console.log("All cookies:", document.cookie);
-
         const data = response.data;
 
-        if (
-          data.memberId &&
-          data.kakaoId &&
-          data.nickname &&
-          data.token?.accessToken
-        ) {
-          // Access Token 저장
+        // 기본 정보 저장
+        if (data.token?.accessToken) {
           localStorage.setItem("accessToken", data.token.accessToken);
-          localStorage.setItem("userId", data.memberId);
-          localStorage.setItem("kakaoId", data.kakaoId);
-          localStorage.setItem("nickname", data.nickname);
-
-          // axios 기본 헤더 설정
           api.defaults.headers.common["Authorization"] =
             `Bearer ${data.token.accessToken}`;
+        }
 
-          // 쿠키 확인
-          console.log("Cookies after login:", document.cookie);
+        if (data.kakaoId) {
+          localStorage.setItem("kakaoId", data.kakaoId.toString());
+        }
 
-          if (data.memberNameEnglish && data.course) {
-            localStorage.setItem("memberNameEnglish", data.memberNameEnglish);
-            localStorage.setItem("course", data.course);
-            navigate("/mainpage");
-          } else {
-            navigate("/kakaosignup");
-          }
+        if (data.memberId) {
+          localStorage.setItem("userId", data.memberId.toString());
+        }
+
+        if (data.nickname) {
+          localStorage.setItem("nickname", data.nickname);
+        }
+
+        // memberJoin이 true면 신규 회원
+        if (data.memberJoin) {
+          // 신규 회원은 추가 정보 입력 페이지로 이동
+          navigate("/kakaosignup");
         } else {
-          throw new Error("필수 로그인 정보가 누락되었습니다.");
+          // 기존 회원의 경우 필요한 추가 정보를 가져오기 위한 API 호출
+          try {
+            const memberResponse = await api.get(
+              `/api/v1/members/${data.memberId}`
+            );
+            const memberData = memberResponse.data;
+
+            // 회원 정보 저장
+            localStorage.setItem(
+              "memberInfo",
+              JSON.stringify({
+                id: memberData.id,
+                role: memberData.role,
+                course: memberData.course,
+                name: memberData.name,
+                nameEnglish: memberData.nameEnglish,
+              })
+            );
+
+            if (memberData.name) {
+              localStorage.setItem("memberName", memberData.name);
+            }
+
+            if (memberData.nameEnglish) {
+              localStorage.setItem("memberNameEnglish", memberData.nameEnglish);
+            }
+
+            if (memberData.course) {
+              localStorage.setItem("course", memberData.course);
+            }
+
+            // 메인 페이지로 이동
+            navigate("/mainpage");
+          } catch (error) {
+            console.error("Error fetching member details:", error);
+            alert("회원 정보를 불러오는데 실패했습니다.");
+            navigate("/login");
+          }
         }
       } catch (error) {
         console.error("Login error details:", error);
