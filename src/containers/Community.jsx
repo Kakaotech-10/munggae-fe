@@ -1,4 +1,3 @@
-// containers/Community.jsx
 import { useState, useEffect } from "react";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
@@ -32,15 +31,39 @@ const Community = () => {
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      const data = await getPosts(currentPage, pageSize);
-      console.log("Fetched posts:", data.content); // 디버깅 로그 추가
-      setPosts(data.content);
-      setTotalPages(data.totalPages);
+      // sortBy 파라미터를 서버에 전달
+      const data = await getPosts(currentPage, pageSize, sortBy);
+
+      let sortedPosts;
+      if (sortBy === "oldest") {
+        // 오래된순일 때는 created_at 기준으로 오름차순 정렬
+        sortedPosts = [...data.content].sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
+      } else if (sortBy === "latest") {
+        // 최신순일 때는 created_at 기준으로 내림차순 정렬
+        sortedPosts = [...data.content].sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+      } else {
+        // 인기순일 때는 likes 기준으로 정렬
+        sortedPosts = [...data.content].sort(
+          (a, b) => b.post_likes - a.post_likes
+        );
+      }
+
+      setPosts(sortedPosts);
+      setTotalPages(Math.ceil(data.totalPages));
     } catch (error) {
       console.error("Error fetching posts:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSort = (sortType) => {
+    setSortBy(sortType);
+    setCurrentPage(0); // 정렬 변경 시 첫 페이지로 이동
   };
 
   const handleWriteClick = () => {
@@ -61,7 +84,7 @@ const Community = () => {
         created_at: newPost.createdAt,
         updated_at: newPost.updatedAt,
         clean: newPost.clean,
-        imageUrls: newPost.imageUrls || [], // 이미지 URL 배열 추가
+        imageUrls: newPost.imageUrls || [],
         member: newPost.member,
       };
 
@@ -74,24 +97,12 @@ const Community = () => {
     }
   };
 
-  const handleSort = (sortType) => {
-    setSortBy(sortType);
-    setCurrentPage(0);
-  };
-
   const handleCommentsUpdate = async (updatedComments) => {
     try {
-      console.log("Received updated comments:", updatedComments);
-
-      // allComments 배열을 바로 사용하도록 수정
       if (Array.isArray(updatedComments)) {
-        // 새로운 댓글들로 상태 업데이트
-        console.log("Final organized comments:", updatedComments);
         setComments(updatedComments);
       } else {
-        // 단일 댓글이 전달된 경우, 기존 댓글 배열에 추가
         const newComments = [...comments, updatedComments];
-        console.log("Final organized comments:", newComments);
         setComments(newComments);
       }
     } catch (error) {
@@ -105,14 +116,10 @@ const Community = () => {
       setIsLoading(true);
       setCommentError(null);
 
-      console.log("Fetching post with ID:", postId);
       const [postData, commentsData] = await Promise.all([
         getPost(postId),
         getPostComments(postId),
       ]);
-
-      console.log("Received post data:", postData); // 로깅 추가
-      console.log("Post images:", postData.imageUrls); // 이미지 URL 로깅
 
       setSelectedPost(postData);
 
@@ -146,7 +153,7 @@ const Community = () => {
                 created_at: updatedPost.createdAt,
                 updated_at: updatedPost.updatedAt,
                 clean: updatedPost.clean,
-                imageUrls: updatedPost.imageUrls || [], // 이미지 URL 배열 추가
+                imageUrls: updatedPost.imageUrls || [],
                 member: updatedPost.member,
               }
             : post
@@ -207,7 +214,7 @@ const Community = () => {
         <div className="community-header">
           <h2>커뮤니티</h2>
           <div className="header-right">
-            <SortButtons onSort={handleSort} />
+            <SortButtons onSort={handleSort} currentSort={sortBy} />
             <div className="write-button-area">
               <button
                 className="write-button"
@@ -242,7 +249,7 @@ const Community = () => {
                 <Postlist
                   id={post.post_id}
                   title={post.post_title}
-                  imageUrls={post.imageUrls} // 이미지 URL 배열 전달
+                  imageUrls={post.imageUrls}
                   likes={(post.post_likes !== undefined
                     ? post.post_likes
                     : 0
