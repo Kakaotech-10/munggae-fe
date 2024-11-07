@@ -10,13 +10,19 @@ import FilteredContent from "../component/FilteredContent";
 import { useCreateComment } from "../hooks/useComment";
 import { getPostComments } from "../api/useGetComment";
 
-const Post = ({ post, currentUserId }) => {
+const Post = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [commentError, setCommentError] = useState(null);
   const { handleCreateComment, isCreating, createError } = useCreateComment();
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    setCurrentUserId(userId ? parseInt(userId) : null);
+  }, []);
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -31,7 +37,7 @@ const Post = ({ post, currentUserId }) => {
           return;
         }
 
-        setComments(commentsData.content); // content에 이미 계층구조가 포함되어 있음
+        setComments(commentsData.content);
         setCommentError(null);
       } catch (error) {
         console.error("Failed to fetch comments:", error);
@@ -64,6 +70,7 @@ const Post = ({ post, currentUserId }) => {
       );
 
       if (isEdit) {
+        // 기존 댓글 수정
         const updatedComments = comments.map((comment) => {
           if (comment.id === updatedComment.id) {
             return { ...comment, ...updatedComment };
@@ -81,29 +88,61 @@ const Post = ({ post, currentUserId }) => {
         setComments(updatedComments);
       } else {
         if (updatedComment.parentId) {
+          // 대댓글인 경우
           const updatedComments = comments.map((comment) => {
             if (comment.id === updatedComment.parentId) {
               return {
                 ...comment,
-                replies: [...(comment.replies || []), updatedComment],
+                // 대댓글은 시간순 정렬 (최신이 아래)
+                replies: [...(comment.replies || []), updatedComment].sort(
+                  (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+                ),
               };
             }
             return comment;
           });
           setComments(updatedComments);
         } else {
-          setComments([...comments, updatedComment]);
+          // 새 댓글을 배열 맨 앞에 추가 (최신이 위로)
+          setComments([
+            {
+              ...updatedComment,
+              replies: [],
+            },
+            ...comments,
+          ]);
         }
       }
     }
   };
 
-  const handleNewComment = async (postId, memberId, content) => {
+  const handleNewComment = async (content, parentId = null) => {
     try {
-      const newComment = await handleCreateComment(postId, memberId, content);
-      handleCommentUpdate(newComment);
+      if (!content?.trim()) {
+        throw new Error("댓글 내용을 입력해주세요.");
+      }
+
+      if (!currentUserId) {
+        throw new Error("로그인이 필요합니다.");
+      }
+
+      if (!post.post_id) {
+        throw new Error("게시글 정보가 없습니다.");
+      }
+
+      const newComment = await handleCreateComment(
+        post.post_id,
+        currentUserId,
+        content.trim(),
+        parentId
+      );
+
+      if (newComment) {
+        handleCommentUpdate(newComment);
+      }
     } catch (error) {
       console.error("댓글 생성 실패:", error);
+      alert(error.message || "댓글 작성 중 오류가 발생했습니다.");
     }
   };
 
@@ -184,10 +223,8 @@ const Post = ({ post, currentUserId }) => {
         <div className="comment-area">
           <CommentInput
             onSubmit={handleNewComment}
-            postId={post.post_id}
-            currentUserId={currentUserId}
-            depth={0}
             isSubmitting={isCreating}
+            depth={0}
           />
           {createError && <div className="error-message">{createError}</div>}
           {commentError ? (
@@ -221,7 +258,7 @@ Post.propTypes = {
     post_content: PropTypes.string.isRequired,
     created_at: PropTypes.string.isRequired,
     updated_at: PropTypes.string.isRequired,
-    clean: PropTypes.bool, // clean 필드 추가
+    clean: PropTypes.bool,
     imageUrls: PropTypes.arrayOf(PropTypes.string),
     s3ImageUrls: PropTypes.arrayOf(PropTypes.string),
     member: PropTypes.shape({
@@ -232,14 +269,13 @@ Post.propTypes = {
       role: PropTypes.string.isRequired,
     }).isRequired,
   }).isRequired,
-  currentUserId: PropTypes.number.isRequired,
 };
 
 Post.defaultProps = {
   post: {
     imageUrls: [],
     s3ImageUrls: [],
-    clean: true, // clean의 기본값 추가
+    clean: true,
   },
 };
 
