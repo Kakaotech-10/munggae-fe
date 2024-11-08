@@ -11,6 +11,7 @@ import WriteForm from "../containers/WriteForm";
 import CommentInput from "./CommentInput";
 import { useCreateComment } from "../hooks/useComment";
 import FilteredContent from "./FilteredContent";
+import Profileimg from "../image/logo_black.png";
 
 const ViewPage = ({
   post,
@@ -217,9 +218,13 @@ const ViewPage = ({
           <div className="right-section">
             <div className="profile-section">
               <img
-                src={post.author.profileImage}
+                src={post.author.profileImage || Profileimg}
                 alt="프로필"
                 className="profile-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = Profileimg;
+                }}
               />
               <div className="profile-info">
                 <span className="profile-name">{`${post.author.name}(${post.author.nameEnglish})`}</span>
@@ -349,6 +354,7 @@ ViewPage.propTypes = {
         id: PropTypes.number.isRequired,
         name: PropTypes.string.isRequired,
         nameEnglish: PropTypes.string.isRequired,
+        profileImage: PropTypes.string,
       }).isRequired,
     })
   ).isRequired,
