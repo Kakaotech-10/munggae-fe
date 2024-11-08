@@ -62,4 +62,22 @@ pipeline {
             }
         }
     }
+    
+    //jenkins 빌드 slack 알람
+    post  {
+        success {
+            slackSend (
+                channel: 'jenkins-알람',
+                color: '#2C953C',
+                message: "SUCCESSFUL: Job ${env.JOB_NAME} #${env.BUILD_NUMBER} (${env.BUILD_URL})"
+            )
+        }
+        failure {
+            slackSend (
+                channel: 'jenkins-알람',
+                color: '#FF3232',
+                message: "FAIL: Job ${env.JOB_NAME} #${env.BUILD_NUMBER} (${env.BUILD_URL})"
+            )
+        }
+    }
 }
