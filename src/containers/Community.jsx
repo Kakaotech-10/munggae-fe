@@ -206,7 +206,7 @@ const Community = () => {
       <div className="sidebar-area">
         <Sidebar />
       </div>
-      <div className="content-wrapper">
+      <div className="commu-content-wrapper">
         <div className="search-area">
           <Search />
         </div>
