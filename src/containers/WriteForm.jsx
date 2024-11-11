@@ -213,7 +213,7 @@ const WriteForm = ({
                 disabled={isUploading}
               />
             </div>
-            <div className="form-group">
+            <div className="write-form-group">
               <input
                 type="text"
                 id="title"
@@ -224,7 +224,7 @@ const WriteForm = ({
                 disabled={isUploading}
               />
             </div>
-            <div className="form-group">
+            <div className="write-form-group">
               <textarea
                 id="content"
                 value={content}
@@ -235,7 +235,7 @@ const WriteForm = ({
               />
             </div>
             <div className="time-settings">
-              <div className="form-group">
+              <div className="write-form-group">
                 <button
                   type="button"
                   onClick={() => setShowUploadTime(!showUploadTime)}
@@ -258,7 +258,7 @@ const WriteForm = ({
                   </div>
                 )}
               </div>
-              <div className="form-group">
+              <div className="write-form-group">
                 <button
                   type="button"
                   onClick={() => setShowDeadlineTime(!showDeadlineTime)}
