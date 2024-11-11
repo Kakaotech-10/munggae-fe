@@ -10,6 +10,12 @@ pipeline {
         S3_BUCKET = credentials('aws-s3-bucket')
         CLOUDFRONT_DISTRIBUTION_ID = credentials('cloudfront-distribution-id')
         APP_ENDPOINT_MAIN = credentials('app-endpoint-main') //env 파일 설정
+        VITE_REACT_APP_REST_API_KEY = credentials('VITE_REACT_APP_REST_API_KEY')
+        VITE_REACT_APP_REDIRECT_URL = credentials('VITE_REACT_APP_REDIRECT_URL')
+        VITE_API_BASE_URL = credentials('VITE_API_BASE_URL')
+        IMAGE_ACCESS_KEY_ID = credentials('image-access-key-id')
+        IMAGE_SECRET_ACCESS_KEY = credentials('image-secret-access-key')
+        
     }
 
     stages {
@@ -26,6 +32,11 @@ pipeline {
             steps {
                 script {
                     sh 'echo "APP_ENDPOINT=${APP_ENDPOINT_MAIN}" >> .env'
+                    sh 'echo "VITE_REACT_APP_REST_API_KEY=${VITE_REACT_APP_REST_API_KEY}" >> .env'
+                    sh 'echo "VITE_REACT_APP_REDIRECT_URL=${VITE_REACT_APP_REDIRECT_URL}" >> .env'
+                    sh 'echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" >> .env'
+                    sh 'echo "cloud.aws.credentials.accessKey=${IMAGE_ACCESS_KEY_ID}" >> .env'
+                    sh 'echo "cloud.aws.credentials.secretKey=${IMAGE_SECRET_ACCESS_KEY}" >> .env'
                 }
             }
         }
