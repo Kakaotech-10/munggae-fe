@@ -30,10 +30,10 @@
 
 .postlist-img {
   flex: 0 0 auto;
-  width: clamp(60px, 10vh, 100px);
-  height: clamp(60px, 10vh, 100px);
+  width: clamp(60px, 10vh, 90px);
+  height: clamp(60px, 10vh, 90px);
   margin-right: clamp(8px, 1.5vw, 10px);
-  border: solid 1.5px;
+  border: solid 0px;
   border-radius: 8px;
   overflow: hidden;
 
