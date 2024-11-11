@@ -8,6 +8,7 @@ import NoticeForm from "../containers/NoticeForm";
 import Community from "../containers/Community";
 import ClubForm from "../containers/ClubForm";
 import KakaoLogin from "../containers/LoginHandler";
+import ProtectedRoute from "./ProtectedRoute";
 
 function StartRoutes() {
   return (
@@ -17,10 +18,38 @@ function StartRoutes() {
       <Route path="/login/oauth2/callback/kakao" element={<KakaoLogin />} />
       <Route path="/kakaosignup" element={<SignupForm_kakao />} />
       <Route path="/signup" element={<SignupForm />} />
-      <Route path="/mainpage" element={<MainForm />} />
-      <Route path="/noticepage" element={<NoticeForm />} />
-      <Route path="/communitypage" element={<Community />} />
-      <Route path="/clubpage" element={<ClubForm />} />
+      <Route
+        path="/mainpage"
+        element={
+          <ProtectedRoute>
+            <MainForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/noticepage"
+        element={
+          <ProtectedRoute>
+            <NoticeForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/communitypage"
+        element={
+          <ProtectedRoute>
+            <Community />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/clubpage"
+        element={
+          <ProtectedRoute>
+            <ClubForm />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
