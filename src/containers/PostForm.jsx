@@ -9,6 +9,7 @@ import CommentInput from "../component/CommentInput";
 import FilteredContent from "../component/FilteredContent";
 import { useCreateComment } from "../hooks/useComment";
 import { getPostComments } from "../api/useGetComment";
+import Profileimg from "../image/logo_black.png";
 
 const Post = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
@@ -178,8 +179,12 @@ const Post = ({ post }) => {
         <div className="user-info">
           <div className="user-image">
             <img
-              src="https://example.com/default-profile-image.jpg"
+              src={post.member.profile_image || Profileimg}
               alt="profile"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = Profileimg;
+              }}
             />
           </div>
           <div className="user-details">
@@ -267,6 +272,7 @@ Post.propTypes = {
       member_name_english: PropTypes.string.isRequired,
       course: PropTypes.string.isRequired,
       role: PropTypes.string.isRequired,
+      profile_image: PropTypes.string,
     }).isRequired,
   }).isRequired,
 };
@@ -276,6 +282,9 @@ Post.defaultProps = {
     imageUrls: [],
     s3ImageUrls: [],
     clean: true,
+    member: {
+      profile_image: "",
+    },
   },
 };
 

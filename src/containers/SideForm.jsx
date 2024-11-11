@@ -9,6 +9,7 @@ import Commuicon from "../image/Commuicon.svg";
 import Clubicon from "../image/Clubicon.svg";
 import Mypageicon from "../image/Mypageicon.svg";
 import Logouticon from "../image/Logouticon.svg";
+import Profileimg from "../image/logo_black.png";
 
 const NavItem = ({ icon, alt, text, path }) => {
   const navigate = useNavigate();
@@ -111,9 +112,14 @@ const Sidebar = ({ showLogout }) => {
       </div>
       <div className="user-info">
         <div className="user-image">
-          {userInfo.profileImageUrl && (
-            <img src={userInfo.profileImageUrl} alt="profile" />
-          )}
+          <img
+            src={userInfo.profileImageUrl || Profileimg}
+            alt="profile"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = Profileimg;
+            }}
+          />
         </div>
         {getWelcomeMessage()}
       </div>

@@ -5,17 +5,17 @@
   border-radius: 10px;
   box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.3);
   margin-bottom: 20px;
-  padding: 100px;
+  padding: clamp(20px, 5vw, 100px);
   box-sizing: border-box;
 
   @media (max-width: 1200px) {
     width: 100%;
-    padding: 60px;
+    padding: clamp(20px, 4vw, 60px);
   }
 
   @media (max-width: 767px) {
     width: 100%;
-    padding: 60px;
+    padding: 20px;
   }
 
   .post-header {
@@ -25,32 +25,41 @@
     margin-bottom: 20px;
 
     .post-category {
-      font-size: 14px;
+      font-size: clamp(12px, 1.5vw, 14px);
       padding: 5px 10px;
       border-radius: 15px;
     }
+
     .user-info {
       display: flex;
       align-items: center;
 
       .user-image {
-        width: 80px;
-        height: 80px;
-        background-color: #ddd;
+        width: clamp(50px, 8vw, 80px);
+        height: clamp(50px, 8vw, 80px);
         border-radius: 10px;
         margin-right: 10px;
+        border: 1.5px solid #ddd;
+        overflow: hidden;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 8px;
+        }
       }
 
       .user-details {
         h3 {
           margin-top: 0;
           margin-bottom: 10px;
-          font-size: 16px;
+          font-size: clamp(14px, 1.8vw, 16px);
         }
 
         p {
           margin: 0;
-          font-size: 12px;
+          font-size: clamp(10px, 1.5vw, 12px);
           color: #65676b;
         }
       }
@@ -63,13 +72,16 @@
     .post-image-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 10px;
+      gap: clamp(5px, 1vw, 10px);
       width: 100%;
       margin: 15px 0;
+      max-height: none;
+      overflow: hidden;
 
       .post-image {
         width: 100%;
-        aspect-ratio: 1 / 1; // 정사각형 비율 설정
+        height: auto;
+        max-height: 300px;
         object-fit: cover;
         border-radius: 8px;
         transition: transform 0.2s ease;
@@ -81,30 +93,73 @@
 
       // 단일 이미지일 경우
       &:has(.post-image:only-child) {
-        max-width: 500px; // 단일 이미지의 최대 너비
+        max-width: min(500px, 100%);
         margin: 15px auto;
 
         .post-image {
           width: 100%;
-          aspect-ratio: 1 / 1;
+          height: auto;
+          max-height: 400px;
+          object-fit: contain;
         }
       }
 
       // 2개의 이미지일 경우
       &:has(.post-image:nth-child(2):last-child) {
         grid-template-columns: repeat(2, 1fr);
+
+        .post-image {
+          height: 200px;
+          object-fit: cover;
+        }
       }
 
       // 3개 이상의 이미지일 경우
       &:has(.post-image:nth-child(3)) {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        max-height: 800px;
-        overflow-y: auto;
+        grid-template-rows: repeat(2, auto);
+        max-height: 450px;
+
+        .post-image {
+          height: 200px;
+          object-fit: cover;
+        }
+
+        // 4개 이상일 경우 마지막 이미지에 더보기 표시
+        &:has(.post-image:nth-child(4)) {
+          .post-image:nth-child(4) {
+            position: relative;
+
+            &::after {
+              content: "+ " attr(data-remaining);
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(0, 0, 0, 0.5);
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 1.5em;
+              font-weight: bold;
+              border-radius: 8px;
+            }
+          }
+
+          .post-image:nth-child(n + 5) {
+            display: none;
+          }
+        }
       }
     }
 
     .post-text {
       width: 100%;
+      font-size: clamp(14px, 1.6vw, 16px);
+      line-height: 1.5;
+      margin-bottom: 15px;
     }
   }
 
@@ -113,120 +168,128 @@
       display: flex;
       justify-content: flex-start;
       margin-bottom: 10px;
-      gap: 15px;
+      gap: clamp(10px, 2vw, 15px);
 
       .reaction-item {
         display: flex;
         align-items: center;
 
         img {
-          width: 20px;
-          height: 20px;
+          width: clamp(16px, 2vw, 20px);
+          height: clamp(16px, 2vw, 20px);
           margin-right: 5px;
         }
 
         span {
           color: #65676b;
-          font-size: 14px;
+          font-size: clamp(12px, 1.5vw, 14px);
         }
       }
     }
 
-    .comment-box {
-      margin-bottom: 15px;
-
-      .comment {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid #e6e6e6;
-
-        .comment-content {
-          flex-grow: 1;
-
-          strong {
-            font-weight: bold;
-            margin-right: 10px;
-          }
-
-          p {
-            margin: 5px 0 0;
-          }
-        }
-
-        .comment-like {
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-
-          img {
-            width: 16px;
-            height: 16px;
-            margin-right: 5px;
-          }
-
-          span {
-            font-size: 12px;
-          }
-        }
-      }
+    .comment-divider {
+      border: none;
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 15px 0;
     }
 
-    .comment-input {
-      display: flex;
+    .comment-area {
+      margin-top: 15px;
 
-      input {
-        flex-grow: 1;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        margin-right: 10px;
+      .no-comments {
+        color: #666;
+        text-align: center;
+        padding: 20px 0;
       }
 
-      button {
-        padding: 8px 16px;
-        background-color: #3d3d3d;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-
-        &:hover {
-          background-color: #365899;
-        }
+      .error-message {
+        color: #dc3545;
+        text-align: center;
+        padding: 20px 0;
       }
     }
   }
-}
-@media (max-width: 768px) {
-  .post {
+
+  @media (max-width: 768px) {
     .post-content {
       .post-image-container {
-        grid-template-columns: 1fr; // 모바일에서는 한 열로
-
-        .post-image {
-          aspect-ratio: 1 / 1; // 정사각형 유지
-        }
+        grid-template-columns: 1fr;
+        gap: 8px;
 
         // 모바일에서 2개 이미지일 경우
         &:has(.post-image:nth-child(2):last-child) {
           grid-template-columns: repeat(2, 1fr);
+
+          .post-image {
+            height: 150px;
+          }
+        }
+
+        // 3개 이상의 이미지일 경우 모바일 최적화
+        &:has(.post-image:nth-child(3)) {
+          max-height: none;
+          grid-template-rows: auto;
+
+          .post-image {
+            height: 150px;
+          }
+        }
+
+        // 단일 이미지 모바일 최적화
+        &:has(.post-image:only-child) {
+          .post-image {
+            height: auto;
+            max-height: 300px;
+          }
         }
       }
     }
   }
-}
 
-@media (max-width: 480px) {
-  .post {
+  @media (max-width: 480px) {
+    padding: 15px;
+
+    .post-header {
+      .user-info {
+        .user-image {
+          width: 40px;
+          height: 40px;
+        }
+      }
+    }
+
     .post-content {
       .post-image-container {
-        grid-template-columns: 1fr; // 매우 작은 화면에서는 모든 이미지를 한 열로
+        gap: 5px;
 
-        // 작은 화면에서도 2개 이미지는 2열 유지
+        .post-image {
+          height: 120px;
+        }
+
+        // 2개 이미지 유지
         &:has(.post-image:nth-child(2):last-child) {
-          grid-template-columns: repeat(2, 1fr);
+          .post-image {
+            height: 120px;
+          }
+        }
+
+        // 단일 이미지
+        &:has(.post-image:only-child) {
+          .post-image {
+            height: auto;
+            max-height: 250px;
+          }
+        }
+      }
+    }
+
+    .post-footer {
+      .comment-area {
+        .no-comments,
+        .error-message {
+          padding: 15px 0;
+          font-size: 12px;
         }
       }
     }
