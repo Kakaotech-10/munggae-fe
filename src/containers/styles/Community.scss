@@ -10,82 +10,77 @@
   font-weight: normal;
   font-style: normal;
 
-  .content-wrapper {
-    flex-grow: 1;
-    padding: 20px;
+  .commu-content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     max-width: 950px;
     margin: 0 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
+    padding: clamp(10px, 2vh, 20px);
+    height: 100vh;
+    overflow: hidden;
+
     @media (max-width: 767px) {
-      padding: 10px;
       max-width: 100%;
       width: 100%;
+      padding: 8px;
     }
   }
 
   .search-area {
-    margin-bottom: 20px;
+    flex: 0 0 auto;
+    margin-bottom: clamp(10px, 2vh, 20px);
     margin-right: -10%;
+
     @media (max-width: 767px) {
-      margin: 0px;
-      max-height: 7%;
+      margin: 0 0 8px 0;
+      height: auto;
     }
   }
 
   .community-header {
+    flex: 0 0 auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: clamp(10px, 2vh, 20px);
+
     @media (max-width: 767px) {
-      margin-bottom: 10px;
-      margin-top: 10px;
-      flex-direction: column;
-      align-items: flex-start;
+      margin-bottom: 8px;
+      flex-direction: row;
+      align-items: center;
     }
 
     h2 {
-      font-size: 24px;
+      font-size: clamp(18px, 2.5vw, 24px);
       margin: 0;
-      line-height: 1.5; // 추가: 텍스트 높이 조정
-      @media (max-width: 767px) {
-        font-size: 18px;
-        margin-bottom: 10px;
-      }
+      line-height: 1.3;
     }
 
     .header-right {
       display: flex;
       align-items: center;
+      gap: clamp(8px, 1vw, 20px);
+
       @media (max-width: 767px) {
-        width: 100%;
-        justify-content: space-between;
+        gap: 8px;
       }
     }
   }
 
   .write-button-area {
-    margin-left: 20px;
-    @media (max-width: 767px) {
-      margin-left: 0px;
-    }
-
     button {
-      padding: 8px 16px;
+      padding: clamp(6px, 1vh, 8px) clamp(12px, 2vw, 16px);
       border: 1px solid #ccc;
       border-radius: 4px;
       background-color: white;
       color: #333;
       cursor: pointer;
       transition: all 0.3s ease;
-      font-size: 15px;
-      line-height: 1.5; // 추가: 버튼 높이 조정
-      @media (max-width: 767px) {
-        margin-right: 20px;
-        font-size: 12px;
-        padding: 6px 12px;
-      }
+      font-size: clamp(12px, 1.5vw, 15px);
+      line-height: 1.3;
+      white-space: nowrap;
+
       &:hover {
         background-color: #f0f0f0;
       }
@@ -97,26 +92,103 @@
   }
 
   .divider {
-    margin-bottom: 0px;
+    flex: 0 0 auto;
+    margin: 0 0 clamp(10px, 2vh, 20px) 0;
     border: none;
     border-top: 1px solid #e0e0e0;
   }
 
   .posts-area {
-    margin-bottom: 20px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0; // Firefox 호환성
+    margin-bottom: clamp(10px, 2vh, 20px);
+
+    // 스크롤바 스타일링
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 3px;
+    }
+
+    .post-item {
+      margin-bottom: clamp(8px, 1.5vh, 16px);
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
     @media (max-width: 767px) {
-      max-width: 91%;
-      max-height: 45%;
+      margin-bottom: 8px;
     }
   }
 
   .pagination-container {
+    flex: 0 0 auto;
     display: flex;
     justify-content: center;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    padding: clamp(8px, 1.5vh, 16px) 0;
+    margin-bottom: 10px; // 모바일 하단 네비게이션 고려
+
     @media (max-width: 767px) {
-      margin-top: 100px;
+      padding: 8px 0;
+      margin-bottom: 70px; // 모바일 하단 네비게이션 고려
+    }
+  }
+
+  // 로딩 상태 스타일
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: clamp(14px, 1.5vw, 16px);
+    color: #666;
+  }
+
+  // ViewPage와 WriteForm이 표시될 때 스크롤 방지
+  &.modal-open {
+    overflow: hidden;
+
+    .commu-content-wrapper {
+      overflow: hidden;
+    }
+  }
+}
+
+// 모달 컨테이너 스타일 (ViewPage, WriteForm)
+.modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+  .modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: clamp(16px, 3vh, 24px);
+    max-height: 90vh;
+    max-width: 90vw;
+    overflow-y: auto;
+
+    @media (max-width: 767px) {
+      max-height: 85vh;
+      padding: 12px;
     }
   }
 }
