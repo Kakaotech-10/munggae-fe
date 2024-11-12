@@ -93,7 +93,7 @@
   }
 }
 
-.write-form-group {
+.form-group {
   margin-bottom: 15px;
 
   input[type="text"],
@@ -116,7 +116,7 @@
   flex-direction: column;
   gap: 15px;
 
-  .write-form-group {
+  .form-group {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -228,7 +228,7 @@
     }
   }
 
-  .write-form-group {
+  .form-group {
     margin-bottom: 10px;
 
     input[type="text"],
@@ -244,7 +244,7 @@
   .time-settings {
     gap: 10px;
 
-    .write-form-group {
+    .form-group {
       .time-toggle-button {
         padding: 6px 12px;
       }
@@ -297,7 +297,7 @@
     }
   }
 
-  .write-form-group {
+  .form-group {
     margin-bottom: 10px;
     input[type="text"],
     textarea {
@@ -313,7 +313,7 @@
   .time-settings {
     gap: 10px;
 
-    .write-form-group {
+    .form-group {
       .time-toggle-button {
         padding: 6px 12px;
       }
