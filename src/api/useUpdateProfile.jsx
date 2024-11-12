@@ -10,23 +10,11 @@ export const useUpdateProfile = () => {
       setIsUploading(true);
       setUploadError(null);
 
-      if (!memberId) {
-        throw new Error("Member ID is required");
+      if (!memberId || !file) {
+        throw new Error("Member ID and file are required");
       }
-
-      if (!file) {
-        throw new Error("File is required");
-      }
-
-      console.log("Starting image upload process:", {
-        memberId,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      });
 
       // 1. Get presigned URL
-      console.log("Requesting presigned URL...");
       const presignedUrlResponse = await api.post(
         `/api/v1/members/${memberId}/images/presigned-url`,
         {
@@ -41,26 +29,14 @@ export const useUpdateProfile = () => {
         }
       );
 
-      console.log("Presigned URL response:", presignedUrlResponse);
-
-      if (!presignedUrlResponse?.data?.urls) {
-        throw new Error("No presigned URL data received from server");
+      const { urls } = presignedUrlResponse.data;
+      if (!urls || !urls.url) {
+        throw new Error("Invalid presigned URL response");
       }
 
-      const { url: presignedUrl, fileName: serverFileName } =
-        presignedUrlResponse.data.urls;
+      const { url: presignedUrl, fileName: serverFileName } = urls;
 
-      if (!presignedUrl) {
-        throw new Error("Presigned URL is missing from response");
-      }
-
-      // 2. Upload to S3 using presigned URL
-      console.log("Uploading to S3...", {
-        url: presignedUrl,
-        fileType: file.type,
-        fileName: serverFileName,
-      });
-
+      // 2. Upload to S3
       const uploadResponse = await fetch(presignedUrl, {
         method: "PUT",
         body: file,
@@ -70,35 +46,17 @@ export const useUpdateProfile = () => {
       });
 
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error("S3 upload failed:", {
-          status: uploadResponse.status,
-          statusText: uploadResponse.statusText,
-          response: errorText,
-          headers: Object.fromEntries(uploadResponse.headers.entries()),
-        });
-        throw new Error(
-          `S3 upload failed: ${uploadResponse.statusText} - ${errorText}`
-        );
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
       }
 
-      console.log("S3 upload successful");
-
-      // Extract the base URL (S3 object URL without the presigned parameters)
-      const baseUrl = presignedUrl.split("?")[0];
-
-      // 3. Save image information to backend
-      console.log("Saving image information to backend...", {
-        fileName: serverFileName,
-        url: baseUrl,
-      });
-
+      // 3. Save image URL
+      const imageUrl = presignedUrl.split("?")[0];
       const saveImageResponse = await api.post(
         `/api/v1/members/${memberId}/images`,
         {
           urls: {
             fileName: serverFileName,
-            url: baseUrl,
+            url: imageUrl,
           },
         },
         {
@@ -109,39 +67,25 @@ export const useUpdateProfile = () => {
         }
       );
 
-      console.log("Save image response:", saveImageResponse);
-
-      if (!saveImageResponse?.data) {
-        throw new Error("Failed to save image information to server");
+      if (saveImageResponse.data) {
+        // Update memberInfo in localStorage
+        const memberInfo = JSON.parse(
+          localStorage.getItem("memberInfo") || "{}"
+        );
+        memberInfo.imageUrl = imageUrl;
+        localStorage.setItem("memberInfo", JSON.stringify(memberInfo));
       }
 
-      return saveImageResponse.data;
+      return {
+        imageUrl,
+        fileName: serverFileName,
+      };
     } catch (error) {
-      console.error("Profile image upload error:", {
-        error: {
-          message: error.message,
-          name: error.name,
-          stack: error.stack,
-          response: error.response?.data,
-          status: error.response?.status,
-        },
-        context: {
-          memberId,
-          fileName: file?.name,
-          fileType: file?.type,
-          fileSize: file?.size,
-          accessToken: localStorage.getItem("accessToken")
-            ? "Present"
-            : "Missing",
-        },
+      console.error("Image upload error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
       });
-
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to upload profile image";
-
-      setUploadError(errorMessage);
       throw error;
     } finally {
       setIsUploading(false);
