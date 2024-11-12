@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import api from "../api/config"; // api import 추가
 import Logo from "../image/logo.png";
 import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
@@ -52,23 +53,58 @@ const Sidebar = ({ showLogout }) => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
     userName: "",
+    userNameEnglish: "",
     profileImageUrl: "",
     isLoggedIn: false,
   });
 
   useEffect(() => {
-    // 로컬 스토리지에서 사용자 정보 확인
-    const memberName = localStorage.getItem("memberName");
-    const memberNameEnglish = localStorage.getItem("memberNameEnglish");
-    const profileImage = localStorage.getItem("profileImage");
+    const loadUserInfo = async () => {
+      try {
+        const memberId = localStorage.getItem("userId");
+        if (!memberId) {
+          console.log("No user ID found");
+          return;
+        }
 
-    if (memberName && memberNameEnglish) {
-      setUserInfo({
-        userName: `${memberNameEnglish}(${memberName})`,
-        profileImageUrl: profileImage || "",
-        isLoggedIn: true,
-      });
-    }
+        // API를 통해 최신 사용자 정보 가져오기
+        console.log("Fetching user info for ID:", memberId);
+        const response = await api.get(`/api/v1/members/${memberId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        });
+
+        console.log("Received user info:", response.data);
+        const memberData = response.data;
+
+        // 프로필 정보 업데이트
+        setUserInfo({
+          userName: memberData.name,
+          userNameEnglish: memberData.nameEnglish,
+          profileImageUrl: memberData.imageUrl, // CDN URL
+          isLoggedIn: true,
+        });
+
+        // localStorage 업데이트
+        localStorage.setItem("memberInfo", JSON.stringify(memberData));
+        localStorage.setItem("memberName", memberData.name);
+        localStorage.setItem("memberNameEnglish", memberData.nameEnglish);
+
+        console.log("Updated user info:", {
+          name: memberData.name,
+          nameEnglish: memberData.nameEnglish,
+          imageUrl: memberData.imageUrl,
+        });
+      } catch (error) {
+        console.error("Failed to load user info:", error);
+        if (error.response) {
+          console.error("Error response:", error.response.data);
+        }
+      }
+    };
+
+    loadUserInfo();
   }, []);
 
   const handleLogoClick = () => {
@@ -86,7 +122,10 @@ const Sidebar = ({ showLogout }) => {
     if (userInfo.isLoggedIn) {
       return (
         <p>
-          <span className="user-name">{userInfo.userName}</span>님, <br />
+          <span className="user-name">
+            {userInfo.userNameEnglish}({userInfo.userName})
+          </span>
+          님, <br />
           환영합니다
         </p>
       );
@@ -114,11 +153,12 @@ const Sidebar = ({ showLogout }) => {
         <div className="user-image">
           <img
             src={userInfo.profileImageUrl || Profileimg}
-            alt="profile"
+            alt="Profile"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = Profileimg;
             }}
+            className="profile-image"
           />
         </div>
         {getWelcomeMessage()}
