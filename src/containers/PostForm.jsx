@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "./styles/PostForm.scss";
+import api from "../api/config"; // api import 추가
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import FullHearticon from "../image/FullHearticon.svg";
@@ -19,11 +20,40 @@ const Post = ({ post }) => {
   const [commentError, setCommentError] = useState(null);
   const { handleCreateComment, isCreating, createError } = useCreateComment();
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [memberData, setMemberData] = useState(null);
 
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     setCurrentUserId(userId ? parseInt(userId) : null);
   }, []);
+
+  // 멤버 정보 가져오기
+  useEffect(() => {
+    const fetchMemberData = async () => {
+      if (!post.member?.member_id) return;
+
+      try {
+        const response = await api.get(
+          `/api/v1/members/${post.member.member_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+          }
+        );
+
+        console.log("Received member data:", response.data);
+        setMemberData(response.data);
+      } catch (error) {
+        console.error("Failed to load member data:", error);
+        if (error.response) {
+          console.error("Error response:", error.response.data);
+        }
+      }
+    };
+
+    fetchMemberData();
+  }, [post.member?.member_id]);
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -172,6 +202,22 @@ const Post = ({ post }) => {
   if (!post || !post.member) {
     return <div>Loading...</div>;
   }
+  const getUserImage = () => {
+    // CDN URL을 우선적으로 사용
+    if (memberData?.imageUrl) {
+      return memberData.imageUrl;
+    }
+    // 기존 이미지 URL이 있다면 사용
+    if (post.member?.imageUrl) {
+      return post.member.imageUrl;
+    }
+    // 둘 다 없으면 기본 이미지 사용
+    return Profileimg;
+  };
+
+  if (!post || !post.member) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="post">
@@ -179,7 +225,7 @@ const Post = ({ post }) => {
         <div className="user-info">
           <div className="user-image">
             <img
-              src={post.member.profile_image || Profileimg}
+              src={getUserImage()}
               alt="profile"
               onError={(e) => {
                 e.target.onerror = null;
@@ -272,7 +318,7 @@ Post.propTypes = {
       member_name_english: PropTypes.string.isRequired,
       course: PropTypes.string.isRequired,
       role: PropTypes.string.isRequired,
-      profile_image: PropTypes.string,
+      imageUrl: PropTypes.string, // profile_image -> imageUrl
     }).isRequired,
   }).isRequired,
 };
