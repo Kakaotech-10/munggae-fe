@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
+import api from "../api/config"; // api import 추가
 import Trashicon from "../image/Trash.svg";
 import Editicon from "../image/Edit.svg";
 import Hearticon from "../image/Hearticon.svg";
@@ -25,11 +26,50 @@ const ViewPage = ({
   const [showEditForm, setShowEditForm] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const { handleCreateComment, isCreating, createError } = useCreateComment();
+  const [authorData, setAuthorData] = useState(null);
 
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     setCurrentUserId(userId ? parseInt(userId) : null);
   }, []);
+
+  // 작성자 정보 가져오기
+  useEffect(() => {
+    const fetchAuthorData = async () => {
+      if (!post.author?.id) return;
+
+      try {
+        const response = await api.get(`/api/v1/members/${post.author.id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        });
+
+        console.log("Received author data:", response.data);
+        setAuthorData(response.data);
+      } catch (error) {
+        console.error("Failed to load author data:", error);
+        if (error.response) {
+          console.error("Error response:", error.response.data);
+        }
+      }
+    };
+
+    fetchAuthorData();
+  }, [post.author?.id]);
+
+  const getAuthorImage = () => {
+    // CDN URL을 우선적으로 사용
+    if (authorData?.imageUrl) {
+      return authorData.imageUrl;
+    }
+    // 기존 이미지 URL이 있다면 사용
+    if (post.author?.profileImage) {
+      return post.author.profileImage;
+    }
+    // 둘 다 없으면 기본 이미지 사용
+    return Profileimg;
+  };
 
   const isAuthor = currentUserId === post.author.id;
 
@@ -218,7 +258,7 @@ const ViewPage = ({
           <div className="right-section">
             <div className="profile-section">
               <img
-                src={post.author.profileImage || Profileimg}
+                src={getAuthorImage()}
                 alt="프로필"
                 className="profile-image"
                 onError={(e) => {
