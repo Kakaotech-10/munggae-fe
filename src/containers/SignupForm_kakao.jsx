@@ -31,35 +31,6 @@ const SignupForm_kakao = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const getKakaoProfileImage = async () => {
-    try {
-      // Kakao SDK가 초기화되어 있는지 확인
-      if (!window.Kakao) {
-        console.error("Kakao SDK not loaded");
-        return null;
-      }
-
-      // 현재 로그인 상태 확인
-      if (!window.Kakao.Auth.getAccessToken()) {
-        const accessToken = localStorage.getItem("accessToken");
-        window.Kakao.Auth.setAccessToken(accessToken);
-      }
-
-      // 사용자 정보 요청
-      const response = await window.Kakao.API.request({
-        url: "/v2/user/me",
-      });
-
-      if (response?.properties?.profile_image) {
-        return response.properties.profile_image;
-      }
-      return null;
-    } catch (error) {
-      console.error("Failed to fetch Kakao profile:", error);
-      return null;
-    }
-  };
-
   // useEffect 내의 이미지 로딩 부분 수정
   useEffect(() => {
     const loadInitialData = async () => {
@@ -86,35 +57,8 @@ const SignupForm_kakao = () => {
               course: memberData.course || "",
             }));
 
-            // 이미지 설정 우선순위: 서버 이미지 > 카카오 프로필 이미지
             if (memberData.imageUrl?.path) {
               setPreviewUrl(memberData.imageUrl.path);
-            } else {
-              const kakaoImageUrl = await getKakaoProfileImage();
-              if (kakaoImageUrl) {
-                setPreviewUrl(kakaoImageUrl);
-
-                // 카카오 이미지를 파일로 변환
-                try {
-                  const imageResponse = await fetch(kakaoImageUrl);
-                  if (!imageResponse.ok)
-                    throw new Error("Failed to fetch image");
-
-                  const blob = await imageResponse.blob();
-                  const file = new File([blob], "kakao_profile.jpg", {
-                    type: "image/jpeg",
-                    lastModified: Date.now(),
-                  });
-
-                  // S3에 업로드하기 위해 formData에 저장
-                  setFormData((prev) => ({
-                    ...prev,
-                    profileImage: file,
-                  }));
-                } catch (imageError) {
-                  console.error("Failed to process Kakao image:", imageError);
-                }
-              }
             }
           }
         } catch (error) {
@@ -122,11 +66,6 @@ const SignupForm_kakao = () => {
         }
       }
     };
-
-    // Kakao SDK 초기화
-    if (window.Kakao && !window.Kakao.isInitialized()) {
-      window.Kakao.init("YOUR_KAKAO_JAVASCRIPT_KEY"); // 실제 JavaScript 키로 교체 필요
-    }
 
     loadInitialData();
   }, []);
