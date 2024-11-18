@@ -5,6 +5,52 @@ export const useUpdateProfile = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
+  // 공통 함수: Presigned URL 가져오기
+  const getPresignedUrl = async (memberId, file) => {
+    const response = await api.post(
+      `/api/v1/members/${memberId}/images/presigned-url`,
+      {
+        fileName: file.name,
+        contentType: file.type,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      }
+    );
+
+    const { urls } = response.data;
+    if (!urls || !urls.url) {
+      throw new Error("Invalid presigned URL response");
+    }
+
+    return urls;
+  };
+
+  // 공통 함수: S3에 이미지 업로드
+  const uploadToS3 = async (presignedUrl, file) => {
+    const response = await fetch(presignedUrl, {
+      method: "PUT",
+      body: file,
+      headers: {
+        "Content-Type": file.type,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
+  };
+
+  // 공통 함수: localStorage 업데이트
+  const updateLocalStorage = (imageUrl) => {
+    const memberInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
+    memberInfo.imageUrl = imageUrl;
+    localStorage.setItem("memberInfo", JSON.stringify(memberInfo));
+  };
+
   const uploadNewImage = async (memberId, file) => {
     try {
       setIsUploading(true);
@@ -14,42 +60,14 @@ export const useUpdateProfile = () => {
         throw new Error("Member ID and file are required");
       }
 
-      // 1. Get presigned URL
-      const presignedUrlResponse = await api.post(
-        `/api/v1/members/${memberId}/images/presigned-url`,
-        {
-          fileName: file.name,
-          contentType: file.type,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
+      // 1. Presigned URL 가져오기
+      const { url: presignedUrl, fileName: serverFileName } =
+        await getPresignedUrl(memberId, file);
 
-      const { urls } = presignedUrlResponse.data;
-      if (!urls || !urls.url) {
-        throw new Error("Invalid presigned URL response");
-      }
+      // 2. S3에 업로드
+      await uploadToS3(presignedUrl, file);
 
-      const { url: presignedUrl, fileName: serverFileName } = urls;
-
-      // 2. Upload to S3
-      const uploadResponse = await fetch(presignedUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-      }
-
-      // 3. Save image URL
+      // 3. 이미지 URL 저장
       const imageUrl = presignedUrl.split("?")[0];
       const saveImageResponse = await api.post(
         `/api/v1/members/${memberId}/images`,
@@ -68,12 +86,7 @@ export const useUpdateProfile = () => {
       );
 
       if (saveImageResponse.data) {
-        // Update memberInfo in localStorage
-        const memberInfo = JSON.parse(
-          localStorage.getItem("memberInfo") || "{}"
-        );
-        memberInfo.imageUrl = imageUrl;
-        localStorage.setItem("memberInfo", JSON.stringify(memberInfo));
+        updateLocalStorage(imageUrl);
       }
 
       return {
@@ -102,42 +115,14 @@ export const useUpdateProfile = () => {
         throw new Error("Member ID, Image ID, and file are required");
       }
 
-      // 1. Get presigned URL for the new image
-      const presignedUrlResponse = await api.post(
-        `/api/v1/members/${memberId}/images/presigned-url`,
-        {
-          fileName: file.name,
-          contentType: file.type,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
+      // 1. Presigned URL 가져오기
+      const { url: presignedUrl, fileName: serverFileName } =
+        await getPresignedUrl(memberId, file);
 
-      const { urls } = presignedUrlResponse.data;
-      if (!urls || !urls.url) {
-        throw new Error("Invalid presigned URL response");
-      }
+      // 2. S3에 업로드
+      await uploadToS3(presignedUrl, file);
 
-      const { url: presignedUrl, fileName: serverFileName } = urls;
-
-      // 2. Upload new image to S3
-      const uploadResponse = await fetch(presignedUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-      }
-
-      // 3. Update image information
+      // 3. 이미지 정보 업데이트
       const imageUrl = presignedUrl.split("?")[0];
       const updateResponse = await api.put(
         `/api/v1/members/${memberId}/images/${imageId}`,
@@ -156,12 +141,7 @@ export const useUpdateProfile = () => {
       );
 
       if (updateResponse.data) {
-        // Update memberInfo in localStorage
-        const memberInfo = JSON.parse(
-          localStorage.getItem("memberInfo") || "{}"
-        );
-        memberInfo.imageUrl = updateResponse.data.s3ImagePath;
-        localStorage.setItem("memberInfo", JSON.stringify(memberInfo));
+        updateLocalStorage(updateResponse.data.s3ImagePath);
       }
 
       return {
