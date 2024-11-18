@@ -5,6 +5,57 @@ export const useChangeProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const updateImage = async (memberId, imageId, imageInfo) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await api.put(
+        `/api/v1/members/${memberId}/images/${imageId}`,
+        {
+          imageInfo: {
+            fileName: imageInfo.fileName,
+            url: imageInfo.url,
+          },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      if (response.data) {
+        const currentMemberInfo = JSON.parse(
+          localStorage.getItem("memberInfo") || "{}"
+        );
+
+        // 이미지 정보 업데이트
+        const updatedMemberInfo = {
+          ...currentMemberInfo,
+          imageUrl: response.data.s3ImagePath,
+        };
+
+        localStorage.setItem("memberInfo", JSON.stringify(updatedMemberInfo));
+        return updatedMemberInfo;
+      }
+    } catch (err) {
+      console.error("Image update error:", {
+        error: err,
+        response: err.response?.data,
+      });
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "이미지 수정 중 오류가 발생했습니다."
+      );
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateProfile = async (memberId, profileData) => {
     try {
       setIsLoading(true);
@@ -30,13 +81,12 @@ export const useChangeProfile = () => {
       );
 
       if (response.data) {
-        // 서버 응답이 성공적인 경우
         const updatedMemberInfo = {
           ...currentMemberInfo,
           name: response.data.name,
           nameEnglish: response.data.nameEnglish,
           course: response.data.course,
-          imageUrl: currentMemberInfo.imageUrl, // 기존 이미지 URL 유지
+          imageUrl: currentMemberInfo.imageUrl,
         };
 
         localStorage.setItem("memberInfo", JSON.stringify(updatedMemberInfo));
@@ -53,7 +103,6 @@ export const useChangeProfile = () => {
       });
 
       if (err.response?.status === 500) {
-        // 서버 에러 시 기존 정보 유지
         const currentInfo = JSON.parse(
           localStorage.getItem("memberInfo") || "{}"
         );
@@ -73,6 +122,7 @@ export const useChangeProfile = () => {
 
   return {
     updateProfile,
+    updateImage,
     isLoading,
     error,
   };

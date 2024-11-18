@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import api from "../api/config"; // api import 추가
+import api from "../api/config";
 import Logo from "../image/logo.png";
 import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
@@ -66,7 +66,7 @@ const Sidebar = ({ showLogout }) => {
         setUserInfo({
           userName: storedInfo.name,
           userNameEnglish: storedInfo.nameEnglish,
-          profileImageUrl: storedInfo.imageUrl,
+          profileImageUrl: storedInfo.imageUrl?.path || storedInfo.imageUrl,
           isLoggedIn: true,
         });
       }
@@ -96,40 +96,33 @@ const Sidebar = ({ showLogout }) => {
         return;
       }
 
-      // 이미지 URL 처리
-      let imageUrl = null;
-      if (Array.isArray(memberData.images)) {
-        // 여러 이미지가 있는 경우 가장 최근 이미지 사용
-        const sortedImages = memberData.images.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        imageUrl = sortedImages[0]?.url;
-      } else if (memberData.imageUrl) {
-        // 단일 이미지 URL이 있는 경우
-        imageUrl = memberData.imageUrl;
-      }
-
-      // 유효한 데이터로 상태 업데이트
+      // 새로운 API 응답 구조에 맞춰 데이터 처리
       const updatedInfo = {
         userName: memberData.name || storedInfo.name,
         userNameEnglish: memberData.nameEnglish || storedInfo.nameEnglish,
-        profileImageUrl: imageUrl || storedInfo.imageUrl,
+        profileImageUrl:
+          memberData.imageUrl?.path ||
+          storedInfo.imageUrl?.path ||
+          storedInfo.imageUrl,
         isLoggedIn: true,
       };
 
       setUserInfo(updatedInfo);
 
-      // localStorage 업데이트
+      // localStorage 업데이트 - 새로운 구조로 저장
       const updatedMemberInfo = {
         ...storedInfo,
         name: memberData.name,
         nameEnglish: memberData.nameEnglish,
-        imageUrl: imageUrl, // 최신 이미지 URL 저장
+        course: memberData.course,
+        imageUrl: memberData.imageUrl, // 전체 이미지 객체 저장
+        imageId: memberData.imageUrl?.imageId, // imageId 별도 저장
       };
 
       localStorage.setItem("memberInfo", JSON.stringify(updatedMemberInfo));
       localStorage.setItem("memberName", memberData.name);
       localStorage.setItem("memberNameEnglish", memberData.nameEnglish);
+      localStorage.setItem("course", memberData.course);
 
       console.log("User info updated successfully:", updatedMemberInfo);
     } catch (error) {
@@ -145,7 +138,7 @@ const Sidebar = ({ showLogout }) => {
         setUserInfo({
           userName: storedInfo.name,
           userNameEnglish: storedInfo.nameEnglish,
-          profileImageUrl: storedInfo.imageUrl,
+          profileImageUrl: storedInfo.imageUrl?.path || storedInfo.imageUrl,
           isLoggedIn: true,
         });
       }

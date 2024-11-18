@@ -1,20 +1,29 @@
 import { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { useUpdateProfile } from "../api/useUpdateProfile";
 import Profileimg from "../image/logo_black.png";
 import "./styles/ProfileUpload.scss";
 
-const ProfileUpload = () => {
+const ProfileUpload = ({ initialImage, onImageUpload }) => {
   const [preview, setPreview] = useState(null);
+  const [currentImageId, setCurrentImageId] = useState(null);
   const fileInputRef = useRef(null);
-  const { updateProfileImage, isUploading, uploadError } = useUpdateProfile();
+  const { uploadNewImage, updateExistingImage, isUploading, uploadError } =
+    useUpdateProfile();
 
   useEffect(() => {
-    // Load initial profile image from localStorage
-    const memberInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
-    if (memberInfo.imageUrl) {
-      setPreview(memberInfo.imageUrl);
+    // initialImage prop이나 localStorage에서 이미지 정보 로드
+    if (initialImage?.path) {
+      setPreview(initialImage.path);
+      setCurrentImageId(initialImage.imageId);
+    } else {
+      const memberInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
+      if (memberInfo.imageUrl?.path) {
+        setPreview(memberInfo.imageUrl.path);
+        setCurrentImageId(memberInfo.imageUrl.imageId);
+      }
     }
-  }, []);
+  }, [initialImage]);
 
   const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
@@ -28,26 +37,57 @@ const ProfileUpload = () => {
       };
       reader.readAsDataURL(file);
 
-      // Upload to S3
+      // Get member ID
       const memberId = localStorage.getItem("userId");
       if (!memberId) {
-        throw new Error("Login required");
+        throw new Error("로그인이 필요합니다.");
       }
 
-      const result = await updateProfileImage(memberId, file);
+      let result;
 
-      if (result?.imageUrl) {
+      // If we have an existing image, update it. Otherwise, upload new one
+      if (currentImageId) {
+        result = await updateExistingImage(memberId, currentImageId, file);
+      } else {
+        result = await uploadNewImage(memberId, file);
+      }
+
+      if (result?.imageUrl?.path) {
         // Update preview with CDN URL
-        setPreview(result.imageUrl);
+        setPreview(result.imageUrl.path);
 
-        // Notify other components
+        // If this was a new upload, store the image ID
+        if (result.imageUrl.imageId) {
+          setCurrentImageId(result.imageUrl.imageId);
+
+          // Update local storage with new image info
+          const memberInfo = JSON.parse(
+            localStorage.getItem("memberInfo") || "{}"
+          );
+          memberInfo.imageUrl = result.imageUrl;
+          memberInfo.imageId = result.imageUrl.imageId;
+          localStorage.setItem("memberInfo", JSON.stringify(memberInfo));
+        }
+
+        // Call the parent's callback with the new image URL
+        if (onImageUpload) {
+          onImageUpload(result.imageUrl);
+        }
+
+        // Notify other components about the update
         window.dispatchEvent(new Event("profileImageUpdate"));
       }
     } catch (error) {
-      console.error("Profile upload failed:", error);
+      console.error("프로필 이미지 업로드/수정 실패:", error);
       // Revert to previous image if upload fails
-      const memberInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
-      setPreview(memberInfo.imageUrl || null);
+      if (initialImage?.path) {
+        setPreview(initialImage.path);
+      } else {
+        const memberInfo = JSON.parse(
+          localStorage.getItem("memberInfo") || "{}"
+        );
+        setPreview(memberInfo.imageUrl?.path || null);
+      }
     }
   };
 
@@ -66,9 +106,10 @@ const ProfileUpload = () => {
         {preview ? (
           <img
             src={preview}
-            alt="Profile"
+            alt="프로필"
             className="preview-image"
             onError={(e) => {
+              console.log("Image load error, using default image");
               e.target.onerror = null;
               e.target.src = Profileimg;
             }}
@@ -78,7 +119,11 @@ const ProfileUpload = () => {
             <span>+</span>
           </div>
         )}
-        {isUploading && <div className="upload-overlay">Uploading...</div>}
+        {isUploading && (
+          <div className="upload-overlay">
+            {currentImageId ? "이미지 수정 중..." : "이미지 업로드 중..."}
+          </div>
+        )}
       </div>
       <input
         ref={fileInputRef}
@@ -91,6 +136,20 @@ const ProfileUpload = () => {
       {uploadError && <div className="error-message">{uploadError}</div>}
     </div>
   );
+};
+
+ProfileUpload.propTypes = {
+  initialImage: PropTypes.shape({
+    imageId: PropTypes.number,
+    fileName: PropTypes.string,
+    path: PropTypes.string,
+  }),
+  onImageUpload: PropTypes.func,
+};
+
+ProfileUpload.defaultProps = {
+  initialImage: null,
+  onImageUpload: null,
 };
 
 export default ProfileUpload;
