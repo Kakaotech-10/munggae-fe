@@ -18,8 +18,7 @@ const SignupForm_kakao = () => {
     error: coursesError,
   } = useGetCourse();
 
-  const { updateProfileImage, getKakaoProfileImage, isUploading, uploadError } =
-    useUpdateProfile();
+  const { uploadNewImage, isUploading, uploadError } = useUpdateProfile();
 
   const [formData, setFormData] = useState({
     member_name: "",
@@ -32,10 +31,10 @@ const SignupForm_kakao = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // useEffect 내의 이미지 로딩 부분 수정
   useEffect(() => {
     const loadInitialData = async () => {
       const nickname = localStorage.getItem("nickname");
-      const accessToken = localStorage.getItem("accessToken");
       const memberId = localStorage.getItem("userId");
 
       if (nickname) {
@@ -47,19 +46,23 @@ const SignupForm_kakao = () => {
 
       if (memberId) {
         try {
-          // Get current member info including CDN image URL
           const memberResponse = await api.get(`/api/v1/members/${memberId}`);
-          if (memberResponse.data.imageUrl) {
-            setPreviewUrl(memberResponse.data.imageUrl);
-          } else if (accessToken) {
-            // If no profile image, try to get from Kakao
-            const kakaoImageUrl = await getKakaoProfileImage(accessToken);
-            if (kakaoImageUrl) {
-              setPreviewUrl(kakaoImageUrl);
+          const memberData = memberResponse.data;
+
+          if (memberData) {
+            setFormData((prev) => ({
+              ...prev,
+              member_name: memberData.name || nickname || "",
+              member_name_english: memberData.nameEnglish || "",
+              course: memberData.course || "",
+            }));
+
+            if (memberData.imageUrl?.path) {
+              setPreviewUrl(memberData.imageUrl.path);
             }
           }
         } catch (error) {
-          console.error("Failed to load profile image:", error);
+          console.error("Failed to load member info:", error);
         }
       }
     };
@@ -70,7 +73,6 @@ const SignupForm_kakao = () => {
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Preview the selected image
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result);
@@ -106,10 +108,17 @@ const SignupForm_kakao = () => {
         throw new Error("회원 정보를 찾을 수 없습니다.");
       }
 
-      // First update profile image if there's a new one
+      // 이미지 업로드 처리
       let imageData = null;
       if (formData.profileImage) {
-        imageData = await updateProfileImage(memberId, formData.profileImage);
+        try {
+          const result = await uploadNewImage(memberId, formData.profileImage);
+          if (result?.imageUrl) {
+            imageData = result.imageUrl;
+          }
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+        }
       }
 
       // Update member information
@@ -117,17 +126,22 @@ const SignupForm_kakao = () => {
         name: formData.member_name,
         nameEnglish: formData.member_name_english,
         course: formData.course,
-        imageUrl: imageData?.s3ImagePath, // Include the CDN URL if we have one
       });
 
       if (response.data) {
+        // 현재 이미지 정보 가져오기
+        const existingInfo = JSON.parse(
+          localStorage.getItem("memberInfo") || "{}"
+        );
+
         const memberInfo = {
+          ...existingInfo,
           id: response.data.id,
           role: response.data.role,
-          course: response.data.course,
-          name: response.data.name,
-          nameEnglish: response.data.nameEnglish,
-          imageUrl: response.data.imageUrl,
+          course: formData.course,
+          name: formData.member_name,
+          nameEnglish: formData.member_name_english,
+          imageUrl: imageData || response.data.imageUrl,
         };
 
         localStorage.setItem("memberInfo", JSON.stringify(memberInfo));
@@ -135,28 +149,17 @@ const SignupForm_kakao = () => {
         localStorage.setItem("memberNameEnglish", formData.member_name_english);
         localStorage.setItem("course", formData.course);
 
+        window.dispatchEvent(new Event("profileImageUpdate"));
+
         navigate("/mainpage", {
           state: { memberInfo },
+          replace: true,
         });
       }
     } catch (err) {
       console.error("Update error:", err);
       const errorMessage = err.response?.data?.message || err.message;
       setError(errorMessage);
-      console.log("Detailed error:", {
-        error: err,
-        response: err.response,
-        data: err.response?.data,
-        currentUserId: localStorage.getItem("userId"),
-        allStorage: {
-          userId: localStorage.getItem("userId"),
-          nickname: localStorage.getItem("nickname"),
-          accessToken: localStorage.getItem("accessToken"),
-          memberName: localStorage.getItem("memberName"),
-          memberNameEnglish: localStorage.getItem("memberNameEnglish"),
-          course: localStorage.getItem("course"),
-        },
-      });
     } finally {
       setIsLoading(false);
     }
