@@ -60,7 +60,6 @@ const Sidebar = ({ showLogout }) => {
 
   const loadUserInfo = async () => {
     try {
-      // 먼저 localStorage에서 기존 정보 불러오기
       const storedInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
       if (storedInfo.name) {
         setUserInfo({
@@ -77,14 +76,12 @@ const Sidebar = ({ showLogout }) => {
         return;
       }
 
-      console.log("Fetching user info for ID:", memberId);
       const response = await api.get(`/api/v1/members/${memberId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
 
-      // 서버 응답 유효성 검사
       if (response.data?.error || response.data?.code) {
         console.log("Server returned an error:", response.data);
         return;
@@ -96,7 +93,6 @@ const Sidebar = ({ showLogout }) => {
         return;
       }
 
-      // 새로운 API 응답 구조에 맞춰 데이터 처리
       const updatedInfo = {
         userName: memberData.name || storedInfo.name,
         userNameEnglish: memberData.nameEnglish || storedInfo.nameEnglish,
@@ -109,22 +105,19 @@ const Sidebar = ({ showLogout }) => {
 
       setUserInfo(updatedInfo);
 
-      // localStorage 업데이트 - 새로운 구조로 저장
       const updatedMemberInfo = {
         ...storedInfo,
         name: memberData.name,
         nameEnglish: memberData.nameEnglish,
         course: memberData.course,
-        imageUrl: memberData.imageUrl, // 전체 이미지 객체 저장
-        imageId: memberData.imageUrl?.imageId, // imageId 별도 저장
+        imageUrl: memberData.imageUrl,
+        imageId: memberData.imageUrl?.imageId,
       };
 
       localStorage.setItem("memberInfo", JSON.stringify(updatedMemberInfo));
       localStorage.setItem("memberName", memberData.name);
       localStorage.setItem("memberNameEnglish", memberData.nameEnglish);
       localStorage.setItem("course", memberData.course);
-
-      console.log("User info updated successfully:", updatedMemberInfo);
     } catch (error) {
       console.error("Failed to load user info:", {
         error,
@@ -132,7 +125,6 @@ const Sidebar = ({ showLogout }) => {
         response: error.response?.data,
       });
 
-      // 에러 발생 시 localStorage의 데이터로 폴백
       const storedInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
       if (storedInfo.name) {
         setUserInfo({
@@ -162,6 +154,53 @@ const Sidebar = ({ showLogout }) => {
 
   const handleLogoClick = () => {
     navigate("/mainpage");
+  };
+
+  const handleLogout = async () => {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      if (!refreshToken) {
+        console.log("No refresh token found");
+        clearUserData();
+        navigate("/login");
+        return;
+      }
+
+      // Send logout request to the server
+      await api.post("/api/v1/auth/logout", null, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          "Refresh-Token": refreshToken,
+        },
+      });
+
+      clearUserData();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Even if the server request fails, clear local data for security
+      clearUserData();
+      navigate("/login");
+    }
+  };
+
+  const clearUserData = () => {
+    // Clear all authentication-related data
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("memberInfo");
+    localStorage.removeItem("memberName");
+    localStorage.removeItem("memberNameEnglish");
+    localStorage.removeItem("course");
+
+    setUserInfo({
+      userName: "",
+      userNameEnglish: "",
+      profileImageUrl: "",
+      isLoggedIn: false,
+    });
   };
 
   const getWelcomeMessage = () => {
@@ -238,7 +277,16 @@ const Sidebar = ({ showLogout }) => {
           />
           {showLogout && userInfo.isLoggedIn && (
             <li>
-              <button className="nav-item logout">
+              <button
+                className="nav-item logout"
+                onClick={handleLogout}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleLogout();
+                  }
+                }}
+              >
                 <img src={Logouticon} alt="Logout" />
                 <span className="nav-text">로그아웃</span>
               </button>
