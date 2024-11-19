@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "./styles/ViewPage.scss";
-import api from "../api/config"; // api import 추가
+import api from "../api/config";
 import Trashicon from "../image/Trash.svg";
 import Editicon from "../image/Edit.svg";
 import Hearticon from "../image/Hearticon.svg";
@@ -33,7 +33,6 @@ const ViewPage = ({
     setCurrentUserId(userId ? parseInt(userId) : null);
   }, []);
 
-  // 작성자 정보 가져오기
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post.author?.id) return;
@@ -59,21 +58,23 @@ const ViewPage = ({
   }, [post.author?.id]);
 
   const getAuthorImage = () => {
-    // CDN URL을 우선적으로 사용
+    if (authorData?.imageUrl?.path) {
+      return authorData.imageUrl.path;
+    }
     if (authorData?.imageUrl) {
       return authorData.imageUrl;
     }
-    // 기존 이미지 URL이 있다면 사용
+    if (post.author?.profileImage?.path) {
+      return post.author.profileImage.path;
+    }
     if (post.author?.profileImage) {
       return post.author.profileImage;
     }
-    // 둘 다 없으면 기본 이미지 사용
     return Profileimg;
   };
 
   const isAuthor = currentUserId === post.author.id;
 
-  // ViewPage.jsx
   const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
     if (!onCommentsUpdate) {
       console.error("onCommentsUpdate function is not provided");
@@ -83,7 +84,6 @@ const ViewPage = ({
     let updatedComments = [...comments];
 
     if (deletedCommentId) {
-      // 삭제된 댓글과 그 대댓글들을 제거
       updatedComments = updatedComments.filter((comment) => {
         if (comment.id === deletedCommentId) return false;
         if (comment.replies) {
@@ -97,10 +97,8 @@ const ViewPage = ({
       const parentId = updatedComment.parentId;
 
       if (parentId) {
-        // 대댓글인 경우
         updatedComments = updatedComments.map((comment) => {
           if (comment.id === parentId) {
-            // 부모 댓글을 찾아서 replies에 추가
             return {
               ...comment,
               replies: [...(comment.replies || []), updatedComment].sort(
@@ -111,19 +109,16 @@ const ViewPage = ({
           return comment;
         });
       } else {
-        // 일반 댓글인 경우
         const existingCommentIndex = updatedComments.findIndex(
           (comment) => comment.id === updatedComment.id
         );
 
         if (existingCommentIndex !== -1) {
-          // 기존 댓글 수정
           updatedComments[existingCommentIndex] = {
             ...updatedComments[existingCommentIndex],
             ...updatedComment,
           };
         } else {
-          // 새 댓글 추가
           updatedComments = [
             {
               ...updatedComment,
@@ -154,11 +149,11 @@ const ViewPage = ({
       }
 
       const newComment = await handleCreateComment(
-        post.id, // postId
-        currentUserId, // memberId
+        post.id,
+        currentUserId,
         content.trim(),
-        parentId, // parentId (답글인 경우에만 값이 있음)
-        depth // depth
+        parentId,
+        depth
       );
 
       if (newComment) {
@@ -252,7 +247,6 @@ const ViewPage = ({
               ) : (
                 <div className="no-image"></div>
               )}
-              {/* 추가 이미지가 있는 경우 표시할 수 있는 갤러리나 슬라이더를 여기에 추가할 수 있습니다 */}
             </div>
           </div>
           <div className="right-section">
@@ -304,15 +298,15 @@ const ViewPage = ({
                     tabIndex={0}
                     style={{ cursor: "pointer" }}
                   />
-                  {showEditForm && (
-                    <WriteForm
-                      editMode={true}
-                      initialPost={post}
-                      onClose={() => setShowEditForm(false)}
-                      onPostCreated={handleEditComplete}
-                    />
-                  )}
                 </div>
+              )}
+              {showEditForm && (
+                <WriteForm
+                  editMode={true}
+                  initialPost={post}
+                  onClose={() => setShowEditForm(false)}
+                  onPostCreated={handleEditComplete}
+                />
               )}
             </div>
             <div className="form-group">
@@ -369,10 +363,10 @@ ViewPage.propTypes = {
     id: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
-    imageUrls: PropTypes.arrayOf(PropTypes.string), // 문자열 배열로 변경
+    imageUrls: PropTypes.arrayOf(PropTypes.string),
     likes: PropTypes.string.isRequired,
     updatedAt: PropTypes.string.isRequired,
-    clean: PropTypes.bool.isRequired, // isClean에서 clean으로 변경
+    clean: PropTypes.bool.isRequired,
     author: PropTypes.shape({
       id: PropTypes.number.isRequired,
       role: PropTypes.string.isRequired,
