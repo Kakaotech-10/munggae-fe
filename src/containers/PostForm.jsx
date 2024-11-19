@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "./styles/PostForm.scss";
-import api from "../api/config"; // api import 추가
+import api from "../api/config";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import FullHearticon from "../image/FullHearticon.svg";
@@ -27,7 +27,6 @@ const Post = ({ post }) => {
     setCurrentUserId(userId ? parseInt(userId) : null);
   }, []);
 
-  // 멤버 정보 가져오기
   useEffect(() => {
     const fetchMemberData = async () => {
       if (!post.member?.member_id) return;
@@ -54,6 +53,22 @@ const Post = ({ post }) => {
 
     fetchMemberData();
   }, [post.member?.member_id]);
+
+  const getMemberImage = (member) => {
+    if (memberData?.imageUrl?.path) {
+      return memberData.imageUrl.path;
+    }
+    if (memberData?.imageUrl) {
+      return memberData.imageUrl;
+    }
+    if (member?.imageUrl?.path) {
+      return member.imageUrl.path;
+    }
+    if (member?.imageUrl) {
+      return member.imageUrl;
+    }
+    return Profileimg;
+  };
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -101,7 +116,6 @@ const Post = ({ post }) => {
       );
 
       if (isEdit) {
-        // 기존 댓글 수정
         const updatedComments = comments.map((comment) => {
           if (comment.id === updatedComment.id) {
             return { ...comment, ...updatedComment };
@@ -119,12 +133,10 @@ const Post = ({ post }) => {
         setComments(updatedComments);
       } else {
         if (updatedComment.parentId) {
-          // 대댓글인 경우
           const updatedComments = comments.map((comment) => {
             if (comment.id === updatedComment.parentId) {
               return {
                 ...comment,
-                // 대댓글은 시간순 정렬 (최신이 아래)
                 replies: [...(comment.replies || []), updatedComment].sort(
                   (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
                 ),
@@ -134,7 +146,6 @@ const Post = ({ post }) => {
           });
           setComments(updatedComments);
         } else {
-          // 새 댓글을 배열 맨 앞에 추가 (최신이 위로)
           setComments([
             {
               ...updatedComment,
@@ -202,22 +213,6 @@ const Post = ({ post }) => {
   if (!post || !post.member) {
     return <div>Loading...</div>;
   }
-  const getUserImage = () => {
-    // CDN URL을 우선적으로 사용
-    if (memberData?.imageUrl) {
-      return memberData.imageUrl;
-    }
-    // 기존 이미지 URL이 있다면 사용
-    if (post.member?.imageUrl) {
-      return post.member.imageUrl;
-    }
-    // 둘 다 없으면 기본 이미지 사용
-    return Profileimg;
-  };
-
-  if (!post || !post.member) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="post">
@@ -225,7 +220,7 @@ const Post = ({ post }) => {
         <div className="user-info">
           <div className="user-image">
             <img
-              src={getUserImage()}
+              src={getMemberImage(post.member)}
               alt="profile"
               onError={(e) => {
                 e.target.onerror = null;
@@ -254,6 +249,11 @@ const Post = ({ post }) => {
                 src={url}
                 alt={`게시물 이미지 ${index + 1}`}
                 className="post-image"
+                onError={(e) => {
+                  console.error("Image load error:", url);
+                  e.target.onerror = null;
+                  e.target.style.display = "none";
+                }}
               />
             ))}
           </div>
@@ -318,7 +318,7 @@ Post.propTypes = {
       member_name_english: PropTypes.string.isRequired,
       course: PropTypes.string.isRequired,
       role: PropTypes.string.isRequired,
-      imageUrl: PropTypes.string, // profile_image -> imageUrl
+      imageUrl: PropTypes.string,
     }).isRequired,
   }).isRequired,
 };
@@ -329,7 +329,7 @@ Post.defaultProps = {
     s3ImageUrls: [],
     clean: true,
     member: {
-      profile_image: "",
+      imageUrl: "",
     },
   },
 };

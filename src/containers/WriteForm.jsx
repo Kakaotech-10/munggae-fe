@@ -1,11 +1,11 @@
-//WriteForm.jsx
 import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 import "./styles/WriteForm.scss";
 import Uploadicon from "../image/Uploadicon.svg";
 import { createPost } from "../api/useCreatePost";
 import { editPost } from "../api/useEditPost";
-import { useImageUpload } from "../api/useImageUpload"; // 추가된 import
+import { useImageUpload } from "../api/useImageUpload";
+import Profileimg from "../image/logo_black.png";
 
 const WriteForm = ({
   onClose,
@@ -30,28 +30,32 @@ const WriteForm = ({
     memberName: "",
     memberNameEnglish: "",
   });
-  const [isUploading, setIsUploading] = useState(false); // 업로드 상태 추가
-  const { handleImageUpload } = useImageUpload(); // useImageUpload hook 사용
+  const [profileImage, setProfileImage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const { handleImageUpload } = useImageUpload();
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   useEffect(() => {
     // localStorage에서 사용자 정보 가져오기
-    const memberName = localStorage.getItem("memberName");
-    const memberNameEnglish = localStorage.getItem("memberNameEnglish");
+    const memberInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
     setUserInfo({
-      memberName: memberName || "",
-      memberNameEnglish: memberNameEnglish || "",
+      memberName: memberInfo.name || "",
+      memberNameEnglish: memberInfo.nameEnglish || "",
     });
+
+    // 프로필 이미지 설정
+    const imageUrl =
+      memberInfo.imageUrl?.path || memberInfo.imageUrl || Profileimg;
+    setProfileImage(imageUrl);
   }, []);
 
-  // 사용자 이름을 표시하는 함수
   const displayName = () => {
     if (editMode && initialPost) {
       return `${initialPost.author.nameEnglish}(${initialPost.author.name})`;
     }
     return `${userInfo.memberNameEnglish}(${userInfo.memberName})`;
   };
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState("");
 
   const handleSubmit = async () => {
     try {
@@ -63,7 +67,6 @@ const WriteForm = ({
       setIsUploading(true);
       setUploadStatus("게시글 저장 중...");
 
-      // 게시글 저장
       const memberId = localStorage.getItem("userId");
       const postData = {
         title,
@@ -75,7 +78,6 @@ const WriteForm = ({
         ? await editPost(initialPost.id, initialPost.author.id, postData)
         : await createPost(postData);
 
-      // 이미지 업로드
       if (files.length > 0) {
         try {
           setUploadStatus("이미지 업로드 중...");
@@ -117,7 +119,6 @@ const WriteForm = ({
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
 
-    // 파일 크기 및 형식 검증
     const validFiles = selectedFiles.filter((file) => {
       const maxSize = 5 * 1024 * 1024; // 5MB
       const validTypes = ["image/jpeg", "image/png", "image/gif"];
@@ -199,9 +200,13 @@ const WriteForm = ({
           <div className="right-section">
             <div className="profile-section">
               <img
-                src="/path-to-profile-image.jpg"
+                src={profileImage}
                 alt="프로필"
                 className="profile-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = Profileimg;
+                }}
               />
               <span className="profile-name">{displayName()}</span>
               <img
@@ -300,7 +305,9 @@ WriteForm.propTypes = {
     author: PropTypes.shape({
       id: PropTypes.number,
       name: PropTypes.string,
+      nameEnglish: PropTypes.string,
     }),
   }),
 };
+
 export default WriteForm;
