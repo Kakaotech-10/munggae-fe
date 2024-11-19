@@ -1,4 +1,3 @@
-// useGetPost.jsx
 import api from "./config";
 
 export const getPost = async (postId) => {
@@ -24,7 +23,7 @@ export const getPost = async (postId) => {
       "updatedAt",
       "member",
       "clean",
-      "imageUrls", // imageUrls를 필수 필드에 추가
+      "imageUrls",
     ];
 
     for (const field of requiredFields) {
@@ -34,12 +33,25 @@ export const getPost = async (postId) => {
     }
 
     // member 객체 검증
-    const memberFields = ["id", "role", "course", "name", "nameEnglish"];
+    const memberFields = [
+      "id",
+      "role",
+      "course",
+      "name",
+      "nameEnglish",
+      "imageUrl",
+    ];
     for (const field of memberFields) {
       if (!(field in postData.member)) {
-        throw new Error(`Missing required member field: ${field}`);
+        console.warn(`Missing member field: ${field}`);
       }
     }
+
+    // 이미지 URL 배열 변환
+    const imageUrls = postData.imageUrls?.map((img) => img.path) || [];
+
+    // 멤버 이미지 URL 처리
+    const memberImageUrl = postData.member.imageUrl?.path || "";
 
     // API 응답을 프론트엔드 데이터 구조로 변환
     return {
@@ -48,7 +60,7 @@ export const getPost = async (postId) => {
       content: postData.content,
       createdAt: postData.createdAt,
       updatedAt: postData.updatedAt,
-      imageUrls: postData.imageUrls || [], // API 응답의 imageUrls 필드 직접 사용
+      imageUrls: imageUrls, // 변환된 이미지 URL 배열
       likes: (postData.likes !== undefined ? postData.likes : 0).toString(),
       clean: postData.clean,
       author: {
@@ -57,7 +69,7 @@ export const getPost = async (postId) => {
         course: postData.member.course,
         name: postData.member.name,
         nameEnglish: postData.member.nameEnglish,
-        profileImage: postData.member.profileImage || "",
+        profileImage: memberImageUrl, // 멤버 프로필 이미지 URL
       },
     };
   } catch (error) {

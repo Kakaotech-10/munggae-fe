@@ -1,4 +1,3 @@
-// src/api/useGetPosts.jsx
 import api from "./config";
 
 export const getPosts = async (pageNo = 0, pageSize = 10) => {
@@ -15,8 +14,13 @@ export const getPosts = async (pageNo = 0, pageSize = 10) => {
     const transformedData = {
       content: response.data.content.map((post) => {
         console.log("Individual post data:", post);
-        // imageUrls 처리 추가
-        const imageUrls = post.imageUrls || post.cloudFrontPaths || [];
+
+        // 새로운 이미지 URL 구조 처리
+        const imageUrls = post.imageUrls?.map((img) => img.path) || [];
+
+        // 멤버 이미지 처리
+        const memberImageUrl = post.member.imageUrl?.path || "";
+
         return {
           post_id: post.id,
           post_title: post.title,
@@ -30,8 +34,9 @@ export const getPosts = async (pageNo = 0, pageSize = 10) => {
             member_name_english: post.member.nameEnglish,
             course: post.member.course,
             role: post.member.role,
+            member_image: memberImageUrl, // 멤버 이미지 URL 추가
           },
-          imageUrls: imageUrls, // 이미지 URL 배열 저장
+          imageUrls: imageUrls, // 이미지 경로 배열로 변환
           thumbnailUrl: imageUrls[0] || "", // 첫 번째 이미지를 썸네일로 사용
           likes: post.likes?.toString() || "0",
         };
