@@ -12,9 +12,57 @@ import ThirdIcon from "../image/3rdicon.svg";
 import { getPosts } from "../api/useGetPosts";
 
 const MainForm = () => {
+  // 알림 데이터 예시
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      text: "김OO님이 댓글을 달았습니다.",
+      isRead: false,
+      time: "5분 전",
+    },
+    {
+      id: 2,
+      text: "이OO님이 회원님의 글을 좋아합니다.",
+      isRead: false,
+      time: "1시간 전",
+    },
+  ]);
+
+  //공지사항 데이터 예시
+  const [notices, setNotices] = useState([
+    {
+      id: 1,
+      title: "2024 상반기 프로젝트 발표회",
+      content: "프로젝트 발표회 참석 필수입니다.",
+      deadline: "2024-04-20", // YYYY-MM-DD 형식
+      important: true,
+    },
+    {
+      id: 2,
+      title: "신규 서비스 업데이트 안내",
+      content: "4월 1일부터 신규 서비스가 시작됩니다.",
+      deadline: "2024-04-01",
+      important: false,
+    },
+  ]);
+
+  // D-day 계산 함수
+  const calculateDday = (deadline) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(deadline);
+    const diffTime = dueDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "D-day";
+    if (diffDays < 0) return `D+${Math.abs(diffDays)}`;
+    return `D-${diffDays}`;
+  };
+
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const hasUnreadNotifications = notifications.some((notif) => !notif.isRead);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -30,26 +78,6 @@ const MainForm = () => {
 
     fetchPosts();
   }, [currentPage]);
-
-  const addNewPost = (newPostData) => {
-    setPosts((prevPosts) => [
-      ...prevPosts,
-      {
-        post_id: prevPosts.length + 1,
-        post_title: newPostData.title,
-        post_content: newPostData.content,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        member: {
-          member_id: newPostData.member_id,
-          member_name: newPostData.member_name,
-          member_name_english: newPostData.member_name_english,
-          course: newPostData.course,
-          role: "USER",
-        },
-      },
-    ]);
-  };
 
   const [isRightAreaVisible, setIsRightAreaVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -120,25 +148,44 @@ const MainForm = () => {
           {(isRightAreaVisible || !isMobile) && (
             <div className="right-area">
               <div
-                className={`right-section calendar ${
-                  isAlertCollapsed ? "collapsed" : ""
-                }`}
+                className={`right-section calendar ${isAlertCollapsed ? "collapsed" : ""}`}
               >
                 <div className="section-header" onClick={toggleAlertSection}>
                   <div className="title-container">
-                    <img className="alerticon" src={Alerticon} alt="알림" />
+                    <div className="alert-dot-wrapper">
+                      {hasUnreadNotifications && <div className="alert-dot" />}
+                      <img className="alerticon" src={Alerticon} alt="알림" />
+                    </div>
                     <span>알림</span>
                   </div>
                   <img
-                    className={`toggle-icon ${
-                      isAlertCollapsed ? "" : "rotated"
-                    }`}
+                    className={`toggle-icon ${isAlertCollapsed ? "" : "rotated"}`}
                     src={Alertshow}
                     alt="Toggle"
                   />
                 </div>
                 <div className="section-content">
-                  여기에 알림 내용이 들어갑니다.
+                  {notifications.length > 0 ? (
+                    <div className="notifications-list">
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className="notification-item"
+                        >
+                          <div className="notification-content">
+                            <p>{notification.text}</p>
+                            <span className="notification-time">
+                              {notification.time}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-notifications">
+                      새로운 알림이 없습니다.
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="right-section task-list">
@@ -149,11 +196,23 @@ const MainForm = () => {
                       src={Noticeicon_black}
                       alt="공지사항"
                     />
-                    공지사항
+                    <span>공지사항</span>
                   </div>
                 </h3>
                 <div className="section-content">
-                  {/* Add task list component or content here */}
+                  <div className="notice-list">
+                    {notices.map((notice) => (
+                      <div
+                        key={notice.id}
+                        className={`notice-item ${notice.important ? "important" : ""}`}
+                      >
+                        <span className="notice-title">{notice.title}</span>
+                        <span className="notice-dday">
+                          {calculateDday(notice.deadline)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="right-section top-topics">
