@@ -12,9 +12,26 @@ import ThirdIcon from "../image/3rdicon.svg";
 import { getPosts } from "../api/useGetPosts";
 
 const MainForm = () => {
+  // 알림 데이터 예시
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      text: "김OO님이 댓글을 달았습니다.",
+      isRead: false,
+      time: "5분 전",
+    },
+    {
+      id: 2,
+      text: "이OO님이 회원님의 글을 좋아합니다.",
+      isRead: false,
+      time: "1시간 전",
+    },
+  ]);
+
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const hasUnreadNotifications = notifications.some((notif) => !notif.isRead);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -30,26 +47,6 @@ const MainForm = () => {
 
     fetchPosts();
   }, [currentPage]);
-
-  const addNewPost = (newPostData) => {
-    setPosts((prevPosts) => [
-      ...prevPosts,
-      {
-        post_id: prevPosts.length + 1,
-        post_title: newPostData.title,
-        post_content: newPostData.content,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        member: {
-          member_id: newPostData.member_id,
-          member_name: newPostData.member_name,
-          member_name_english: newPostData.member_name_english,
-          course: newPostData.course,
-          role: "USER",
-        },
-      },
-    ]);
-  };
 
   const [isRightAreaVisible, setIsRightAreaVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -120,25 +117,44 @@ const MainForm = () => {
           {(isRightAreaVisible || !isMobile) && (
             <div className="right-area">
               <div
-                className={`right-section calendar ${
-                  isAlertCollapsed ? "collapsed" : ""
-                }`}
+                className={`right-section calendar ${isAlertCollapsed ? "collapsed" : ""}`}
               >
                 <div className="section-header" onClick={toggleAlertSection}>
                   <div className="title-container">
-                    <img className="alerticon" src={Alerticon} alt="알림" />
+                    <div className="alert-dot-wrapper">
+                      {hasUnreadNotifications && <div className="alert-dot" />}
+                      <img className="alerticon" src={Alerticon} alt="알림" />
+                    </div>
                     <span>알림</span>
                   </div>
                   <img
-                    className={`toggle-icon ${
-                      isAlertCollapsed ? "" : "rotated"
-                    }`}
+                    className={`toggle-icon ${isAlertCollapsed ? "" : "rotated"}`}
                     src={Alertshow}
                     alt="Toggle"
                   />
                 </div>
                 <div className="section-content">
-                  여기에 알림 내용이 들어갑니다.
+                  {notifications.length > 0 ? (
+                    <div className="notifications-list">
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className="notification-item"
+                        >
+                          <div className="notification-content">
+                            <p>{notification.text}</p>
+                            <span className="notification-time">
+                              {notification.time}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-notifications">
+                      새로운 알림이 없습니다.
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="right-section task-list">
