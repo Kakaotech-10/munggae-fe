@@ -12,7 +12,7 @@ import ThirdIcon from "../image/3rdicon.svg";
 import { getPosts } from "../api/useGetPosts";
 
 const MainForm = () => {
-  // 알림 데이터 예시
+  //알림 예시
   const [notifications, setNotifications] = useState([
     {
       id: 1,
