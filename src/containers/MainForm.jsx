@@ -28,6 +28,37 @@ const MainForm = () => {
     },
   ]);
 
+  //공지사항 데이터 예시
+  const [notices, setNotices] = useState([
+    {
+      id: 1,
+      title: "2024 상반기 프로젝트 발표회",
+      content: "프로젝트 발표회 참석 필수입니다.",
+      deadline: "2024-04-20", // YYYY-MM-DD 형식
+      important: true,
+    },
+    {
+      id: 2,
+      title: "신규 서비스 업데이트 안내",
+      content: "4월 1일부터 신규 서비스가 시작됩니다.",
+      deadline: "2024-04-01",
+      important: false,
+    },
+  ]);
+
+  // D-day 계산 함수
+  const calculateDday = (deadline) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(deadline);
+    const diffTime = dueDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "D-day";
+    if (diffDays < 0) return `D+${Math.abs(diffDays)}`;
+    return `D-${diffDays}`;
+  };
+
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -165,11 +196,23 @@ const MainForm = () => {
                       src={Noticeicon_black}
                       alt="공지사항"
                     />
-                    공지사항
+                    <span>공지사항</span>
                   </div>
                 </h3>
                 <div className="section-content">
-                  {/* Add task list component or content here */}
+                  <div className="notice-list">
+                    {notices.map((notice) => (
+                      <div
+                        key={notice.id}
+                        className={`notice-item ${notice.important ? "important" : ""}`}
+                      >
+                        <span className="notice-title">{notice.title}</span>
+                        <span className="notice-dday">
+                          {calculateDday(notice.deadline)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="right-section top-topics">

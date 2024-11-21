@@ -61,7 +61,7 @@
             &.task-list,
             &.top-topics {
               width: calc(50% - 5px);
-              float: none; // float 제거
+              float: none;
               flex-grow: 0;
               flex-shrink: 0;
             }
@@ -87,7 +87,6 @@
 
               .title-container {
                 margin-left: 10px;
-
                 display: flex;
                 align-items: center;
 
@@ -106,6 +105,7 @@
                     border-radius: 50%;
                   }
                 }
+
                 img {
                   width: 25px;
                   height: 25px;
@@ -135,9 +135,11 @@
               max-height: 1000px;
               opacity: 1;
               transition: all 0.3s ease;
+
               .notifications-list {
                 padding: 10px;
               }
+
               .notification-item {
                 background-color: #cee2ff;
                 border-radius: 10px;
@@ -146,7 +148,7 @@
                 margin-bottom: 10px;
                 box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.3);
                 &:hover {
-                  background-color: #f0f1f2;
+                  background-color: #c0d6ff;
                 }
 
                 .notification-content {
@@ -179,12 +181,7 @@
             }
           }
 
-          &.task-list,
-          &.top-topics {
-            aspect-ratio: 1 / 1;
-            display: flex;
-            flex-direction: column;
-
+          &.task-list {
             .section-header,
             h3 {
               padding: 15px;
@@ -218,22 +215,67 @@
               flex-grow: 1;
               overflow-y: auto;
               padding: 0 15px 15px;
-            }
-          }
 
-          &.task-list h3 {
-            font-size: 17px;
-            color: #3d3d3d;
-            @media (max-width: 767px) {
-              font-size: 15px;
+              .notice-list {
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+
+                .notice-item {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  background-color: #cee2ff;
+                  border-radius: 10px;
+                  padding: 12px 15px;
+                  transition: all 0.2s ease;
+                  box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.1);
+
+                  &:hover {
+                    background-color: #c0d6ff;
+                  }
+
+                  .notice-title {
+                    font-size: 14px;
+                    color: #333;
+                    flex: 1;
+                    padding-right: 15px;
+                  }
+
+                  .notice-dday {
+                    border-radius: 10px;
+                    padding: 4px 12px;
+                    font-size: 12px;
+                    background: white;
+                    color: #333;
+                    white-space: nowrap;
+                  }
+                }
+              }
             }
           }
 
           &.top-topics {
+            aspect-ratio: 1 / 1;
             h3 {
               font-size: 17px;
               color: #26262c;
               margin-bottom: 0px;
+              padding: 15px;
+              flex-shrink: 0;
+              display: flex;
+              justify-content: flex-start;
+              align-items: center;
+              cursor: pointer;
+              background-color: #fff;
+
+              .title-container {
+                display: flex;
+                align-items: center;
+                margin-left: 10px;
+              }
+
               @media (max-width: 767px) {
                 font-size: 15px;
               }
@@ -310,7 +352,6 @@
     }
   }
 
-  // Media query for screens smaller than 768px
   @media (max-width: 767px) {
     flex-direction: column;
 
@@ -343,7 +384,7 @@
 
         .right-area {
           width: 95%;
-          order: -1; // This moves the right-area to the top
+          order: -1;
           margin-bottom: 20px;
           overflow-y: visible;
           display: table-row;
@@ -381,15 +422,15 @@
 
             &.task-list,
             &.top-topics {
-              width: calc(50% - 5px); // 50% width minus half of the gap
-              aspect-ratio: 1 / 1; // This makes it a square
+              width: calc(50% - 5px);
+              aspect-ratio: 1 / 1;
               display: inline-block;
               vertical-align: top;
 
               .section-header,
               h3 {
                 padding: 10px;
-                height: 40px; // Fixed height for the header
+                height: 40px;
 
                 .title-container {
                   margin-left: 5px;
@@ -408,9 +449,26 @@
               }
 
               .section-content {
-                height: calc(100% - 40px); // Subtract header height
+                height: calc(100% - 40px);
                 overflow-y: auto;
                 padding: 5px;
+
+                .notice-list {
+                  padding: 5px;
+
+                  .notice-item {
+                    padding: 8px 12px;
+
+                    .notice-title {
+                      font-size: 13px;
+                    }
+
+                    .notice-dday {
+                      padding: 3px 8px;
+                      font-size: 11px;
+                    }
+                  }
+                }
               }
             }
 
@@ -434,9 +492,7 @@
               }
 
               .topics-podium {
-                height: calc(
-                  100% - 60px
-                ); // Adjust based on header and subtitle height
+                height: calc(100% - 60px);
                 padding: 5px;
 
                 .topic-item {
