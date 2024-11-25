@@ -10,23 +10,17 @@ import FirstIcon from "../image/1sticon.svg";
 import SecondIcon from "../image/2ndicon.svg";
 import ThirdIcon from "../image/3rdicon.svg";
 import { getPosts } from "../api/useGetPosts";
+import { useNotifications } from "../api/useNotifications";
 
 const MainForm = () => {
-  //알림 예시
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      text: "김OO님이 댓글을 달았습니다.",
-      isRead: false,
-      time: "5분 전",
-    },
-    {
-      id: 2,
-      text: "이OO님이 회원님의 글을 좋아합니다.",
-      isRead: false,
-      time: "1시간 전",
-    },
-  ]);
+  const {
+    notifications,
+    isConnected,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    formatNotificationTime,
+  } = useNotifications();
 
   //공지사항 데이터 예시
   const [notices, setNotices] = useState([
@@ -150,19 +144,30 @@ const MainForm = () => {
               <div
                 className={`right-section calendar ${isAlertCollapsed ? "collapsed" : ""}`}
               >
-                <div className="section-header" onClick={toggleAlertSection}>
-                  <div className="title-container">
+                <div className="section-header">
+                  <div className="title-container" onClick={toggleAlertSection}>
                     <div className="alert-dot-wrapper">
                       {hasUnreadNotifications && <div className="alert-dot" />}
                       <img className="alerticon" src={Alerticon} alt="알림" />
                     </div>
                     <span>알림</span>
+                    {isConnected && (
+                      <span className="connection-status">●</span>
+                    )}
                   </div>
-                  <img
-                    className={`toggle-icon ${isAlertCollapsed ? "" : "rotated"}`}
-                    src={Alertshow}
-                    alt="Toggle"
-                  />
+                  <div className="notification-actions">
+                    {notifications.length > 0 && (
+                      <button onClick={markAllAsRead} className="mark-all-read">
+                        모두 읽음
+                      </button>
+                    )}
+                    <img
+                      className={`toggle-icon ${isAlertCollapsed ? "" : "rotated"}`}
+                      src={Alertshow}
+                      alt="Toggle"
+                      onClick={toggleAlertSection}
+                    />
+                  </div>
                 </div>
                 <div className="section-content">
                   {notifications.length > 0 ? (
@@ -170,7 +175,8 @@ const MainForm = () => {
                       {notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className="notification-item"
+                          className={`notification-item ${notification.isRead ? "read" : "unread"}`}
+                          onClick={() => markAsRead(notification.id)}
                         >
                           <div className="notification-content">
                             <p>{notification.text}</p>
@@ -178,6 +184,15 @@ const MainForm = () => {
                               {notification.time}
                             </span>
                           </div>
+                          <button
+                            className="remove-notification"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeNotification(notification.id);
+                            }}
+                          >
+                            ×
+                          </button>
                         </div>
                       ))}
                     </div>
