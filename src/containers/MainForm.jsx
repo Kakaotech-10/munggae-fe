@@ -9,6 +9,10 @@ import Alertshow from "../image/alertshow.svg";
 import FirstIcon from "../image/1sticon.svg";
 import SecondIcon from "../image/2ndicon.svg";
 import ThirdIcon from "../image/3rdicon.svg";
+import DiscordIcon from "../image/discord.svg";
+import NotionIcon from "../image/notion-icon.svg";
+import CloudIcon from "../image/cloud-computing.svg";
+import ZepIcon from "../image/letter-z.svg";
 import { getPosts } from "../api/useGetPosts";
 import { useNotifications } from "../api/useNotifications";
 
@@ -21,6 +25,17 @@ const MainForm = () => {
     removeNotification,
     formatNotificationTime,
   } = useNotifications();
+
+  const searchAreaIcons = [
+    { icon: DiscordIcon, alt: "Discord", link: "#" },
+    {
+      icon: NotionIcon,
+      alt: "Notion",
+      link: "https://goormkdx.notion.site/kakao-tech-bootcamp-0710eb08b5a743bea83e1871c5ae7465",
+    },
+    { icon: CloudIcon, alt: "Cloud", link: "https://exp.goorm.io" },
+    { icon: ZepIcon, alt: "Zep", link: "https://zep.us/play/8lj15q" },
+  ];
 
   //공지사항 데이터 예시
   const [notices, setNotices] = useState([
@@ -125,6 +140,13 @@ const MainForm = () => {
       <div className="content-wrapper">
         <div className="search-area">
           <Search />
+          <div className="search-area-icons">
+            {searchAreaIcons.map((item, index) => (
+              <a key={index} href={item.link} className="icon-wrapper">
+                <img src={item.icon} alt={item.alt} className="search-icon" />
+              </a>
+            ))}
+          </div>
           {isMobile && (
             <button className="toggle-right-area" onClick={toggleRightArea}>
               {isRightAreaVisible ? "Hide Sidebar" : "Show Sidebar"}
