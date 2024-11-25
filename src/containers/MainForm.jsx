@@ -13,6 +13,7 @@ import DiscordIcon from "../image/discord.svg";
 import NotionIcon from "../image/notion-icon.svg";
 import CloudIcon from "../image/cloud-computing.svg";
 import ZepIcon from "../image/letter-z.svg";
+import Logo from "../image/logo_black.png";
 import { getPosts } from "../api/useGetPosts";
 import { useNotifications } from "../api/useNotifications";
 
@@ -139,7 +140,12 @@ const MainForm = () => {
       </div>
       <div className="content-wrapper">
         <div className="search-area">
-          <Search />
+          {isMobile && (
+            <div className="mobile-logo">
+              <img src={Logo} alt="Logo" className="logo-image" />
+            </div>
+          )}
+          {!isMobile && <Search />}
           <div className="search-area-icons">
             {searchAreaIcons.map((item, index) => (
               <a key={index} href={item.link} className="icon-wrapper">
