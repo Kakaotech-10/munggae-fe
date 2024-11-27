@@ -13,8 +13,13 @@ export const useNotifications = () => {
 
   const getBackoffDelay = (attempt) => {
     const baseDelay = 1000;
+    const maxJitter = 1000; // 최대 1초의 지터
     const delay = Math.min(baseDelay * Math.pow(2, attempt), MAX_BACKOFF_DELAY);
-    return delay + Math.random() * 1000;
+
+    // 더 제한적이고 예측 가능한 범위의 지터 사용
+    const jitter = (Math.random() * 0.3 + 0.85) * maxJitter; // 85%~115% 범위
+
+    return delay + jitter;
   };
 
   const cleanup = () => {
