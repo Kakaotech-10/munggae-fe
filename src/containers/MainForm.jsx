@@ -9,24 +9,34 @@ import Alertshow from "../image/alertshow.svg";
 import FirstIcon from "../image/1sticon.svg";
 import SecondIcon from "../image/2ndicon.svg";
 import ThirdIcon from "../image/3rdicon.svg";
+import DiscordIcon from "../image/discord.svg";
+import NotionIcon from "../image/notion-icon.svg";
+import CloudIcon from "../image/cloud-computing.svg";
+import ZepIcon from "../image/letter-z.svg";
+import Logo from "../image/logo_black.png";
 import { getPosts } from "../api/useGetPosts";
+import { useNotifications } from "../api/useNotifications";
 
 const MainForm = () => {
-  // 알림 데이터 예시
-  const [notifications, setNotifications] = useState([
+  const {
+    notifications,
+    isConnected,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    formatNotificationTime,
+  } = useNotifications();
+
+  const searchAreaIcons = [
+    { icon: DiscordIcon, alt: "Discord", link: "#" },
     {
-      id: 1,
-      text: "김OO님이 댓글을 달았습니다.",
-      isRead: false,
-      time: "5분 전",
+      icon: NotionIcon,
+      alt: "Notion",
+      link: "https://goormkdx.notion.site/kakao-tech-bootcamp-0710eb08b5a743bea83e1871c5ae7465",
     },
-    {
-      id: 2,
-      text: "이OO님이 회원님의 글을 좋아합니다.",
-      isRead: false,
-      time: "1시간 전",
-    },
-  ]);
+    { icon: CloudIcon, alt: "Cloud", link: "https://exp.goorm.io" },
+    { icon: ZepIcon, alt: "Zep", link: "https://zep.us/play/8lj15q" },
+  ];
 
   //공지사항 데이터 예시
   const [notices, setNotices] = useState([
@@ -130,7 +140,19 @@ const MainForm = () => {
       </div>
       <div className="content-wrapper">
         <div className="search-area">
-          <Search />
+          {isMobile && (
+            <div className="mobile-logo">
+              <img src={Logo} alt="Logo" className="logo-image" />
+            </div>
+          )}
+          {!isMobile && <Search />}
+          <div className="search-area-icons">
+            {searchAreaIcons.map((item, index) => (
+              <a key={index} href={item.link} className="icon-wrapper">
+                <img src={item.icon} alt={item.alt} className="search-icon" />
+              </a>
+            ))}
+          </div>
           {isMobile && (
             <button className="toggle-right-area" onClick={toggleRightArea}>
               {isRightAreaVisible ? "Hide Sidebar" : "Show Sidebar"}
@@ -150,19 +172,30 @@ const MainForm = () => {
               <div
                 className={`right-section calendar ${isAlertCollapsed ? "collapsed" : ""}`}
               >
-                <div className="section-header" onClick={toggleAlertSection}>
-                  <div className="title-container">
+                <div className="section-header">
+                  <div className="title-container" onClick={toggleAlertSection}>
                     <div className="alert-dot-wrapper">
                       {hasUnreadNotifications && <div className="alert-dot" />}
                       <img className="alerticon" src={Alerticon} alt="알림" />
                     </div>
                     <span>알림</span>
+                    {isConnected && (
+                      <span className="connection-status">●</span>
+                    )}
                   </div>
-                  <img
-                    className={`toggle-icon ${isAlertCollapsed ? "" : "rotated"}`}
-                    src={Alertshow}
-                    alt="Toggle"
-                  />
+                  <div className="notification-actions">
+                    {notifications.length > 0 && (
+                      <button onClick={markAllAsRead} className="mark-all-read">
+                        모두 읽음
+                      </button>
+                    )}
+                    <img
+                      className={`toggle-icon ${isAlertCollapsed ? "" : "rotated"}`}
+                      src={Alertshow}
+                      alt="Toggle"
+                      onClick={toggleAlertSection}
+                    />
+                  </div>
                 </div>
                 <div className="section-content">
                   {notifications.length > 0 ? (
@@ -170,7 +203,8 @@ const MainForm = () => {
                       {notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className="notification-item"
+                          className={`notification-item ${notification.isRead ? "read" : "unread"}`}
+                          onClick={() => markAsRead(notification.id)}
                         >
                           <div className="notification-content">
                             <p>{notification.text}</p>
@@ -178,6 +212,15 @@ const MainForm = () => {
                               {notification.time}
                             </span>
                           </div>
+                          <button
+                            className="remove-notification"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeNotification(notification.id);
+                            }}
+                          >
+                            ×
+                          </button>
                         </div>
                       ))}
                     </div>

@@ -24,13 +24,16 @@
       max-width: 100%;
       width: 100%;
       padding: 8px;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 70px); // 모바일 하단 네비게이션 고려
     }
   }
 
-  .search-area {
+  .commu-search-area {
     flex: 0 0 auto;
     margin-bottom: clamp(10px, 2vh, 20px);
-    margin-right: -10%;
+    margin-right: 90%;
 
     @media (max-width: 767px) {
       margin: 0 0 8px 0;
@@ -46,6 +49,7 @@
     margin-bottom: clamp(10px, 2vh, 20px);
 
     @media (max-width: 767px) {
+      width: 97%;
       margin-bottom: 8px;
       flex-direction: row;
       align-items: center;
@@ -101,9 +105,15 @@
   .posts-area {
     flex: 1;
     overflow-y: auto;
-    min-height: 0; // Firefox 호환성
+    min-height: 0;
     margin-bottom: clamp(10px, 2vh, 20px);
 
+    @media (max-width: 767px) {
+      margin-bottom: 8px;
+      height: auto;
+      min-height: 0;
+      flex: 1 1 auto; // flex-grow: 1, flex-shrink: 1, flex-basis: auto
+    }
     // 스크롤바 스타일링
     &::-webkit-scrollbar {
       width: 6px;
@@ -141,7 +151,7 @@
 
     @media (max-width: 767px) {
       padding: 8px 0;
-      margin-bottom: 70px; // 모바일 하단 네비게이션 고려
+      margin-bottom: -10px; // 모바일 하단 네비게이션 고려
     }
   }
 

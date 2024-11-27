@@ -28,6 +28,58 @@
       padding: 10px;
       display: flex;
       align-items: center;
+      gap: 10px;
+
+      .mobile-logo {
+        display: none; // 기본적으로 숨김
+
+        .logo-image {
+          width: 70px; // 로고 크기 조정
+          height: auto;
+          object-fit: contain;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .mobile-logo {
+          display: block; // 모바일에서만 보이게 설정
+          margin-right: auto; // 왼쪽 정렬
+        }
+
+        .search-area-icons {
+          margin-left: 0; // 아이콘 여백 조정
+        }
+      }
+
+      .search-area-icons {
+        display: flex;
+        align-items: center;
+        gap: 0px;
+        margin-left: auto;
+        margin-right: 10px;
+
+        .icon-wrapper {
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: all 0.2s ease;
+          cursor: pointer;
+
+          &:hover {
+            background-color: rgba(66, 103, 178, 0.1);
+            transform: translateY(-2px);
+          }
+
+          .search-icon {
+            width: 24px;
+            height: 24px;
+            color: #4267b2;
+          }
+        }
+      }
     }
 
     .main-content {
@@ -363,7 +415,7 @@
 
     .content-wrapper {
       width: 100%;
-      height: calc(8 * 100% / 9);
+      height: 100%;
 
       .search-area {
         height: calc(100% / 14);
@@ -430,7 +482,7 @@
               .section-header,
               h3 {
                 padding: 5px; // 헤더 패딩 줄임
-                height: 35px; // 헤더 높이 줄임
+                height: 20px; // 헤더 높이 줄임
 
                 .title-container {
                   margin-left: 5px;
@@ -489,13 +541,14 @@
                 font-size: 12px;
                 margin-top: 2px;
                 margin-left: 5px;
+                margin-bottom: 20px;
               }
 
               .topics-podium {
                 display: flex;
                 justify-content: center; // 중앙 정렬로 변경
                 align-items: center;
-                height: 200px;
+                height: 30px;
                 padding: 10px;
                 gap: 20px; // 아이템 간 간격 추가
 
@@ -521,7 +574,7 @@
                     padding: 5px;
                     box-sizing: border-box;
                     transition: height 0.3s ease;
-                    min-width: 40px; // 최소 너비 설정
+                    min-width: 50px; // 최소 너비 설정
 
                     .topic-name {
                       color: white;

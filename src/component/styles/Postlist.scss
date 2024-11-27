@@ -5,7 +5,7 @@
   margin-left: 10px;
   margin-bottom: clamp(8px, 1.5vh, 10px);
   width: 95%;
-  height: clamp(80px, 15vh, 80px);
+  height: 75px;
   border-radius: 10px;
   opacity: 1;
   background: #ffffff;
@@ -17,11 +17,12 @@
   }
 
   @media (max-width: 1200px) {
-    height: clamp(70px, 12vh, 100px);
+    height: 75px;
   }
 
   @media (max-width: 767px) {
-    height: clamp(45px, 8vh, 60px);
+    height: 55px;
+    width: 90%;
     padding: 6px;
     margin-bottom: 6px;
     border-radius: 8px;
