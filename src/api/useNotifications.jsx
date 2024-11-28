@@ -1,31 +1,31 @@
+// useNotifications.js
+import { EventSourcePolyfill } from "event-source-polyfill";
 import { useState, useEffect, useRef } from "react";
 
-export const useNotifications = () => {
+const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const eventSourceRef = useRef(null);
   const connectionAttempts = useRef(0);
-  const currentController = useRef(null);
+  const lastEventIdRef = useRef(null);
+  const isInitialFetchRef = useRef(true);
 
-  const INITIAL_TIMEOUT = 10000;
   const MAX_RETRIES = 5;
   const MAX_BACKOFF_DELAY = 30000;
 
   const getBackoffDelay = (attempt) => {
     const baseDelay = 1000;
-    const maxJitter = 1000; // 최대 1초의 지터
+    const maxJitter = 1000;
     const delay = Math.min(baseDelay * Math.pow(2, attempt), MAX_BACKOFF_DELAY);
-
-    // 더 제한적이고 예측 가능한 범위의 지터 사용
-    const jitter = (Math.random() * 0.3 + 0.85) * maxJitter; // 85%~115% 범위
-
+    const jitter = (Math.random() * 0.3 + 0.85) * maxJitter;
     return delay + jitter;
   };
 
   const cleanup = () => {
-    if (currentController.current) {
-      currentController.current.abort();
-      currentController.current = null;
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
     setIsConnected(false);
     setConnectionStatus("disconnected");
@@ -52,6 +52,73 @@ export const useNotifications = () => {
     }
   };
 
+  const fetchNotifications = async () => {
+    try {
+      let token = localStorage.getItem("accessToken");
+      if (!token) {
+        token = await refreshToken();
+      }
+
+      const response = await fetch("/api/v1/notifications/me", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      if (response.status === 401) {
+        token = await refreshToken();
+        const retryResponse = await fetch("/api/v1/notifications/me", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+
+        if (!retryResponse.ok) {
+          throw new Error("Failed to fetch notifications after token refresh");
+        }
+
+        const data = await retryResponse.json();
+        return data;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch notifications");
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      throw error;
+    }
+  };
+
+  const updateNotificationsState = (data) => {
+    const notificationsArray = Array.isArray(data) ? data : data.content || [];
+    const readNotifications = JSON.parse(
+      localStorage.getItem("readNotifications") || "{}"
+    );
+
+    setNotifications(
+      notificationsArray.map((notification) => ({
+        ...notification,
+        isRead:
+          readNotifications[notification.id] || notification.isRead || false,
+        time: formatNotificationTime(notification.timestamp || Date.now()),
+      }))
+    );
+
+    if (isInitialFetchRef.current && notificationsArray.length > 0) {
+      const latestNotification = notificationsArray[0];
+      lastEventIdRef.current = latestNotification.id.toString();
+      isInitialFetchRef.current = false;
+    }
+  };
+
   const formatNotificationTime = (timestamp) => {
     const now = new Date();
     const notificationTime = new Date(timestamp);
@@ -63,154 +130,203 @@ export const useNotifications = () => {
     return `${Math.floor(diffInMinutes / 1440)}일 전`;
   };
 
-  const handleStreamError = async (error, signal) => {
-    // AbortError는 정상적인 연결 종료로 처리
-    if (error.name === "AbortError") {
-      console.log("Connection aborted normally");
-      return;
-    }
+  const handleSSEMessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("Received SSE message:", data);
 
-    console.error("SSE connection error:", error);
-    setConnectionStatus("error");
-
-    // 연결이 의도적으로 중단되지 않은 경우에만 재시도
-    if (!signal.aborted) {
-      connectionAttempts.current++;
-      if (connectionAttempts.current <= MAX_RETRIES) {
-        const delay = getBackoffDelay(connectionAttempts.current);
-        console.log(
-          `Retrying connection in ${delay}ms... Attempt: ${connectionAttempts.current}`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-
-        // 재연결 시도 전 상태 확인
-        if (connectionStatus !== "connected") {
-          await setupSSEConnection();
-        }
-      } else {
-        setConnectionStatus("failed");
-        console.error("Max retry attempts reached");
+      if (event.lastEventId) {
+        lastEventIdRef.current = event.lastEventId;
+      } else if (data.id) {
+        lastEventIdRef.current = data.id.toString();
       }
+
+      const readNotifications = JSON.parse(
+        localStorage.getItem("readNotifications") || "{}"
+      );
+
+      setNotifications((prev) => [
+        {
+          ...data,
+          id: data.id,
+          text: data.message,
+          isRead: readNotifications[data.id] || false,
+          time: formatNotificationTime(data.timestamp || Date.now()),
+        },
+        ...prev,
+      ]);
+    } catch (e) {
+      console.warn("Error parsing notification:", e);
     }
   };
 
   const setupSSEConnection = async () => {
-    if (currentController.current) {
-      cleanup();
-    }
-
-    const controller = new AbortController();
-    currentController.current = controller;
-    const { signal } = controller;
+    cleanup();
 
     try {
       setConnectionStatus("connecting");
       let token = localStorage.getItem("accessToken");
 
       if (!token) {
-        token = await refreshToken();
+        try {
+          token = await refreshToken();
+        } catch (error) {
+          throw new Error("No authentication token available");
+        }
       }
 
-      const headers = new Headers({
+      const url = new URL(
+        "/api/v1/notifications/subscribe",
+        window.location.origin
+      );
+
+      const headers = {
         Authorization: `Bearer ${token}`,
-        Accept: "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      });
+        withCredentials: true,
+      };
 
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error("Connection timeout"));
-        }, INITIAL_TIMEOUT);
-      });
+      if (!isInitialFetchRef.current && lastEventIdRef.current) {
+        headers["Last-Event-ID"] = lastEventIdRef.current;
+      }
 
-      const fetchPromise = fetch("/api/v1/notifications/subscribe", {
-        method: "GET",
+      eventSourceRef.current = new EventSourcePolyfill(url.toString(), {
         headers,
-        credentials: "include",
-        signal,
+        withCredentials: true,
       });
 
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      eventSourceRef.current.onopen = () => {
+        console.log("SSE connection opened");
+        setIsConnected(true);
+        setConnectionStatus("connected");
+        connectionAttempts.current = 0;
+      };
 
-      if (response.status === 401) {
-        await refreshToken();
-        throw new Error("Token expired");
-      }
+      eventSourceRef.current.onmessage = handleSSEMessage;
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      eventSourceRef.current.onerror = async (error) => {
+        console.error("SSE connection error:", error);
 
-      setIsConnected(true);
-      setConnectionStatus("connected");
-      connectionAttempts.current = 0;
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-
-          if (done) {
-            console.log("Stream complete");
-            break;
-          }
-
-          if (signal.aborted) {
-            console.log("Stream aborted");
-            break;
-          }
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                setNotifications((prev) => [
-                  {
-                    id: data.id || Date.now(),
-                    text: data.message,
-                    isRead: false,
-                    time: formatNotificationTime(data.timestamp || Date.now()),
-                    ...data,
-                  },
-                  ...prev,
-                ]);
-              } catch (e) {
-                console.warn("Error parsing notification:", e);
-              }
-            }
+        if (error.status === 401) {
+          try {
+            await refreshToken();
+            await setupSSEConnection();
+            return;
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+            cleanup();
+            setConnectionStatus("failed");
+            return;
           }
         }
-      } catch (streamError) {
-        await handleStreamError(streamError, signal);
-      }
-    } catch (error) {
-      await handleStreamError(error, signal);
-    } finally {
-      if (!signal.aborted) {
+
         cleanup();
-      }
+        setConnectionStatus("error");
+
+        if (connectionAttempts.current < MAX_RETRIES) {
+          connectionAttempts.current++;
+          const delay = getBackoffDelay(connectionAttempts.current);
+          console.log(
+            `Retrying connection in ${delay}ms... Attempt: ${connectionAttempts.current}`
+          );
+
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          await setupSSEConnection();
+        } else {
+          setConnectionStatus("failed");
+          console.error("Max retry attempts reached");
+        }
+      };
+    } catch (error) {
+      console.error("Failed to setup SSE connection:", error);
+      cleanup();
+      throw error;
     }
   };
 
-  const markAsRead = (notificationId) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === notificationId
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
+  const markAsRead = async (notificationId) => {
+    try {
+      let token = localStorage.getItem("accessToken");
+      if (!token) {
+        token = await refreshToken();
+      }
+
+      const response = await fetch(
+        `/api/v1/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        }
+      );
+
+      if (response.status === 401) {
+        token = await refreshToken();
+        const retryResponse = await fetch(
+          `/api/v1/notifications/${notificationId}/read`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          }
+        );
+
+        if (!retryResponse.ok) {
+          throw new Error(
+            "Failed to mark notification as read after token refresh"
+          );
+        }
+      } else if (!response.ok) {
+        throw new Error("Failed to mark notification as read");
+      }
+
+      const readNotifications = JSON.parse(
+        localStorage.getItem("readNotifications") || "{}"
+      );
+      readNotifications[notificationId] = true;
+      localStorage.setItem(
+        "readNotifications",
+        JSON.stringify(readNotifications)
+      );
+
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+      throw error;
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((notification) => ({ ...notification, isRead: true }))
+  const markAllAsRead = async () => {
+    const readNotifications = JSON.parse(
+      localStorage.getItem("readNotifications") || "{}"
+    );
+
+    for (const notification of notifications) {
+      if (!notification.isRead) {
+        try {
+          await markAsRead(notification.id);
+          readNotifications[notification.id] = true;
+        } catch (error) {
+          console.error(
+            `Failed to mark notification ${notification.id} as read:`,
+            error
+          );
+        }
+      }
+    }
+
+    localStorage.setItem(
+      "readNotifications",
+      JSON.stringify(readNotifications)
     );
   };
 
@@ -223,17 +339,20 @@ export const useNotifications = () => {
   useEffect(() => {
     let isActive = true;
 
-    const initializeSSE = async () => {
+    const initialize = async () => {
       if (isActive) {
         try {
+          const data = await fetchNotifications();
+          updateNotificationsState(data);
           await setupSSEConnection();
         } catch (error) {
-          console.error("Failed to initialize SSE:", error);
+          console.error("Failed to initialize notifications:", error);
+          setConnectionStatus("failed");
         }
       }
     };
 
-    initializeSSE();
+    initialize();
 
     return () => {
       isActive = false;
