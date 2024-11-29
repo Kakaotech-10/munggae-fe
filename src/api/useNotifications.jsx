@@ -1,4 +1,3 @@
-// useNotifications.js
 import { EventSourcePolyfill } from "event-source-polyfill";
 import { useState, useEffect, useRef } from "react";
 
@@ -33,7 +32,8 @@ const useNotifications = () => {
 
   const refreshToken = async () => {
     try {
-      const response = await fetch("/api/v1/auth/refresh", {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      const response = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
         method: "POST",
         credentials: "include",
       });
@@ -54,12 +54,13 @@ const useNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
       let token = localStorage.getItem("accessToken");
       if (!token) {
         token = await refreshToken();
       }
 
-      const response = await fetch("/api/v1/notifications/me", {
+      const response = await fetch(`${baseUrl}/api/v1/notifications/me`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -69,13 +70,16 @@ const useNotifications = () => {
 
       if (response.status === 401) {
         token = await refreshToken();
-        const retryResponse = await fetch("/api/v1/notifications/me", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
+        const retryResponse = await fetch(
+          `${baseUrl}/api/v1/notifications/me`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          }
+        );
 
         if (!retryResponse.ok) {
           throw new Error("Failed to fetch notifications after token refresh");
@@ -175,13 +179,19 @@ const useNotifications = () => {
         }
       }
 
-      const url = new URL(
-        "/api/v1/notifications/subscribe",
-        import.meta.env.VITE_API_BASE_URL || window.location.origin
-      );
+      const baseUrl =
+        import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      console.log("Connecting to SSE at base URL:", baseUrl);
+
+      const url = new URL("/api/v1/notifications/subscribe", baseUrl);
+
+      console.log("Full SSE URL:", url.toString());
 
       const headers = {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
         withCredentials: true,
       };
 
@@ -195,7 +205,7 @@ const useNotifications = () => {
       });
 
       eventSourceRef.current.onopen = () => {
-        console.log("SSE connection opened");
+        console.log("SSE connection opened successfully");
         setIsConnected(true);
         setConnectionStatus("connected");
         connectionAttempts.current = 0;
@@ -204,7 +214,11 @@ const useNotifications = () => {
       eventSourceRef.current.onmessage = handleSSEMessage;
 
       eventSourceRef.current.onerror = async (error) => {
-        console.error("SSE connection error:", error);
+        console.error("SSE connection error details:", {
+          status: error.status,
+          message: error.message,
+          type: error.type,
+        });
 
         if (error.status === 401) {
           try {
@@ -245,13 +259,14 @@ const useNotifications = () => {
 
   const markAsRead = async (notificationId) => {
     try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
       let token = localStorage.getItem("accessToken");
       if (!token) {
         token = await refreshToken();
       }
 
       const response = await fetch(
-        `/api/v1/notifications/${notificationId}/read`,
+        `${baseUrl}/api/v1/notifications/${notificationId}/read`,
         {
           method: "PATCH",
           headers: {
@@ -264,7 +279,7 @@ const useNotifications = () => {
       if (response.status === 401) {
         token = await refreshToken();
         const retryResponse = await fetch(
-          `/api/v1/notifications/${notificationId}/read`,
+          `${baseUrl}/api/v1/notifications/${notificationId}/read`,
           {
             method: "PATCH",
             headers: {
