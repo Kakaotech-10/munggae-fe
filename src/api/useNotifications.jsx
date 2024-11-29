@@ -8,7 +8,6 @@ const useNotifications = () => {
   const eventSourceRef = useRef(null);
   const connectionAttempts = useRef(0);
   const lastEventIdRef = useRef(null);
-  const isInitialFetchRef = useRef(true);
 
   const MAX_RETRIES = 5;
   const MAX_BACKOFF_DELAY = 30000;
@@ -52,6 +51,17 @@ const useNotifications = () => {
     }
   };
 
+  const formatNotificationTime = (timestamp) => {
+    const now = new Date();
+    const notificationTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - notificationTime) / (1000 * 60));
+
+    if (diffInMinutes < 1) return "방금 전";
+    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
+    return `${Math.floor(diffInMinutes / 1440)}일 전`;
+  };
+
   const fetchNotifications = async () => {
     try {
       let token = localStorage.getItem("accessToken");
@@ -59,7 +69,6 @@ const useNotifications = () => {
         token = await refreshToken();
       }
 
-      // API 서버로 직접 요청
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(`${baseUrl}/api/v1/notifications/me`, {
         method: "GET",
@@ -73,23 +82,7 @@ const useNotifications = () => {
 
       if (response.status === 401) {
         token = await refreshToken();
-        const retryResponse = await fetch(
-          `${baseUrl}/api/v1/notifications/me`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-          }
-        );
-
-        if (!retryResponse.ok) {
-          throw new Error("Failed to fetch notifications after token refresh");
-        }
-
-        const data = await retryResponse.json();
-        return data;
+        return await fetchNotifications();
       }
 
       if (!response.ok) {
@@ -110,31 +103,22 @@ const useNotifications = () => {
       localStorage.getItem("readNotifications") || "{}"
     );
 
-    setNotifications(
-      notificationsArray.map((notification) => ({
-        ...notification,
-        isRead:
-          readNotifications[notification.id] || notification.isRead || false,
-        time: formatNotificationTime(notification.timestamp || Date.now()),
-      }))
-    );
+    const formattedNotifications = notificationsArray.map((notification) => ({
+      ...notification,
+      id: notification.id,
+      text: notification.message,
+      isRead:
+        notification.isRead || readNotifications[notification.id] || false,
+      time: formatNotificationTime(notification.timestamp || Date.now()),
+      type: notification.type,
+    }));
 
-    if (isInitialFetchRef.current && notificationsArray.length > 0) {
+    setNotifications(formattedNotifications);
+
+    if (notificationsArray.length > 0) {
       const latestNotification = notificationsArray[0];
       lastEventIdRef.current = latestNotification.id.toString();
-      isInitialFetchRef.current = false;
     }
-  };
-
-  const formatNotificationTime = (timestamp) => {
-    const now = new Date();
-    const notificationTime = new Date(timestamp);
-    const diffInMinutes = Math.floor((now - notificationTime) / (1000 * 60));
-
-    if (diffInMinutes < 1) return "방금 전";
-    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
-    return `${Math.floor(diffInMinutes / 1440)}일 전`;
   };
 
   const setupSSEConnection = async () => {
@@ -155,19 +139,24 @@ const useNotifications = () => {
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
       const url = new URL("/api/v1/notifications/subscribe", baseUrl);
 
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      };
+
+      if (lastEventIdRef.current) {
+        headers["Last-Event-ID"] = lastEventIdRef.current;
+      }
+
       const eventSource = new EventSourcePolyfill(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
+        headers,
         heartbeatTimeout: 300000,
         withCredentials: true,
       });
 
       eventSourceRef.current = eventSource;
-      // 전역에서 접근할 수 있도록 window 객체에 저장
-      window.eventSource = eventSource;
+      window.eventSource = eventSource; // 전역에서 접근 가능하도록 설정
 
       eventSource.onopen = () => {
         console.log("SSE connection opened successfully");
@@ -181,29 +170,34 @@ const useNotifications = () => {
           const data = JSON.parse(event.data);
           console.log("Received SSE message:", data);
 
-          const readNotifications = JSON.parse(
-            localStorage.getItem("readNotifications") || "{}"
-          );
-
-          // 중복 체크
-          const isDuplicate = (newNotification) => {
-            return notifications.some(
-              (existing) => existing.id === newNotification.id
-            );
-          };
-
-          if (!isDuplicate(data)) {
-            setNotifications((prev) => [
-              {
-                ...data,
-                id: data.id,
-                text: data.message,
-                isRead: readNotifications[data.id] || false,
-                time: formatNotificationTime(data.timestamp || Date.now()),
-              },
-              ...prev,
-            ]);
+          if (event.lastEventId) {
+            lastEventIdRef.current = event.lastEventId;
+          } else if (data.id) {
+            lastEventIdRef.current = data.id.toString();
           }
+
+          // 새로운 알림을 즉시 추가
+          setNotifications((prev) => {
+            // 이미 존재하는 알림인지 확인
+            const exists = prev.some(
+              (notification) => notification.id === data.id
+            );
+            if (exists) {
+              return prev;
+            }
+
+            // 새로운 알림 추가
+            const newNotification = {
+              ...data,
+              id: data.id,
+              text: data.message,
+              isRead: false,
+              time: formatNotificationTime(data.timestamp || Date.now()),
+              type: data.type,
+            };
+
+            return [newNotification, ...prev];
+          });
         } catch (e) {
           console.warn("Error parsing notification:", e);
         }
@@ -263,6 +257,8 @@ const useNotifications = () => {
           method: "PATCH",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
           },
           credentials: "include",
         }
@@ -276,6 +272,8 @@ const useNotifications = () => {
             method: "PATCH",
             headers: {
               Authorization: `Bearer ${token}`,
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
             },
             credentials: "include",
           }
