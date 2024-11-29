@@ -177,7 +177,7 @@ const useNotifications = () => {
 
       const url = new URL(
         "/api/v1/notifications/subscribe",
-        window.location.origin
+        import.meta.env.VITE_API_BASE_URL || window.location.origin
       );
 
       const headers = {
