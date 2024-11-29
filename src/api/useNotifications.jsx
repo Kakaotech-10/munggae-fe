@@ -153,59 +153,63 @@ const useNotifications = () => {
       }
 
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      console.log("Connecting to SSE at base URL:", baseUrl);
-
       const url = new URL("/api/v1/notifications/subscribe", baseUrl);
-      console.log("Full SSE URL:", url.toString());
 
       const eventSource = new EventSourcePolyfill(url.toString(), {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
         },
         heartbeatTimeout: 300000,
         withCredentials: true,
       });
 
       eventSourceRef.current = eventSource;
+      // 전역에서 접근할 수 있도록 window 객체에 저장
+      window.eventSource = eventSource;
 
-      eventSource.addEventListener("open", () => {
+      eventSource.onopen = () => {
         console.log("SSE connection opened successfully");
         setIsConnected(true);
         setConnectionStatus("connected");
         connectionAttempts.current = 0;
-      });
+      };
 
-      eventSource.addEventListener("message", (event) => {
+      eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log("Received SSE message:", data);
-
-          if (event.lastEventId) {
-            lastEventIdRef.current = event.lastEventId;
-          } else if (data.id) {
-            lastEventIdRef.current = data.id.toString();
-          }
 
           const readNotifications = JSON.parse(
             localStorage.getItem("readNotifications") || "{}"
           );
 
-          setNotifications((prev) => [
-            {
-              ...data,
-              id: data.id,
-              text: data.message,
-              isRead: readNotifications[data.id] || false,
-              time: formatNotificationTime(data.timestamp || Date.now()),
-            },
-            ...prev,
-          ]);
+          // 중복 체크
+          const isDuplicate = (newNotification) => {
+            return notifications.some(
+              (existing) => existing.id === newNotification.id
+            );
+          };
+
+          if (!isDuplicate(data)) {
+            setNotifications((prev) => [
+              {
+                ...data,
+                id: data.id,
+                text: data.message,
+                isRead: readNotifications[data.id] || false,
+                time: formatNotificationTime(data.timestamp || Date.now()),
+              },
+              ...prev,
+            ]);
+          }
         } catch (e) {
           console.warn("Error parsing notification:", e);
         }
-      });
+      };
 
-      eventSource.addEventListener("error", async (error) => {
+      eventSource.onerror = async (error) => {
         console.error("SSE error:", error);
 
         if (error.status === 401) {
@@ -237,7 +241,7 @@ const useNotifications = () => {
           setConnectionStatus("failed");
           console.error("Max retry attempts reached");
         }
-      });
+      };
     } catch (error) {
       console.error("Failed to setup SSE connection:", error);
       cleanup();

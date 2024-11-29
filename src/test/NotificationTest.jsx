@@ -11,6 +11,8 @@ const NotificationTestButton = () => {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
         },
         credentials: "include",
       });
@@ -19,7 +21,20 @@ const NotificationTestButton = () => {
         throw new Error("알림 전송에 실패했습니다");
       }
 
-      alert("테스트 알림이 성공적으로 전송되었습니다.");
+      // 수동으로 알림 이벤트 생성
+      const notificationEvent = new MessageEvent("message", {
+        data: JSON.stringify({
+          id: Date.now(),
+          message: "테스트 알림입니다.",
+          timestamp: new Date().toISOString(),
+          isRead: false,
+        }),
+      });
+
+      // EventSource의 onmessage 핸들러 호출
+      if (window.eventSource && window.eventSource.onmessage) {
+        window.eventSource.onmessage(notificationEvent);
+      }
     } catch (error) {
       console.error("Error sending test notification:", error);
       alert(error.message);
@@ -34,7 +49,7 @@ const NotificationTestButton = () => {
       disabled={isLoading}
       className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
     >
-      {isLoading ? "전송 중..." : "테스트 알림 보내기"}
+      {isLoading ? "전송 중..." : "테스트"}
     </button>
   );
 };
