@@ -33,7 +33,7 @@ const useNotifications = () => {
   const refreshToken = async () => {
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const response = await fetch(`${baseUrl}api/v1/auth/refresh`, {
+      const response = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
         method: "POST",
         credentials: "include",
       });
@@ -60,7 +60,7 @@ const useNotifications = () => {
         token = await refreshToken();
       }
 
-      const response = await fetch(`${baseUrl}api/v1/notifications/me`, {
+      const response = await fetch(`${baseUrl}/api/v1/notifications/me`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -70,13 +70,16 @@ const useNotifications = () => {
 
       if (response.status === 401) {
         token = await refreshToken();
-        const retryResponse = await fetch(`${baseUrl}api/v1/notifications/me`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
+        const retryResponse = await fetch(
+          `${baseUrl}/api/v1/notifications/me`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          }
+        );
 
         if (!retryResponse.ok) {
           throw new Error("Failed to fetch notifications after token refresh");
@@ -131,36 +134,6 @@ const useNotifications = () => {
     return `${Math.floor(diffInMinutes / 1440)}일 전`;
   };
 
-  const handleSSEMessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      console.log("Received SSE message:", data);
-
-      if (event.lastEventId) {
-        lastEventIdRef.current = event.lastEventId;
-      } else if (data.id) {
-        lastEventIdRef.current = data.id.toString();
-      }
-
-      const readNotifications = JSON.parse(
-        localStorage.getItem("readNotifications") || "{}"
-      );
-
-      setNotifications((prev) => [
-        {
-          ...data,
-          id: data.id,
-          text: data.message,
-          isRead: readNotifications[data.id] || false,
-          time: formatNotificationTime(data.timestamp || Date.now()),
-        },
-        ...prev,
-      ]);
-    } catch (e) {
-      console.warn("Error parsing notification:", e);
-    }
-  };
-
   const setupSSEConnection = async () => {
     cleanup();
 
@@ -176,46 +149,61 @@ const useNotifications = () => {
         }
       }
 
-      const baseUrl =
-        import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
       console.log("Connecting to SSE at base URL:", baseUrl);
 
-      const url = new URL("api/v1/notifications/subscribe", baseUrl);
-
+      const url = new URL("/api/v1/notifications/subscribe", baseUrl);
       console.log("Full SSE URL:", url.toString());
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        withCredentials: true,
-      };
-
-      if (!isInitialFetchRef.current && lastEventIdRef.current) {
-        headers["Last-Event-ID"] = lastEventIdRef.current;
-      }
-
-      eventSourceRef.current = new EventSourcePolyfill(url.toString(), {
-        headers,
+      const eventSource = new EventSourcePolyfill(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        heartbeatTimeout: 300000,
         withCredentials: true,
       });
 
-      eventSourceRef.current.onopen = () => {
+      eventSourceRef.current = eventSource;
+
+      eventSource.addEventListener("open", () => {
         console.log("SSE connection opened successfully");
         setIsConnected(true);
         setConnectionStatus("connected");
         connectionAttempts.current = 0;
-      };
+      });
 
-      eventSourceRef.current.onmessage = handleSSEMessage;
+      eventSource.addEventListener("message", (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("Received SSE message:", data);
 
-      eventSourceRef.current.onerror = async (error) => {
-        console.error("SSE connection error details:", {
-          status: error.status,
-          message: error.message,
-          type: error.type,
-        });
+          if (event.lastEventId) {
+            lastEventIdRef.current = event.lastEventId;
+          } else if (data.id) {
+            lastEventIdRef.current = data.id.toString();
+          }
+
+          const readNotifications = JSON.parse(
+            localStorage.getItem("readNotifications") || "{}"
+          );
+
+          setNotifications((prev) => [
+            {
+              ...data,
+              id: data.id,
+              text: data.message,
+              isRead: readNotifications[data.id] || false,
+              time: formatNotificationTime(data.timestamp || Date.now()),
+            },
+            ...prev,
+          ]);
+        } catch (e) {
+          console.warn("Error parsing notification:", e);
+        }
+      });
+
+      eventSource.addEventListener("error", async (error) => {
+        console.error("SSE error:", error);
 
         if (error.status === 401) {
           try {
@@ -246,7 +234,7 @@ const useNotifications = () => {
           setConnectionStatus("failed");
           console.error("Max retry attempts reached");
         }
-      };
+      });
     } catch (error) {
       console.error("Failed to setup SSE connection:", error);
       cleanup();
@@ -263,7 +251,7 @@ const useNotifications = () => {
       }
 
       const response = await fetch(
-        `${baseUrl}api/v1/notifications/${notificationId}/read`,
+        `${baseUrl}/api/v1/notifications/${notificationId}/read`,
         {
           method: "PATCH",
           headers: {
@@ -276,7 +264,7 @@ const useNotifications = () => {
       if (response.status === 401) {
         token = await refreshToken();
         const retryResponse = await fetch(
-          `${baseUrl}api/v1/notifications/${notificationId}/read`,
+          `${baseUrl}/api/v1/notifications/${notificationId}/read`,
           {
             method: "PATCH",
             headers: {
