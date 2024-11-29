@@ -33,7 +33,7 @@ const useNotifications = () => {
   const refreshToken = async () => {
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const response = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
+      const response = await fetch(`${baseUrl}api/v1/auth/refresh`, {
         method: "POST",
         credentials: "include",
       });
@@ -60,7 +60,7 @@ const useNotifications = () => {
         token = await refreshToken();
       }
 
-      const response = await fetch(`${baseUrl}/api/v1/notifications/me`, {
+      const response = await fetch(`${baseUrl}api/v1/notifications/me`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -70,16 +70,13 @@ const useNotifications = () => {
 
       if (response.status === 401) {
         token = await refreshToken();
-        const retryResponse = await fetch(
-          `${baseUrl}/api/v1/notifications/me`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-          }
-        );
+        const retryResponse = await fetch(`${baseUrl}api/v1/notifications/me`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
 
         if (!retryResponse.ok) {
           throw new Error("Failed to fetch notifications after token refresh");
@@ -183,7 +180,7 @@ const useNotifications = () => {
         import.meta.env.VITE_API_BASE_URL || window.location.origin;
       console.log("Connecting to SSE at base URL:", baseUrl);
 
-      const url = new URL("/api/v1/notifications/subscribe", baseUrl);
+      const url = new URL("api/v1/notifications/subscribe", baseUrl);
 
       console.log("Full SSE URL:", url.toString());
 
@@ -266,7 +263,7 @@ const useNotifications = () => {
       }
 
       const response = await fetch(
-        `${baseUrl}/api/v1/notifications/${notificationId}/read`,
+        `${baseUrl}api/v1/notifications/${notificationId}/read`,
         {
           method: "PATCH",
           headers: {
@@ -279,7 +276,7 @@ const useNotifications = () => {
       if (response.status === 401) {
         token = await refreshToken();
         const retryResponse = await fetch(
-          `${baseUrl}/api/v1/notifications/${notificationId}/read`,
+          `${baseUrl}api/v1/notifications/${notificationId}/read`,
           {
             method: "PATCH",
             headers: {
