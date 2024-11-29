@@ -7,33 +7,21 @@ const NotificationTestButton = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch("/api/v1/notifications/publish", {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+      const response = await fetch(`${baseUrl}/api/v1/notifications/publish`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
+          "If-None-Match": new Date().getTime().toString(), // 캐싱 방지
         },
         credentials: "include",
       });
 
       if (!response.ok) {
         throw new Error("알림 전송에 실패했습니다");
-      }
-
-      // 수동으로 알림 이벤트 생성
-      const notificationEvent = new MessageEvent("message", {
-        data: JSON.stringify({
-          id: Date.now(),
-          message: "테스트 알림입니다.",
-          timestamp: new Date().toISOString(),
-          isRead: false,
-        }),
-      });
-
-      // EventSource의 onmessage 핸들러 호출
-      if (window.eventSource && window.eventSource.onmessage) {
-        window.eventSource.onmessage(notificationEvent);
       }
     } catch (error) {
       console.error("Error sending test notification:", error);
