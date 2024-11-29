@@ -54,16 +54,19 @@ const useNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
       let token = localStorage.getItem("accessToken");
       if (!token) {
         token = await refreshToken();
       }
 
+      // API 서버로 직접 요청
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(`${baseUrl}/api/v1/notifications/me`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
         },
         credentials: "include",
       });
