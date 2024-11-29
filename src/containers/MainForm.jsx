@@ -3,9 +3,7 @@ import Sidebar from "./SideForm";
 import Post from "./PostForm";
 import Search from "../component/Search";
 import "./styles/MainForm.scss";
-import Alerticon from "../image/alerticon.svg";
 import Noticeicon_black from "../image/Noticeicon_black.svg";
-import Alertshow from "../image/alertshow.svg";
 import FirstIcon from "../image/1sticon.svg";
 import SecondIcon from "../image/2ndicon.svg";
 import ThirdIcon from "../image/3rdicon.svg";
@@ -15,18 +13,9 @@ import CloudIcon from "../image/cloud-computing.svg";
 import ZepIcon from "../image/letter-z.svg";
 import Logo from "../image/logo_black.png";
 import { getPosts } from "../api/useGetPosts";
-import { useNotifications } from "../api/useNotifications";
+import NotificationSection from "../component/Notification";
 
 const MainForm = () => {
-  const {
-    notifications,
-    isConnected,
-    markAsRead,
-    markAllAsRead,
-    removeNotification,
-    formatNotificationTime,
-  } = useNotifications();
-
   const searchAreaIcons = [
     { icon: DiscordIcon, alt: "Discord", link: "#" },
     {
@@ -38,13 +27,12 @@ const MainForm = () => {
     { icon: ZepIcon, alt: "Zep", link: "https://zep.us/play/8lj15q" },
   ];
 
-  //공지사항 데이터 예시
   const [notices, setNotices] = useState([
     {
       id: 1,
       title: "2024 상반기 프로젝트 발표회",
       content: "프로젝트 발표회 참석 필수입니다.",
-      deadline: "2024-04-20", // YYYY-MM-DD 형식
+      deadline: "2024-04-20",
       important: true,
     },
     {
@@ -56,7 +44,6 @@ const MainForm = () => {
     },
   ]);
 
-  // D-day 계산 함수
   const calculateDday = (deadline) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -72,7 +59,8 @@ const MainForm = () => {
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const hasUnreadNotifications = notifications.some((notif) => !notif.isRead);
+  const [isRightAreaVisible, setIsRightAreaVisible] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -89,10 +77,6 @@ const MainForm = () => {
     fetchPosts();
   }, [currentPage]);
 
-  const [isRightAreaVisible, setIsRightAreaVisible] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [isAlertCollapsed, setIsAlertCollapsed] = useState(false);
-
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth < 768;
@@ -108,10 +92,6 @@ const MainForm = () => {
 
   const toggleRightArea = () => {
     setIsRightAreaVisible((prev) => !prev);
-  };
-
-  const toggleAlertSection = () => {
-    setIsAlertCollapsed((prev) => !prev);
   };
 
   const topTopics = [
@@ -169,68 +149,7 @@ const MainForm = () => {
           </div>
           {(isRightAreaVisible || !isMobile) && (
             <div className="right-area">
-              <div
-                className={`right-section calendar ${isAlertCollapsed ? "collapsed" : ""}`}
-              >
-                <div className="section-header">
-                  <div className="title-container" onClick={toggleAlertSection}>
-                    <div className="alert-dot-wrapper">
-                      {hasUnreadNotifications && <div className="alert-dot" />}
-                      <img className="alerticon" src={Alerticon} alt="알림" />
-                    </div>
-                    <span>알림</span>
-                    {isConnected && (
-                      <span className="connection-status">●</span>
-                    )}
-                  </div>
-                  <div className="notification-actions">
-                    {notifications.length > 0 && (
-                      <button onClick={markAllAsRead} className="mark-all-read">
-                        모두 읽음
-                      </button>
-                    )}
-                    <img
-                      className={`toggle-icon ${isAlertCollapsed ? "" : "rotated"}`}
-                      src={Alertshow}
-                      alt="Toggle"
-                      onClick={toggleAlertSection}
-                    />
-                  </div>
-                </div>
-                <div className="section-content">
-                  {notifications.length > 0 ? (
-                    <div className="notifications-list">
-                      {notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`notification-item ${notification.isRead ? "read" : "unread"}`}
-                          onClick={() => markAsRead(notification.id)}
-                        >
-                          <div className="notification-content">
-                            <p>{notification.text}</p>
-                            <span className="notification-time">
-                              {notification.time}
-                            </span>
-                          </div>
-                          <button
-                            className="remove-notification"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeNotification(notification.id);
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="no-notifications">
-                      새로운 알림이 없습니다.
-                    </div>
-                  )}
-                </div>
-              </div>
+              <NotificationSection />
               <div className="right-section task-list">
                 <h3>
                   <div className="title-container">

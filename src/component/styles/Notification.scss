@@ -1,0 +1,157 @@
+.right-section.calendar {
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    background-color: #fff; // 스크롤 시 헤더 고정을 위한 배경색 추가
+
+    .title-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+
+      .alert-dot-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .alert-dot {
+          position: absolute;
+          top: -2px;
+          right: -2px;
+          width: 8px;
+          height: 8px;
+          background-color: #ff4444;
+          border-radius: 50%;
+        }
+
+        .alerticon {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .connection-status {
+        color: #4caf50;
+        font-size: 12px;
+      }
+    }
+
+    .notification-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .mark-all-read {
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 8px;
+
+        &:hover {
+          color: #333;
+        }
+      }
+
+      .toggle-icon {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
+    }
+  }
+
+  .section-content {
+    max-height: calc(100vh - 200px); // 적절한 최대 높이 설정
+    overflow-y: auto; // 스크롤 활성화
+
+    // 스크롤바 스타일링
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    .notifications-list {
+      .notification-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: #f5f5f5;
+        }
+
+        &.unread {
+          background-color: #f0f7ff;
+
+          &:hover {
+            background-color: #e5f1ff;
+          }
+        }
+
+        .notification-content {
+          flex: 1;
+
+          p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+          }
+
+          .notification-time {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+          }
+        }
+
+        .remove-notification {
+          background: none;
+          border: none;
+          color: #999;
+          cursor: pointer;
+          font-size: 18px;
+          padding: 0 4px;
+
+          &:hover {
+            color: #666;
+          }
+        }
+      }
+    }
+
+    .no-notifications {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+    }
+  }
+}
