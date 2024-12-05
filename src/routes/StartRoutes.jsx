@@ -9,6 +9,7 @@ import Community from "../containers/Community";
 import ClubForm from "../containers/ClubForm";
 import KakaoLogin from "../containers/LoginHandler";
 import ProtectedRoute from "./ProtectedRoute";
+import StudyRoutes from "./StudyRoutes";
 
 function StartRoutes() {
   return (
@@ -50,6 +51,7 @@ function StartRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/studypage/*" element={<StudyRoutes />} />
     </Routes>
   );
 }

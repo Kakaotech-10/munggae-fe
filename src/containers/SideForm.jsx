@@ -11,6 +11,7 @@ import Clubicon from "../image/Clubicon.svg";
 import Mypageicon from "../image/Mypageicon.svg";
 import Logouticon from "../image/Logouticon.svg";
 import Profileimg from "../image/logo_black.png";
+import Studyicon from "../image/Studyicon.svg";
 
 const NavItem = ({ icon, alt, text, path }) => {
   const navigate = useNavigate();
@@ -269,6 +270,12 @@ const Sidebar = ({ showLogout }) => {
             path="/communitypage"
           />
           <NavItem icon={Clubicon} alt="Club" text="동아리" path="/clubpage" />
+          <NavItem
+            icon={Studyicon}
+            alt="Study"
+            text="학습게시판"
+            path="/studypage"
+          />
           <NavItem
             icon={Mypageicon}
             alt="My Page"
