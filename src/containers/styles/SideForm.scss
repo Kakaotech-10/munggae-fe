@@ -57,6 +57,8 @@
     flex: 1; // 남은 공간 채우기
     min-height: 0; // Firefox 호환성
     overflow-y: auto; // 내용이 넘칠 경우 스크롤
+    scrollbar-width: thin; // Firefox
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent; // Firefox
 
     ul {
       list-style-type: none;
