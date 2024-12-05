@@ -7,12 +7,12 @@ import Postlist from "../component/Postlist";
 import Pagination from "../component/Pagination";
 import SortButtons from "../component/SortButtons";
 import ViewPage from "../component/ViewPage";
-import "./styles/Community.scss";
+import "./styles/StudyForm.scss";
 import { getPosts } from "../api/useGetPosts";
 import { getPost } from "../api/useGetPost";
 import { getPostComments } from "../api/useGetComment";
 
-const Community = () => {
+const StudyForm = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortBy, setSortBy] = useState("latest");
@@ -208,12 +208,12 @@ const Community = () => {
       <div className="sidebar-area">
         <Sidebar />
       </div>
-      <div className="commu-content-wrapper">
-        <div className="commu-search-area">
+      <div className="study-content-wrapper">
+        <div className="study-search-area">
           <Search />
         </div>
 
-        <div className="community-header">
+        <div className="study-header">
           <h2>학습게시판</h2>
           <div className="header-right">
             <SortButtons onSort={handleSort} currentSort={sortBy} />
@@ -294,4 +294,4 @@ const Community = () => {
   );
 };
 
-export default Community;
+export default StudyForm;
