@@ -24,7 +24,7 @@ function StudyRoutes() {
         }
       />
       <Route
-        path="studyviewpage"
+        path="studyviewpage/:postId"
         element={
           <ProtectedRoute>
             <StudyViewForm />
