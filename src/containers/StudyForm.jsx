@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import WriteForm from "./WriteForm";
@@ -6,12 +7,12 @@ import Postlist from "../component/Postlist";
 import Pagination from "../component/Pagination";
 import SortButtons from "../component/SortButtons";
 import ViewPage from "../component/ViewPage";
-import "./styles/NoticeForm.scss";
+import "./styles/StudyForm.scss";
 import { getPosts } from "../api/useGetPosts";
 import { getPost } from "../api/useGetPost";
 import { getPostComments } from "../api/useGetComment";
 
-const NoticeForm = () => {
+const StudyForm = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortBy, setSortBy] = useState("latest");
@@ -23,6 +24,7 @@ const NoticeForm = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const pageSize = 5;
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPosts();
@@ -67,7 +69,7 @@ const NoticeForm = () => {
   };
 
   const handleWriteClick = () => {
-    setShowWriteForm(true);
+    navigate("/studypage/writepage");
   };
 
   const handleCloseWriteForm = () => {
@@ -206,13 +208,13 @@ const NoticeForm = () => {
       <div className="sidebar-area">
         <Sidebar />
       </div>
-      <div className="notice-content-wrapper">
-        <div className="notice-search-area">
+      <div className="study-content-wrapper">
+        <div className="study-search-area">
           <Search />
         </div>
 
-        <div className="notice-header">
-          <h2>공지사항</h2>
+        <div className="study-header">
+          <h2>학습게시판</h2>
           <div className="header-right">
             <SortButtons onSort={handleSort} currentSort={sortBy} />
             <div className="write-button-area">
@@ -292,4 +294,4 @@ const NoticeForm = () => {
   );
 };
 
-export default NoticeForm;
+export default StudyForm;
