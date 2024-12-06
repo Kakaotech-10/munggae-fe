@@ -70,25 +70,88 @@
     padding: clamp(16px, 3vh, 24px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
+    .profile-section {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e0e0e0;
+
+      .profile-image {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 12px;
+      }
+
+      .profile-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+
+        .profile-name {
+          font-size: 16px;
+          font-weight: 500;
+          color: #333;
+          margin-bottom: 4px;
+        }
+
+        .upload-time {
+          font-size: 14px;
+          color: #666;
+        }
+      }
+    }
+
     .title-section {
       margin-bottom: 32px;
 
-      h3 {
-        font-size: 14px;
-        color: #666;
-        margin-bottom: 16px;
+      .filtered-content {
+        margin-bottom: 24px;
+
+        .title {
+          font-size: 24px;
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 16px;
+        }
+
+        .content {
+          font-size: 16px;
+          line-height: 1.6;
+          color: #333;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
       }
 
       .image-preview-container {
         display: flex;
         gap: 16px;
-        margin-bottom: 16px;
+        margin-bottom: 24px;
+        overflow-x: auto;
+        padding-bottom: 8px;
 
         .preview-box {
           width: 96px;
           height: 96px;
           background-color: #f0f0f0;
           border-radius: 8px;
+          overflow: hidden;
+          flex-shrink: 0;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+
+          &:hover {
+            transform: scale(1.05);
+          }
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
         }
       }
 
@@ -96,17 +159,54 @@
         height: 200px;
         background-color: #f0f0f0;
         border-radius: 8px;
+        margin-bottom: 24px;
+        padding: 16px;
+      }
+
+      .reaction {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+
+        img {
+          width: 20px;
+          height: 20px;
+        }
+
+        span {
+          font-size: 14px;
+          color: #666;
+        }
+
+        .divider {
+          width: 1px;
+          height: 12px;
+          background-color: #e0e0e0;
+          margin: 0 8px;
+        }
       }
     }
 
+    .comment-divider {
+      margin: 32px 0;
+      border: none;
+      border-top: 1px solid #e0e0e0;
+    }
+
     .comment-section {
+      margin-top: 32px;
+
       h3 {
-        font-size: 14px;
-        color: #666;
+        font-size: 18px;
+        color: #333;
         margin-bottom: 16px;
+        font-weight: 600;
       }
 
       .comment-input-area {
+        margin-bottom: 32px;
+
         textarea {
           width: 100%;
           min-height: 100px;
@@ -116,6 +216,7 @@
           margin-bottom: 12px;
           resize: vertical;
           font-family: inherit;
+          font-size: 14px;
 
           &:focus {
             outline: none;
@@ -132,6 +233,7 @@
           border-radius: 4px;
           cursor: pointer;
           font-family: inherit;
+          font-size: 14px;
 
           &:hover {
             background-color: #333;
@@ -141,6 +243,90 @@
             background-color: #000;
           }
         }
+      }
+
+      .comments-list {
+        margin-top: 24px;
+        clear: both;
+
+        .comment-item {
+          padding: 16px 0;
+          border-bottom: 1px solid #e0e0e0;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+
+            .comment-author {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              img {
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+              }
+
+              span {
+                font-size: 14px;
+                font-weight: 500;
+                color: #333;
+              }
+            }
+
+            .comment-date {
+              font-size: 12px;
+              color: #666;
+            }
+          }
+
+          .comment-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+          }
+
+          .comment-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+
+            button {
+              background: none;
+              border: none;
+              font-size: 12px;
+              color: #666;
+              cursor: pointer;
+              padding: 0;
+
+              &:hover {
+                color: #333;
+              }
+            }
+          }
+        }
+      }
+
+      .error-message {
+        color: #e53935;
+        font-size: 14px;
+        margin-top: 8px;
+      }
+
+      .no-comments {
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+        padding: 24px 0;
       }
     }
   }
@@ -152,5 +338,50 @@
     height: 100%;
     font-size: clamp(14px, 1.5vw, 16px);
     color: #666;
+  }
+}
+
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  cursor: pointer;
+
+  .image-modal-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    cursor: default;
+
+    img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .close-button {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 32px;
+      cursor: pointer;
+      padding: 8px;
+      line-height: 1;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
   }
 }

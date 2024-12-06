@@ -1,3 +1,4 @@
+// StudyForm.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./SideForm";
@@ -6,11 +7,8 @@ import WriteForm from "./WriteForm";
 import Postlist from "../component/Postlist";
 import Pagination from "../component/Pagination";
 import SortButtons from "../component/SortButtons";
-import ViewPage from "../component/ViewPage";
 import "./styles/StudyForm.scss";
 import { getPosts } from "../api/useGetPosts";
-import { getPost } from "../api/useGetPost";
-import { getPostComments } from "../api/useGetComment";
 
 const StudyForm = () => {
   const [showWriteForm, setShowWriteForm] = useState(false);
@@ -18,9 +16,6 @@ const StudyForm = () => {
   const [sortBy, setSortBy] = useState("latest");
   const [posts, setPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [commentError, setCommentError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const pageSize = 5;
@@ -33,22 +28,18 @@ const StudyForm = () => {
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      // sortBy 파라미터를 서버에 전달
       const data = await getPosts(currentPage, pageSize, sortBy);
 
       let sortedPosts;
       if (sortBy === "oldest") {
-        // 오래된순일 때는 created_at 기준으로 오름차순 정렬
         sortedPosts = [...data.content].sort(
           (a, b) => new Date(a.created_at) - new Date(b.created_at)
         );
       } else if (sortBy === "latest") {
-        // 최신순일 때는 created_at 기준으로 내림차순 정렬
         sortedPosts = [...data.content].sort(
           (a, b) => new Date(b.created_at) - new Date(a.created_at)
         );
       } else {
-        // 인기순일 때는 likes 기준으로 정렬
         sortedPosts = [...data.content].sort(
           (a, b) => b.post_likes - a.post_likes
         );
@@ -65,7 +56,7 @@ const StudyForm = () => {
 
   const handleSort = (sortType) => {
     setSortBy(sortType);
-    setCurrentPage(0); // 정렬 변경 시 첫 페이지로 이동
+    setCurrentPage(0);
   };
 
   const handleWriteClick = () => {
@@ -99,108 +90,12 @@ const StudyForm = () => {
     }
   };
 
-  const handleCommentsUpdate = async (updatedComments) => {
-    try {
-      if (Array.isArray(updatedComments)) {
-        setComments(updatedComments);
-      } else {
-        const newComments = [...comments, updatedComments];
-        setComments(newComments);
-      }
-    } catch (error) {
-      console.error("Error updating comments:", error);
-      setCommentError("댓글 업데이트 중 오류가 발생했습니다.");
-    }
-  };
-
-  const handlePostClick = async (postId) => {
-    try {
-      setIsLoading(true);
-      setCommentError(null);
-
-      const [postData, commentsData] = await Promise.all([
-        getPost(postId),
-        getPostComments(postId),
-      ]);
-
-      setSelectedPost(postData);
-
-      if (commentsData.error) {
-        setCommentError(commentsData.error);
-        setComments([]);
-      } else {
-        const commentsArray = commentsData.comments?.content || [];
-        setComments(commentsArray);
-      }
-    } catch (error) {
-      console.error("Error fetching post details:", error);
-      setSelectedPost(null);
-      setCommentError("게시물을 불러오는 중 오류가 발생했습니다.");
-      setComments([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePostEdit = async (updatedPost) => {
-    try {
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.post_id === updatedPost.id
-            ? {
-                post_id: updatedPost.id,
-                post_title: updatedPost.title,
-                post_content: updatedPost.content,
-                post_likes: post.post_likes,
-                created_at: updatedPost.createdAt,
-                updated_at: updatedPost.updatedAt,
-                clean: updatedPost.clean,
-                imageUrls: updatedPost.imageUrls || [],
-                member: updatedPost.member,
-              }
-            : post
-        )
-      );
-
-      if (updatedPost.id) {
-        const { error, comments: newComments } = await getPostComments(
-          updatedPost.id
-        );
-        if (!error && newComments?.content) {
-          setComments(newComments.content);
-        }
-      }
-
-      setSelectedPost(null);
-      await fetchPosts();
-    } catch (error) {
-      console.error("Error updating posts after edit:", error);
-      alert("게시글 수정 중 오류가 발생했습니다.");
-    }
-  };
-
-  const handlePostDelete = async (postId) => {
-    try {
-      setPosts((prevPosts) =>
-        prevPosts.filter((post) => post.post_id !== postId)
-      );
-      setSelectedPost(null);
-      setComments([]);
-      await fetchPosts();
-    } catch (error) {
-      console.error("Error updating posts after deletion:", error);
-      alert("게시글 삭제 중 오류가 발생했습니다.");
-    }
+  const handlePostClick = (postId) => {
+    navigate(`/studypage/studyviewpage/${postId}`);
   };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-  };
-
-  const handleCloseViewPage = () => {
-    setSelectedPost(null);
-    setComments([]);
-    setCommentError(null);
   };
 
   return (
@@ -276,18 +171,6 @@ const StudyForm = () => {
         <WriteForm
           onClose={handleCloseWriteForm}
           onPostCreated={handlePostCreated}
-        />
-      )}
-
-      {selectedPost && (
-        <ViewPage
-          post={selectedPost}
-          comments={comments}
-          commentError={commentError}
-          onClose={handleCloseViewPage}
-          onPostDelete={handlePostDelete}
-          onPostEdit={handlePostEdit}
-          onCommentsUpdate={handleCommentsUpdate}
         />
       )}
     </div>
