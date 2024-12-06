@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../api/config";
 import Logo from "../image/logo.png";
-import "./styles/SideForm.scss";
 import Mainicon from "../image/Mainicon.svg";
 import Noticeicon from "../image/Noticeicon.svg";
 import Commuicon from "../image/Commuicon.svg";
@@ -12,8 +11,15 @@ import Mypageicon from "../image/Mypageicon.svg";
 import Logouticon from "../image/Logouticon.svg";
 import Profileimg from "../image/logo_black.png";
 import Studyicon from "../image/Studyicon.svg";
+import CustomModal from "../component/CustomModal.jsx";
+import { CustomButton } from "../component/CustomButton.jsx";
+import { CustomInput } from "../component/CustomInput.jsx";
+import { CustomSwitch } from "../component/CustomSwitch.jsx";
+import CustomAlert from "../component/CustomAlert.jsx";
+import "./styles/SideForm.scss";
 
 const NavItem = ({ icon, alt, text, path }) => {
+  "";
   const navigate = useNavigate();
 
   const handleNavigation = () => {
@@ -57,6 +63,14 @@ const Sidebar = ({ showLogout }) => {
     userNameEnglish: "",
     profileImageUrl: "",
     isLoggedIn: false,
+    role: "",
+  });
+  const [channels, setChannels] = useState([]);
+  const [showPermissionAlert, setShowPermissionAlert] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newChannel, setNewChannel] = useState({
+    name: "",
+    allowStudents: false,
   });
 
   const loadUserInfo = async () => {
@@ -68,6 +82,7 @@ const Sidebar = ({ showLogout }) => {
           userNameEnglish: storedInfo.nameEnglish,
           profileImageUrl: storedInfo.imageUrl?.path || storedInfo.imageUrl,
           isLoggedIn: true,
+          role: storedInfo.role,
         });
       }
 
@@ -102,6 +117,7 @@ const Sidebar = ({ showLogout }) => {
           storedInfo.imageUrl?.path ||
           storedInfo.imageUrl,
         isLoggedIn: true,
+        role: memberData.role,
       };
 
       setUserInfo(updatedInfo);
@@ -113,18 +129,17 @@ const Sidebar = ({ showLogout }) => {
         course: memberData.course,
         imageUrl: memberData.imageUrl,
         imageId: memberData.imageUrl?.imageId,
+        role: memberData.role,
       };
 
       localStorage.setItem("memberInfo", JSON.stringify(updatedMemberInfo));
       localStorage.setItem("memberName", memberData.name);
       localStorage.setItem("memberNameEnglish", memberData.nameEnglish);
       localStorage.setItem("course", memberData.course);
+
+      loadChannels();
     } catch (error) {
-      console.error("Failed to load user info:", {
-        error,
-        message: error.message,
-        response: error.response?.data,
-      });
+      console.error("Failed to load user info:", error);
 
       const storedInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
       if (storedInfo.name) {
@@ -133,8 +148,67 @@ const Sidebar = ({ showLogout }) => {
           userNameEnglish: storedInfo.nameEnglish,
           profileImageUrl: storedInfo.imageUrl?.path || storedInfo.imageUrl,
           isLoggedIn: true,
+          role: storedInfo.role,
         });
       }
+    }
+  };
+
+  const loadChannels = async () => {
+    try {
+      const response = await api.get("/api/v1/channels", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      console.log("API Response:", response.data); // 응답 구조 확인
+
+      // response.data가 배열인지 확인하고, 아니라면 적절한 속성에서 배열을 추출
+      const channelsData = Array.isArray(response.data)
+        ? response.data
+        : response.data.channels || [];
+      setChannels(channelsData);
+    } catch (error) {
+      console.error("Failed to load channels:", error);
+      setChannels([]); // 에러 시 빈 배열로 초기화
+    }
+  };
+
+  const handleAddChannel = () => {
+    if (userInfo.role !== "MANAGER") {
+      setShowPermissionAlert(true);
+      setTimeout(() => setShowPermissionAlert(false), 3000);
+      return;
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCreateChannel = async () => {
+    try {
+      if (!newChannel.name.trim()) {
+        alert("채널 이름을 입력해주세요.");
+        return;
+      }
+
+      await api.post(
+        "/api/v1/channels",
+        {
+          name: newChannel.name,
+          allowStudents: newChannel.allowStudents,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      setIsModalOpen(false);
+      setNewChannel({ name: "", allowStudents: false });
+      loadChannels();
+    } catch (error) {
+      console.error("Failed to create channel:", error);
+      alert("채널 생성에 실패했습니다.");
     }
   };
 
@@ -142,7 +216,6 @@ const Sidebar = ({ showLogout }) => {
     loadUserInfo();
 
     const handleProfileUpdate = () => {
-      console.log("Profile update event received");
       loadUserInfo();
     };
 
@@ -168,7 +241,6 @@ const Sidebar = ({ showLogout }) => {
         return;
       }
 
-      // Send logout request to the server
       await api.post("/api/v1/auth/logout", null, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -180,14 +252,12 @@ const Sidebar = ({ showLogout }) => {
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
-      // Even if the server request fails, clear local data for security
       clearUserData();
       navigate("/login");
     }
   };
 
   const clearUserData = () => {
-    // Clear all authentication-related data
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userId");
@@ -201,6 +271,7 @@ const Sidebar = ({ showLogout }) => {
       userNameEnglish: "",
       profileImageUrl: "",
       isLoggedIn: false,
+      role: "",
     });
   };
 
@@ -276,12 +347,24 @@ const Sidebar = ({ showLogout }) => {
             text="학습게시판"
             path="/studypage"
           />
+
+          {channels.map((channel) => (
+            <NavItem
+              key={channel.id}
+              icon={channel.icon || Clubicon}
+              alt={channel.name}
+              text={channel.name}
+              path={`/channel/${channel.id}`}
+            />
+          ))}
+
           <NavItem
             icon={Mypageicon}
             alt="My Page"
             text="마이페이지"
             path="/setting"
           />
+
           {showLogout && userInfo.isLoggedIn && (
             <li>
               <button
@@ -299,8 +382,65 @@ const Sidebar = ({ showLogout }) => {
               </button>
             </li>
           )}
+
+          <li>
+            <button className="nav-item add-channel" onClick={handleAddChannel}>
+              <span className="nav-text">채널 추가</span>
+            </button>
+          </li>
         </ul>
       </nav>
+
+      {showPermissionAlert && (
+        <CustomAlert
+          title="권한 없음"
+          message="채널을 추가하려면 Manager 권한이 필요합니다."
+          onClose={() => setShowPermissionAlert(false)}
+        />
+      )}
+
+      <CustomModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="새 채널 생성"
+        description="새로운 채널의 정보를 입력해주세요."
+        footer={
+          <>
+            <CustomButton
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+            >
+              취소
+            </CustomButton>
+            <CustomButton onClick={handleCreateChannel}>생성하기</CustomButton>
+          </>
+        }
+      >
+        <div className="channel-form">
+          <CustomInput
+            id="channelName"
+            label="채널 이름"
+            value={newChannel.name}
+            onChange={(e) =>
+              setNewChannel((prev) => ({
+                ...prev,
+                name: e.target.value,
+              }))
+            }
+          />
+          <CustomSwitch
+            id="allowStudents"
+            label="학생 접근 허용"
+            checked={newChannel.allowStudents}
+            onChange={(checked) =>
+              setNewChannel((prev) => ({
+                ...prev,
+                allowStudents: checked,
+              }))
+            }
+          />
+        </div>
+      </CustomModal>
     </div>
   );
 };
