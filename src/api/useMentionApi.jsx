@@ -66,29 +66,28 @@ const useMentionApi = () => {
   }, []);
 
   // 멘션 알림 전송 API
-  const sendMentionNotification = useCallback(async (name) => {
-    setIsLoading(true);
-    setError(null);
-
+  const sendMentionNotification = async (mentionedUserId) => {
     try {
-      await axiosInstance.post("/api/v1/mentions", { name });
+      const token = localStorage.getItem("accessToken");
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+      await axios.post(
+        `${baseUrl}/api/v1/mentions`,
+        { name: mentionedUserId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       return true;
-    } catch (err) {
-      console.error("Mention API Error:", err.response || err);
-      if (err.response?.status === 401) {
-        setError("인증이 필요합니다.");
-        // 필요한 경우 로그인 페이지로 리다이렉트
-      } else {
-        setError(
-          err.response?.data?.message ||
-            "멘션 알림 전송 중 오류가 발생했습니다."
-        );
-      }
-      return false;
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("멘션 알림 전송 실패:", error);
+      throw error;
     }
-  }, []);
+  };
 
   // react-mentions용 데이터 fetcher
   const fetchUsers = useCallback(

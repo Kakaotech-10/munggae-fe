@@ -14,7 +14,13 @@ const MentionInput = ({
   const { fetchUsers, isLoading } = useMentionApi();
 
   const handleChange = (event, newValue, newPlainTextValue, mentions) => {
-    onChange(newValue, {
+    // 정규식을 사용하여 중복된 멘션 텍스트 제거
+    const cleanedValue = newValue.replace(
+      /@\[(.*?)\]\((.*?)\)/g,
+      (match, name) => `@${name}`
+    );
+
+    onChange(cleanedValue, {
       plainText: newPlainTextValue,
       mentions: mentions,
     });
@@ -27,7 +33,7 @@ const MentionInput = ({
       fontWeight: "normal",
     },
     input: {
-      margin: 0,
+      margin: "-9px",
       padding: "10px",
       border: "1px solid #ddd",
       borderRadius: "4px",
@@ -81,6 +87,7 @@ const MentionInput = ({
           )}
           appendSpaceOnAdd={true}
           displayTransform={(id) => `@${id}`}
+          markup="@[__display__]"
         />
       </MentionsInput>
     </div>
