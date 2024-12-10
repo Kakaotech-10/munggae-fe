@@ -5,7 +5,7 @@
     align-items: center;
     padding: 15px;
     border-bottom: 1px solid #eee;
-    background-color: #fff; // 스크롤 시 헤더 고정을 위한 배경색 추가
+    background-color: #fff;
 
     .title-container {
       display: flex;
@@ -26,6 +26,7 @@
           height: 8px;
           background-color: #ff4444;
           border-radius: 50%;
+          animation: pulse 2s infinite;
         }
 
         .alerticon {
@@ -37,6 +38,7 @@
       .connection-status {
         color: #4caf50;
         font-size: 12px;
+        margin-left: 4px;
       }
     }
 
@@ -52,9 +54,12 @@
         cursor: pointer;
         font-size: 14px;
         padding: 4px 8px;
+        transition: all 0.2s ease;
 
         &:hover {
           color: #333;
+          background-color: #f5f5f5;
+          border-radius: 4px;
         }
       }
 
@@ -72,10 +77,9 @@
   }
 
   .section-content {
-    max-height: calc(100vh - 200px); // 적절한 최대 높이 설정
-    overflow-y: auto; // 스크롤 활성화
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
 
-    // 스크롤바 스타일링
     &::-webkit-scrollbar {
       width: 6px;
     }
@@ -101,7 +105,7 @@
         padding: 12px 15px;
         border-bottom: 1px solid #eee;
         cursor: pointer;
-        transition: background-color 0.2s ease;
+        transition: all 0.2s ease;
 
         &:hover {
           background-color: #f5f5f5;
@@ -113,22 +117,35 @@
           &:hover {
             background-color: #e5f1ff;
           }
+
+          animation: slideIn 0.3s ease-out;
         }
 
         .notification-content {
+          display: flex;
+          gap: 12px;
           flex: 1;
 
-          p {
-            margin: 0;
-            font-size: 14px;
-            line-height: 1.4;
+          .notification-type-icon {
+            font-size: 20px;
+            flex-shrink: 0;
           }
 
-          .notification-time {
-            display: block;
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
+          .notification-text {
+            flex: 1;
+
+            p {
+              margin: 0;
+              font-size: 14px;
+              line-height: 1.4;
+            }
+
+            .notification-time {
+              display: block;
+              font-size: 12px;
+              color: #666;
+              margin-top: 4px;
+            }
           }
         }
 
@@ -139,9 +156,11 @@
           cursor: pointer;
           font-size: 18px;
           padding: 0 4px;
+          transition: all 0.2s ease;
 
           &:hover {
             color: #666;
+            transform: scale(1.1);
           }
         }
       }
@@ -153,5 +172,31 @@
       color: #666;
       font-size: 14px;
     }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

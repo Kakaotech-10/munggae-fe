@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Alerticon from "../image/alerticon.svg";
 import Alertshow from "../image/alertshow.svg";
 import useNotifications from "../api/useNotifications";
 import NotificationTestButton from "../test/NotificationTest";
-
 import "./styles/Notification.scss";
 
 const NotificationSection = () => {
@@ -16,54 +15,48 @@ const NotificationSection = () => {
   } = useNotifications();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const hasUnreadNotifications = notifications.some((notif) => !notif.isRead);
 
-  // Load read status from localStorage on component mount
+  const hasUnreadNotifications = useMemo(
+    () => notifications.some((notif) => !notif.isRead),
+    [notifications]
+  );
+
+  // 새 알림이 오면 즉시 펼치고 처리
   useEffect(() => {
-    const readNotifications = JSON.parse(
-      localStorage.getItem("readNotifications") || "{}"
-    );
-
-    // Update notifications with stored read status
-    notifications.forEach((notification) => {
-      if (readNotifications[notification.id]) {
-        markAsRead(notification.id);
+    if (notifications.length > 0) {
+      const latestNotification = notifications[0];
+      if (!latestNotification.isRead) {
+        console.log("New notification detected:", latestNotification);
+        setIsCollapsed(false);
       }
-    });
-  }, []);
+    }
+  }, [notifications]);
 
   const handleMarkAsRead = async (notificationId) => {
     await markAsRead(notificationId);
-
-    // Store read status in localStorage
-    const readNotifications = JSON.parse(
-      localStorage.getItem("readNotifications") || "{}"
-    );
-    readNotifications[notificationId] = true;
-    localStorage.setItem(
-      "readNotifications",
-      JSON.stringify(readNotifications)
-    );
   };
 
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllAsRead = async (e) => {
+    e.stopPropagation();
     await markAllAsRead();
+  };
 
-    // Store all current notifications as read in localStorage
-    const readNotifications = JSON.parse(
-      localStorage.getItem("readNotifications") || "{}"
-    );
-    notifications.forEach((notification) => {
-      readNotifications[notification.id] = true;
-    });
-    localStorage.setItem(
-      "readNotifications",
-      JSON.stringify(readNotifications)
-    );
+  const handleRemoveNotification = (e, notificationId) => {
+    e.stopPropagation();
+    removeNotification(notificationId);
   };
 
   const toggleCollapse = () => {
     setIsCollapsed((prev) => !prev);
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "ADD_REPLY_COMMENT":
+        return "💬";
+      default:
+        return "📢";
+    }
   };
 
   return (
@@ -75,18 +68,12 @@ const NotificationSection = () => {
             <img className="alerticon" src={Alerticon} alt="알림" />
           </div>
           <span>알림</span>
-          {isConnected && <span className="connection-status">(연결)</span>}
+          {isConnected && <span className="connection-status">(연결됨)</span>}
         </div>
         <NotificationTestButton />
         <div className="notification-actions">
           {notifications.length > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMarkAllAsRead();
-              }}
-              className="mark-all-read"
-            >
+            <button onClick={handleMarkAllAsRead} className="mark-all-read">
               모두 읽음
             </button>
           )}
@@ -109,17 +96,21 @@ const NotificationSection = () => {
                   onClick={() => handleMarkAsRead(notification.id)}
                 >
                   <div className="notification-content">
-                    <p>{notification.text}</p>
-                    <span className="notification-time">
-                      {notification.time}
-                    </span>
+                    <div className="notification-type-icon">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="notification-text">
+                      <p>{notification.text}</p>
+                      <span className="notification-time">
+                        {notification.time}
+                      </span>
+                    </div>
                   </div>
                   <button
                     className="remove-notification"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeNotification(notification.id);
-                    }}
+                    onClick={(e) =>
+                      handleRemoveNotification(e, notification.id)
+                    }
                   >
                     ×
                   </button>
