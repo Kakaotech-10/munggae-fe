@@ -1,6 +1,8 @@
 import { EventSourcePolyfill } from "event-source-polyfill";
 import { useState, useEffect, useRef } from "react";
 
+const MAX_RETRIES = 5;
+
 const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -8,17 +10,6 @@ const useNotifications = () => {
   const eventSourceRef = useRef(null);
   const connectionAttempts = useRef(0);
   const lastEventIdRef = useRef(null);
-
-  const MAX_RETRIES = 5;
-  const MAX_BACKOFF_DELAY = 30000;
-
-  const getBackoffDelay = (attempt) => {
-    const baseDelay = 1000;
-    const maxJitter = 1000;
-    const delay = Math.min(baseDelay * Math.pow(2, attempt), MAX_BACKOFF_DELAY);
-    const jitter = (Math.random() * 0.3 + 0.85) * maxJitter;
-    return delay + jitter;
-  };
 
   const cleanup = () => {
     if (eventSourceRef.current) {
@@ -125,15 +116,12 @@ const useNotifications = () => {
     cleanup();
 
     try {
+      console.log("Setting up SSE connection...");
       setConnectionStatus("connecting");
       let token = localStorage.getItem("accessToken");
 
       if (!token) {
-        try {
-          token = await refreshToken();
-        } catch (error) {
-          throw new Error("No authentication token available");
-        }
+        token = await refreshToken();
       }
 
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -145,10 +133,6 @@ const useNotifications = () => {
         Pragma: "no-cache",
       };
 
-      if (lastEventIdRef.current) {
-        headers["Last-Event-ID"] = lastEventIdRef.current;
-      }
-
       const eventSource = new EventSourcePolyfill(url.toString(), {
         headers,
         heartbeatTimeout: 300000,
@@ -156,90 +140,56 @@ const useNotifications = () => {
       });
 
       eventSourceRef.current = eventSource;
-      window.eventSource = eventSource; // 전역에서 접근 가능하도록 설정
 
       eventSource.onopen = () => {
-        console.log("SSE connection opened successfully");
+        console.log("SSE connection established");
         setIsConnected(true);
         setConnectionStatus("connected");
         connectionAttempts.current = 0;
       };
 
-      eventSource.onmessage = (event) => {
+      eventSource.addEventListener("notification", (event) => {
+        console.log("Notification received:", event);
         try {
-          const data = JSON.parse(event.data);
-          console.log("Received SSE message:", data);
+          const message = event.data; // 서버에서 보낸 문자열 메시지
 
-          if (event.lastEventId) {
-            lastEventIdRef.current = event.lastEventId;
-          } else if (data.id) {
-            lastEventIdRef.current = data.id.toString();
-          }
+          // 새 알림 객체 생성
+          const newNotification = {
+            id: event.lastEventId || Date.now().toString(), // 이벤트 ID 또는 타임스탬프
+            text: message, // 서버에서 받은 메시지 그대로 사용
+            message: message, // 서버 메시지
+            timestamp: new Date().toISOString(),
+            type: "NOTIFICATION",
+            isRead: false,
+            time: "방금 전", // 새 알림이므로 "방금 전"으로 표시
+          };
 
-          // 새로운 알림을 즉시 추가
-          setNotifications((prev) => {
-            // 이미 존재하는 알림인지 확인
-            const exists = prev.some(
-              (notification) => notification.id === data.id
-            );
-            if (exists) {
-              return prev;
-            }
-
-            // 새로운 알림 추가
-            const newNotification = {
-              ...data,
-              id: data.id,
-              text: data.message,
-              isRead: false,
-              time: formatNotificationTime(data.timestamp || Date.now()),
-              type: data.type,
-            };
-
-            return [newNotification, ...prev];
-          });
-        } catch (e) {
-          console.warn("Error parsing notification:", e);
+          // 상태 업데이트 - 새 알림을 맨 앞에 추가
+          setNotifications((prev) => [newNotification, ...prev]);
+        } catch (error) {
+          console.error("Error processing notification:", error);
         }
-      };
+      });
 
-      eventSource.onerror = async (error) => {
+      eventSource.onerror = (error) => {
         console.error("SSE error:", error);
+        if (eventSource.readyState === EventSource.CLOSED) {
+          console.log("Connection was closed, attempting to reconnect...");
+          cleanup();
 
-        if (error.status === 401) {
-          try {
-            await refreshToken();
-            await setupSSEConnection();
-            return;
-          } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
-            cleanup();
-            setConnectionStatus("failed");
-            return;
-          }
-        }
-
-        cleanup();
-        setConnectionStatus("error");
-
-        if (connectionAttempts.current < MAX_RETRIES) {
-          connectionAttempts.current++;
-          const delay = getBackoffDelay(connectionAttempts.current);
-          console.log(
-            `Retrying connection in ${delay}ms... Attempt: ${connectionAttempts.current}`
-          );
-
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          await setupSSEConnection();
-        } else {
-          setConnectionStatus("failed");
-          console.error("Max retry attempts reached");
+          setTimeout(() => {
+            if (connectionAttempts.current < MAX_RETRIES) {
+              connectionAttempts.current++;
+              setupSSEConnection();
+            } else {
+              setConnectionStatus("failed");
+            }
+          }, 5000);
         }
       };
     } catch (error) {
       console.error("Failed to setup SSE connection:", error);
-      cleanup();
-      throw error;
+      setConnectionStatus("error");
     }
   };
 
@@ -247,9 +197,27 @@ const useNotifications = () => {
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
       let token = localStorage.getItem("accessToken");
+
       if (!token) {
         token = await refreshToken();
       }
+
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+
+      const readNotifications = JSON.parse(
+        localStorage.getItem("readNotifications") || "{}"
+      );
+      readNotifications[notificationId] = true;
+      localStorage.setItem(
+        "readNotifications",
+        JSON.stringify(readNotifications)
+      );
 
       const response = await fetch(
         `${baseUrl}/api/v1/notifications/${notificationId}/read`,
@@ -280,39 +248,30 @@ const useNotifications = () => {
         );
 
         if (!retryResponse.ok) {
-          throw new Error(
-            "Failed to mark notification as read after token refresh"
+          console.error(
+            `Failed to mark notification ${notificationId} as read on server`
           );
         }
       } else if (!response.ok) {
-        throw new Error("Failed to mark notification as read");
+        console.error(
+          `Failed to mark notification ${notificationId} as read on server`
+        );
       }
-
-      const readNotifications = JSON.parse(
-        localStorage.getItem("readNotifications") || "{}"
-      );
-      readNotifications[notificationId] = true;
-      localStorage.setItem(
-        "readNotifications",
-        JSON.stringify(readNotifications)
-      );
-
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id === notificationId
-            ? { ...notification, isRead: true }
-            : notification
-        )
-      );
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
-      throw error;
+      console.error(
+        `Error marking notification ${notificationId} as read:`,
+        error
+      );
     }
   };
 
   const markAllAsRead = async () => {
     const readNotifications = JSON.parse(
       localStorage.getItem("readNotifications") || "{}"
+    );
+
+    setNotifications((prev) =>
+      prev.map((notification) => ({ ...notification, isRead: true }))
     );
 
     for (const notification of notifications) {
@@ -325,6 +284,7 @@ const useNotifications = () => {
             `Failed to mark notification ${notification.id} as read:`,
             error
           );
+          continue;
         }
       }
     }
@@ -345,13 +305,20 @@ const useNotifications = () => {
     let isActive = true;
 
     const initialize = async () => {
-      if (isActive) {
-        try {
-          const data = await fetchNotifications();
+      if (!isActive) return;
+
+      try {
+        const data = await fetchNotifications();
+        if (isActive) {
           updateNotificationsState(data);
+        }
+
+        if (isActive) {
           await setupSSEConnection();
-        } catch (error) {
-          console.error("Failed to initialize notifications:", error);
+        }
+      } catch (error) {
+        console.error("알림 초기화 실패:", error);
+        if (isActive) {
           setConnectionStatus("failed");
         }
       }
@@ -359,9 +326,17 @@ const useNotifications = () => {
 
     initialize();
 
+    const intervalId = setInterval(() => {
+      if (eventSourceRef.current?.readyState !== 1) {
+        console.log("SSE 연결 끊김, 재연결 시도...");
+        setupSSEConnection();
+      }
+    }, 30000);
+
     return () => {
       isActive = false;
       cleanup();
+      clearInterval(intervalId);
     };
   }, []);
 
