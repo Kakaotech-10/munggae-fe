@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import SideForm from "./SideForm";
+import MentionInput from "../component/MentionInput";
+import useMentionApi from "../api/useMentionApi";
 import "./styles/StudyWriteForm.scss";
 
 const StudyWriteForm = () => {
@@ -9,11 +11,35 @@ const StudyWriteForm = () => {
   const [codeContent, setCodeContent] = useState("");
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [images, setImages] = useState([]);
+  const [mentions, setMentions] = useState([]); // 멘션된 사용자들 관리
   const imageInputRef = useRef(null);
+  const { sendMentionNotification } = useMentionApi();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ title, content, codeContent, images });
+
+    try {
+      // 게시글 업로드 API 호출 (예시)
+      // await submitPost({ title, content, codeContent, images });
+
+      // 모든 멘션된 사용자에게 알림 전송
+      for (const mention of mentions) {
+        await sendMentionNotification(mention.id);
+      }
+
+      console.log({
+        title,
+        content,
+        codeContent,
+        images,
+        mentionedUsers: mentions.map((mention) => mention.id),
+      });
+
+      // 성공 처리 (예: 목록 페이지로 이동)
+    } catch (error) {
+      console.error("게시글 업로드 중 오류 발생:", error);
+      // 에러 처리 (예: 에러 메시지 표시)
+    }
   };
 
   const handleCodeEditorToggle = () => {
@@ -22,6 +48,11 @@ const StudyWriteForm = () => {
 
   const handleCodeChange = (value) => {
     setCodeContent(value || "");
+  };
+
+  const handleContentChange = (value, { mentions: newMentions }) => {
+    setContent(value);
+    setMentions(newMentions);
   };
 
   const handleImageUpload = (e) => {
@@ -107,10 +138,10 @@ const StudyWriteForm = () => {
             />
 
             <div className="editors-container">
-              <textarea
-                placeholder="내용"
+              <MentionInput
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={handleContentChange}
+                placeholder="내용을 입력해주세요. '@'를 입력하여 다른 사용자를 멘션할 수 있습니다."
                 className="content-textarea"
               />
 
