@@ -1,0 +1,120 @@
+.custom-mention-input {
+  width: 100%;
+
+  .mention-input {
+    width: 100%;
+
+    &__suggestions {
+      background-color: white;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin-top: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    &__input {
+      min-height: 100px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      background-color: #fff;
+
+      &:focus {
+        outline: none;
+        border-color: #0366d6;
+        box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+      }
+
+      &::placeholder {
+        color: #6e7781;
+      }
+    }
+  }
+
+  .user-suggestion {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+
+    &.focused {
+      background-color: #f6f8fa;
+    }
+
+    &:hover {
+      background-color: #f6f8fa;
+    }
+
+    .user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .user-info {
+      flex: 1;
+
+      .user-name {
+        font-weight: 500;
+        color: #24292f;
+      }
+
+      .user-description {
+        font-size: 12px;
+        color: #57606a;
+        margin-top: 2px;
+      }
+    }
+  }
+
+  // 멘션된 사용자 스타일
+  .mention-input__suggestions__item--focused {
+    background-color: #f6f8fa;
+  }
+
+  .mention-input__highlighter__mention {
+    background-color: #e1f0ff;
+    border-radius: 3px;
+    padding: 2px 0;
+  }
+}
+
+// 비활성화 상태 스타일
+.mention-input--disabled {
+  background-color: #f6f8fa;
+  cursor: not-allowed;
+
+  .mention-input__input {
+    background-color: #f6f8fa;
+    color: #6e7781;
+  }
+}
+
+// 반응형 스타일
+@media (max-width: 768px) {
+  .custom-mention-input {
+    .user-suggestion {
+      padding: 10px;
+
+      .user-avatar {
+        width: 20px;
+        height: 20px;
+      }
+
+      .user-info {
+        .user-name {
+          font-size: 14px;
+        }
+
+        .user-description {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+}
