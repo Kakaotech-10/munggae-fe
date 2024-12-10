@@ -35,6 +35,7 @@ pipeline {
                     sh 'echo "VITE_REACT_APP_REST_API_KEY=${VITE_REACT_APP_REST_API_KEY}" >> .env'
                     sh 'echo "VITE_REACT_APP_REDIRECT_URL=${VITE_REACT_APP_REDIRECT_URL}" >> .env'
                     sh 'echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" >> .env'
+                    sh 'echo "VITE_REACT_APP_CLOUDFRONT_URL=${VITE_REACT_APP_CLOUDFRONT_URL}" >> .env'
                     sh 'echo "cloud.aws.credentials.accessKey=${IMAGE_ACCESS_KEY_ID}" >> .env'
                     sh 'echo "cloud.aws.credentials.secretKey=${IMAGE_SECRET_ACCESS_KEY}" >> .env'
                 }
