@@ -6,13 +6,8 @@ import NotificationTestButton from "../test/NotificationTest";
 import "./styles/Notification.scss";
 
 const NotificationSection = () => {
-  const {
-    notifications,
-    isConnected,
-    markAsRead,
-    markAllAsRead,
-    removeNotification,
-  } = useNotifications();
+  const { notifications, isConnected, markAsRead, markAllAsRead } =
+    useNotifications();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -39,11 +34,6 @@ const NotificationSection = () => {
   const handleMarkAllAsRead = async (e) => {
     e.stopPropagation();
     await markAllAsRead();
-  };
-
-  const handleRemoveNotification = (e, notificationId) => {
-    e.stopPropagation();
-    removeNotification(notificationId);
   };
 
   const toggleCollapse = () => {
@@ -106,14 +96,6 @@ const NotificationSection = () => {
                       </span>
                     </div>
                   </div>
-                  <button
-                    className="remove-notification"
-                    onClick={(e) =>
-                      handleRemoveNotification(e, notification.id)
-                    }
-                  >
-                    ×
-                  </button>
                 </div>
               ))}
             </div>

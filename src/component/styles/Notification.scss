@@ -1,3 +1,4 @@
+//Notification.scss
 .right-section.calendar {
   .section-header {
     display: flex;
@@ -106,16 +107,30 @@
         border-bottom: 1px solid #eee;
         cursor: pointer;
         transition: all 0.2s ease;
+        background-color: white; // 기본 배경색을 흰색으로 설정
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.1);
 
         &:hover {
           background-color: #f5f5f5;
         }
 
         &.unread {
-          background-color: #f0f7ff;
+          background-color: #cee2ff;
 
           &:hover {
-            background-color: #e5f1ff;
+            background-color: darken(#cee2ff, 5%);
+          }
+
+          animation: slideIn 0.3s ease-out;
+        }
+
+        &.read {
+          background-color: white;
+
+          &:hover {
+            background-color: #f5f5f5;
           }
 
           animation: slideIn 0.3s ease-out;
@@ -146,21 +161,6 @@
               color: #666;
               margin-top: 4px;
             }
-          }
-        }
-
-        .remove-notification {
-          background: none;
-          border: none;
-          color: #999;
-          cursor: pointer;
-          font-size: 18px;
-          padding: 0 4px;
-          transition: all 0.2s ease;
-
-          &:hover {
-            color: #666;
-            transform: scale(1.1);
           }
         }
       }
