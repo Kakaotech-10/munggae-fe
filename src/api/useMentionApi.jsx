@@ -1,3 +1,4 @@
+// useMentionApi.js
 import { useCallback, useState } from "react";
 import axios from "axios";
 
@@ -5,19 +6,16 @@ const useMentionApi = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // JWT 토큰 가져오기
   const getAuthToken = () => {
-    return localStorage.getItem("accessToken"); // 또는 프로젝트에서 사용하는 토큰 저장소
+    return localStorage.getItem("accessToken");
   };
 
-  // axios 설정
   const axiosInstance = axios.create({
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-  // 요청 인터셉터 추가
   axiosInstance.interceptors.request.use(
     (config) => {
       const token = getAuthToken();
@@ -31,7 +29,6 @@ const useMentionApi = () => {
     }
   );
 
-  // 사용자 검색 API
   const searchUsers = useCallback(async (query) => {
     if (!query) return [];
 
@@ -45,15 +42,15 @@ const useMentionApi = () => {
         },
       });
 
+      // API 응답에서 받은 사용자 정보를 react-mentions에 맞는 형식으로 변환
       return response.data.result.map((name) => ({
-        id: name,
-        display: name,
+        id: name, // API 응답의 전체 이름을 id로 사용
+        display: name, // 화면에 표시될 이름
       }));
     } catch (err) {
       console.error("Search API Error:", err.response || err);
       if (err.response?.status === 401) {
         setError("인증이 필요합니다.");
-        // 필요한 경우 로그인 페이지로 리다이렉트
       } else {
         setError(
           err.response?.data?.message || "사용자 검색 중 오류가 발생했습니다."
@@ -66,30 +63,35 @@ const useMentionApi = () => {
   }, []);
 
   // 멘션 알림 전송 API
-  const sendMentionNotification = async (mentionedUserId) => {
+  const sendMentionNotification = async (userFullName) => {
     try {
-      const token = localStorage.getItem("accessToken");
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("인증 토큰이 없습니다.");
+      }
+
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      const response = await axios({
+        method: "post",
+        url: `${baseUrl}/api/v1/mentions`,
+        data: { name: userFullName },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 5000, // 5초 타임아웃 설정
+      });
 
-      await axios.post(
-        `${baseUrl}/api/v1/mentions`,
-        { name: mentionedUserId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return true;
+      return response.status === 200;
     } catch (error) {
-      console.error("멘션 알림 전송 실패:", error);
+      if (error.response?.status === 401) {
+        // 토큰 만료 시 처리
+        console.error("인증 토큰이 만료되었습니다.");
+      }
       throw error;
     }
   };
 
-  // react-mentions용 데이터 fetcher
   const fetchUsers = useCallback(
     (query, callback) => {
       searchUsers(query)

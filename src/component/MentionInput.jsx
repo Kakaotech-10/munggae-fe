@@ -14,15 +14,20 @@ const MentionInput = ({
   const { fetchUsers, isLoading } = useMentionApi();
 
   const handleChange = (event, newValue, newPlainTextValue, mentions) => {
-    // 정규식을 사용하여 중복된 멘션 텍스트 제거
-    const cleanedValue = newValue.replace(
-      /@\[(.*?)\]\((.*?)\)/g,
-      (match, name) => `@${name}`
-    );
+    // 멘션 텍스트 정리를 더 효율적으로 수정
+    const cleanedValue = newValue.replace(/@\[([^\]]+)\]\([^\)]+\)/g, "@$1");
+
+    // 중복 멘션 제거
+    const uniqueMentions = mentions.reduce((acc, mention) => {
+      if (!acc.some((m) => m.id === mention.id)) {
+        acc.push(mention);
+      }
+      return acc;
+    }, []);
 
     onChange(cleanedValue, {
       plainText: newPlainTextValue,
-      mentions: mentions,
+      mentions: uniqueMentions,
     });
   };
 
