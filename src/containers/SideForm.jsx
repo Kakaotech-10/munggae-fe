@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../api/config";
+import useCreateChannel from "../api/useCreateChannel";
 import Logo from "../image/logo.png";
 import Mainicon from "../image/Mainicon.svg";
 import Noticeicon from "../image/Noticeicon.svg";
@@ -19,7 +20,6 @@ import CustomAlert from "../component/CustomAlert.jsx";
 import "./styles/SideForm.scss";
 
 const NavItem = ({ icon, alt, text, path }) => {
-  "";
   const navigate = useNavigate();
 
   const handleNavigation = () => {
@@ -66,12 +66,17 @@ const Sidebar = ({ showLogout }) => {
     role: "",
   });
   const [channels, setChannels] = useState([]);
-  const [showPermissionAlert, setShowPermissionAlert] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newChannel, setNewChannel] = useState({
-    name: "",
-    allowStudents: false,
-  });
+
+  const {
+    isModalOpen,
+    setIsModalOpen,
+    showPermissionAlert,
+    setShowPermissionAlert,
+    newChannel,
+    handleAddChannel,
+    handleCreateChannel,
+    updateNewChannel,
+  } = useCreateChannel(() => loadChannels());
 
   const loadUserInfo = async () => {
     try {
@@ -161,54 +166,15 @@ const Sidebar = ({ showLogout }) => {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
-      console.log("API Response:", response.data); // 응답 구조 확인
+      console.log("API Response:", response.data);
 
-      // response.data가 배열인지 확인하고, 아니라면 적절한 속성에서 배열을 추출
       const channelsData = Array.isArray(response.data)
         ? response.data
         : response.data.channels || [];
       setChannels(channelsData);
     } catch (error) {
       console.error("Failed to load channels:", error);
-      setChannels([]); // 에러 시 빈 배열로 초기화
-    }
-  };
-
-  const handleAddChannel = () => {
-    if (userInfo.role !== "MANAGER") {
-      setShowPermissionAlert(true);
-      setTimeout(() => setShowPermissionAlert(false), 3000);
-      return;
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleCreateChannel = async () => {
-    try {
-      if (!newChannel.name.trim()) {
-        alert("채널 이름을 입력해주세요.");
-        return;
-      }
-
-      await api.post(
-        "/api/v1/channels",
-        {
-          name: newChannel.name,
-          allowStudents: newChannel.allowStudents,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-
-      setIsModalOpen(false);
-      setNewChannel({ name: "", allowStudents: false });
-      loadChannels();
-    } catch (error) {
-      console.error("Failed to create channel:", error);
-      alert("채널 생성에 실패했습니다.");
+      setChannels([]);
     }
   };
 
@@ -384,7 +350,10 @@ const Sidebar = ({ showLogout }) => {
           )}
 
           <li>
-            <button className="nav-item add-channel" onClick={handleAddChannel}>
+            <button
+              className="nav-item add-channel"
+              onClick={() => handleAddChannel(userInfo.role)}
+            >
               <span className="nav-text">채널 추가</span>
             </button>
           </li>
@@ -421,23 +390,13 @@ const Sidebar = ({ showLogout }) => {
             id="channelName"
             label="채널 이름"
             value={newChannel.name}
-            onChange={(e) =>
-              setNewChannel((prev) => ({
-                ...prev,
-                name: e.target.value,
-              }))
-            }
+            onChange={(e) => updateNewChannel("name", e.target.value)}
           />
           <CustomSwitch
             id="allowStudents"
             label="학생 접근 허용"
             checked={newChannel.allowStudents}
-            onChange={(checked) =>
-              setNewChannel((prev) => ({
-                ...prev,
-                allowStudents: checked,
-              }))
-            }
+            onChange={(checked) => updateNewChannel("allowStudents", checked)}
           />
         </div>
       </CustomModal>

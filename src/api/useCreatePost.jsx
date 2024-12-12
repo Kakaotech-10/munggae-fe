@@ -1,7 +1,11 @@
-// api/useCreatePost.js
 import api from "./config";
 
 export const createPost = async (postData) => {
+  // Check if channelId is provided
+  if (!postData.channelId) {
+    throw new Error("channelId is required to create a post");
+  }
+
   try {
     const response = await api.post(
       "/api/v1/posts",
@@ -11,7 +15,8 @@ export const createPost = async (postData) => {
       },
       {
         params: {
-          memberId: postData.memberId,
+          channelId: postData.channelId, // Required channel ID
+          memberId: postData.memberId, // Keeping existing memberId if needed
         },
       }
     );
