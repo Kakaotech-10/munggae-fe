@@ -1,5 +1,6 @@
 import { EventSourcePolyfill } from "event-source-polyfill";
 import { useState, useEffect, useRef } from "react";
+import api from "../api/config";
 
 const MAX_RETRIES = 5;
 
@@ -22,17 +23,7 @@ const useNotifications = () => {
 
   const refreshToken = async () => {
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const response = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Token refresh failed");
-      }
-
-      const data = await response.json();
+      const { data } = await api.post("/api/v1/auth/refresh");
       localStorage.setItem("accessToken", data.accessToken);
       return data.accessToken;
     } catch (error) {
@@ -55,35 +46,18 @@ const useNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      let token = localStorage.getItem("accessToken");
-      if (!token) {
-        token = await refreshToken();
-      }
-
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const response = await fetch(`${baseUrl}/api/v1/notifications/me`, {
-        method: "GET",
+      const { data } = await api.get("/api/v1/notifications/me", {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
           Pragma: "no-cache",
         },
-        credentials: "include",
       });
-
-      if (response.status === 401) {
-        token = await refreshToken();
-        return await fetchNotifications();
-      }
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch notifications");
-      }
-
-      const data = await response.json();
       return data;
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      if (error.response?.status === 401) {
+        await refreshToken();
+        return fetchNotifications();
+      }
       throw error;
     }
   };
@@ -107,8 +81,7 @@ const useNotifications = () => {
     setNotifications(formattedNotifications);
 
     if (notificationsArray.length > 0) {
-      const latestNotification = notificationsArray[0];
-      lastEventIdRef.current = latestNotification.id.toString();
+      lastEventIdRef.current = notificationsArray[0].id.toString();
     }
   };
 
@@ -118,23 +91,23 @@ const useNotifications = () => {
     try {
       console.log("Setting up SSE connection...");
       setConnectionStatus("connecting");
-      let token = localStorage.getItem("accessToken");
 
+      let token = localStorage.getItem("accessToken");
       if (!token) {
         token = await refreshToken();
       }
 
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const url = new URL("/api/v1/notifications/subscribe", baseUrl);
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      };
+      const url = new URL(
+        "/api/v1/notifications/subscribe",
+        import.meta.env.VITE_API_BASE_URL
+      );
 
       const eventSource = new EventSourcePolyfill(url.toString(), {
-        headers,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
         heartbeatTimeout: 300000,
         withCredentials: true,
       });
@@ -151,20 +124,18 @@ const useNotifications = () => {
       eventSource.addEventListener("notification", (event) => {
         console.log("Notification received:", event);
         try {
-          const message = event.data; // 서버에서 보낸 문자열 메시지
+          const message = event.data;
 
-          // 새 알림 객체 생성
           const newNotification = {
-            id: event.lastEventId || Date.now().toString(), // 이벤트 ID 또는 타임스탬프
-            text: message, // 서버에서 받은 메시지 그대로 사용
-            message: message, // 서버 메시지
+            id: event.lastEventId || Date.now().toString(),
+            text: message,
+            message: message,
             timestamp: new Date().toISOString(),
             type: "NOTIFICATION",
             isRead: false,
-            time: "방금 전", // 새 알림이므로 "방금 전"으로 표시
+            time: "방금 전",
           };
 
-          // 상태 업데이트 - 새 알림을 맨 앞에 추가
           setNotifications((prev) => [newNotification, ...prev]);
         } catch (error) {
           console.error("Error processing notification:", error);
@@ -195,13 +166,6 @@ const useNotifications = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      let token = localStorage.getItem("accessToken");
-
-      if (!token) {
-        token = await refreshToken();
-      }
-
       setNotifications((prev) =>
         prev.map((notification) =>
           notification.id === notificationId
@@ -219,45 +183,17 @@ const useNotifications = () => {
         JSON.stringify(readNotifications)
       );
 
-      const response = await fetch(
-        `${baseUrl}/api/v1/notifications/${notificationId}/read`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-          credentials: "include",
-        }
-      );
-
-      if (response.status === 401) {
-        token = await refreshToken();
-        const retryResponse = await fetch(
-          `${baseUrl}/api/v1/notifications/${notificationId}/read`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Cache-Control": "no-cache",
-              Pragma: "no-cache",
-            },
-            credentials: "include",
-          }
-        );
-
-        if (!retryResponse.ok) {
-          console.error(
-            `Failed to mark notification ${notificationId} as read on server`
-          );
-        }
-      } else if (!response.ok) {
-        console.error(
-          `Failed to mark notification ${notificationId} as read on server`
-        );
-      }
+      await api.patch(`/api/v1/notifications/${notificationId}/read`, null, {
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
     } catch (error) {
+      if (error.response?.status === 401) {
+        await refreshToken();
+        return markAsRead(notificationId);
+      }
       console.error(
         `Error marking notification ${notificationId} as read:`,
         error
