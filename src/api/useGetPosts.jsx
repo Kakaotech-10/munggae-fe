@@ -1,12 +1,19 @@
 import api from "./config";
 
-export const getPosts = async (pageNo = 0, pageSize = 10) => {
+export const getPosts = async (pageNo = 0, pageSize = 10, channelId = null) => {
   try {
+    const params = {
+      pageNo,
+      pageSize,
+    };
+
+    // Channel 에 대한 설정
+    if (channelId) {
+      params.channelId = channelId;
+    }
+
     const response = await api.get("/api/v1/posts", {
-      params: {
-        pageNo,
-        pageSize,
-      },
+      params: params,
     });
 
     console.log("API Response:", response.data);
@@ -28,16 +35,17 @@ export const getPosts = async (pageNo = 0, pageSize = 10) => {
           created_at: post.createdAt,
           updated_at: post.updatedAt,
           clean: post.clean === undefined ? true : post.clean,
+          channel_id: post.channelId, // Add channel ID to the transformed data
           member: {
             member_id: post.member.id,
             member_name: post.member.name,
             member_name_english: post.member.nameEnglish,
             course: post.member.course,
             role: post.member.role,
-            member_image: memberImageUrl, // 멤버 이미지 URL 추가
+            member_image: memberImageUrl,
           },
-          imageUrls: imageUrls, // 이미지 경로 배열로 변환
-          thumbnailUrl: imageUrls[0] || "", // 첫 번째 이미지를 썸네일로 사용
+          imageUrls: imageUrls,
+          thumbnailUrl: imageUrls[0] || "",
           likes: post.likes?.toString() || "0",
         };
       }),
