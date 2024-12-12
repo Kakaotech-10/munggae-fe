@@ -3,7 +3,6 @@ import Sidebar from "./SideForm";
 import Post from "./PostForm";
 import Search from "../component/Search";
 import "./styles/MainForm.scss";
-import Noticeicon_black from "../image/Noticeicon_black.svg";
 import FirstIcon from "../image/1sticon.svg";
 import SecondIcon from "../image/2ndicon.svg";
 import ThirdIcon from "../image/3rdicon.svg";
@@ -14,6 +13,7 @@ import ZepIcon from "../image/letter-z.svg";
 import Logo from "../image/logo_black.png";
 import { getPosts } from "../api/useGetPosts";
 import NotificationSection from "../component/Notification";
+import NoticeSection from "../component/NoticeSection";
 import { useRanking } from "../api/useRanking";
 
 const MainForm = () => {
@@ -28,39 +28,12 @@ const MainForm = () => {
     { icon: ZepIcon, alt: "Zep", link: "https://zep.us/play/8lj15q" },
   ];
 
-  const [notices, setNotices] = useState([
-    {
-      id: 1,
-      title: "2024 상반기 프로젝트 발표회",
-      content: "프로젝트 발표회 참석 필수입니다.",
-      deadline: "2024-04-20",
-      important: true,
-    },
-    {
-      id: 2,
-      title: "신규 서비스 업데이트 안내",
-      content: "4월 1일부터 신규 서비스가 시작됩니다.",
-      deadline: "2024-04-01",
-      important: false,
-    },
-  ]);
-
-  const calculateDday = (deadline) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dueDate = new Date(deadline);
-    const diffTime = dueDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "D-day";
-    if (diffDays < 0) return `D+${Math.abs(diffDays)}`;
-    return `D-${diffDays}`;
-  };
   const {
     rankings,
     isLoading: rankingsLoading,
     error: rankingsError,
   } = useRanking();
+
   const staticTopics = [
     { rank: 2, topic: "Topic 2", count: 80 },
     { rank: 1, topic: "Topic 1", count: 100 },
@@ -155,33 +128,7 @@ const MainForm = () => {
           {(isRightAreaVisible || !isMobile) && (
             <div className="right-area">
               <NotificationSection />
-              <div className="right-section task-list">
-                <h3>
-                  <div className="title-container">
-                    <img
-                      className="noticeicon"
-                      src={Noticeicon_black}
-                      alt="공지사항"
-                    />
-                    <span>공지사항</span>
-                  </div>
-                </h3>
-                <div className="section-content">
-                  <div className="notice-list">
-                    {notices.map((notice) => (
-                      <div
-                        key={notice.id}
-                        className={`notice-item ${notice.important ? "important" : ""}`}
-                      >
-                        <span className="notice-title">{notice.title}</span>
-                        <span className="notice-dday">
-                          {calculateDday(notice.deadline)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <NoticeSection />
               <div className="right-section top-topics">
                 <h3>
                   <div className="title-container">실시간 Top Topic</div>
