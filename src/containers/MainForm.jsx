@@ -14,6 +14,7 @@ import ZepIcon from "../image/letter-z.svg";
 import Logo from "../image/logo_black.png";
 import { getPosts } from "../api/useGetPosts";
 import NotificationSection from "../component/Notification";
+import { useRanking } from "../api/useRanking";
 
 const MainForm = () => {
   const searchAreaIcons = [
@@ -55,6 +56,16 @@ const MainForm = () => {
     if (diffDays < 0) return `D+${Math.abs(diffDays)}`;
     return `D-${diffDays}`;
   };
+  const {
+    rankings,
+    isLoading: rankingsLoading,
+    error: rankingsError,
+  } = useRanking();
+  const staticTopics = [
+    { rank: 2, topic: "Topic 2", count: 80 },
+    { rank: 1, topic: "Topic 1", count: 100 },
+    { rank: 3, topic: "Topic 3", count: 60 },
+  ];
 
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
@@ -93,12 +104,6 @@ const MainForm = () => {
   const toggleRightArea = () => {
     setIsRightAreaVisible((prev) => !prev);
   };
-
-  const topTopics = [
-    { rank: 2, topic: "Topic 2", count: 80 },
-    { rank: 1, topic: "Topic 1", count: 100 },
-    { rank: 3, topic: "Topic 3", count: 60 },
-  ];
 
   const getIconForRank = (rank) => {
     switch (rank) {
@@ -186,26 +191,54 @@ const MainForm = () => {
                     현재 이슈가 되고 있는 내용은 무엇일까요?
                   </p>
                   <div className="topics-podium">
-                    {topTopics
-                      .sort((a, b) => a.rank - b.rank)
-                      .map((topic) => (
-                        <div
-                          key={topic.rank}
-                          className={`topic-item rank-${topic.rank}`}
-                        >
-                          <img
-                            src={getIconForRank(topic.rank)}
-                            alt={`Rank ${topic.rank}`}
-                            className="rank-icon"
-                          />
+                    {rankingsLoading ? (
+                      <div>Loading...</div>
+                    ) : rankingsError ? (
+                      <div>Error loading rankings: {rankingsError}</div>
+                    ) : rankings.length > 0 ? (
+                      rankings
+                        .sort((a, b) => a.rank - b.rank)
+                        .map((topic) => (
                           <div
-                            className="topic-bar"
-                            style={{ height: `${topic.count}%` }}
+                            key={topic.rank}
+                            className={`topic-item rank-${topic.rank}`}
                           >
-                            <span className="topic-name">{topic.topic}</span>
+                            <img
+                              src={getIconForRank(topic.rank)}
+                              alt={`Rank ${topic.rank}`}
+                              className="rank-icon"
+                            />
+                            <div
+                              className="topic-bar"
+                              style={{ height: `${topic.count}%` }}
+                            >
+                              <span className="topic-name">{topic.topic}</span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                    ) : (
+                      // Fallback to static data if no rankings are available
+                      staticTopics
+                        .sort((a, b) => a.rank - b.rank)
+                        .map((topic) => (
+                          <div
+                            key={topic.rank}
+                            className={`topic-item rank-${topic.rank}`}
+                          >
+                            <img
+                              src={getIconForRank(topic.rank)}
+                              alt={`Rank ${topic.rank}`}
+                              className="rank-icon"
+                            />
+                            <div
+                              className="topic-bar"
+                              style={{ height: `${topic.count}%` }}
+                            >
+                              <span className="topic-name">{topic.topic}</span>
+                            </div>
+                          </div>
+                        ))
+                    )}
                   </div>
                 </div>
               </div>
