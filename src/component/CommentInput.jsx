@@ -13,7 +13,7 @@ const CommentInput = ({
 }) => {
   const [content, setContent] = useState("");
   const [mentions, setMentions] = useState([]);
-  const { sendMentionNotification } = useMentionApi();
+  const { sendMentionNotification } = useMentionApi(); // fetchUsers 제거
 
   const handleMentionChange = (value, { mentions: newMentions }) => {
     setContent(value);
@@ -31,18 +31,18 @@ const CommentInput = ({
         return;
       }
 
-      // 1. 댓글 업로드 먼저 수행
-      const uploadedComment = await onSubmit(trimmedContent, parentId, depth);
+      // 댓글 업로드와 멘션 알림을 병렬로 처리
+      const [uploadedComment] = await Promise.all([
+        onSubmit(trimmedContent, parentId, depth),
+        ...mentions.map((mention) =>
+          sendMentionNotification(mention.id).catch((error) => {
+            console.error(`멘션 알림 전송 실패 (${mention.id}):`, error);
+            return null;
+          })
+        ),
+      ]);
 
-      // 2. 댓글 업로드 성공 시, 멘션된 사용자들에게 알림 전송
-      if (uploadedComment && mentions.length > 0) {
-        console.log("hello");
-        for (const mention of mentions) {
-          await sendMentionNotification(mention.id);
-        }
-      }
-
-      // 3. 입력창 초기화
+      // 입력창 초기화
       setContent("");
       setMentions([]);
     } catch (error) {
@@ -63,10 +63,10 @@ const CommentInput = ({
       borderRadius: "8px",
       fontSize: "14px",
       width: "100%",
-      minHeight: "36px", // 높이 조절
-      height: "36px", // 높이 고정
-      lineHeight: "20px", // 줄 간격 조절
-      resize: "none", // 리사이즈 비활성화
+      minHeight: "36px",
+      height: "36px",
+      lineHeight: "20px",
+      resize: "none",
     },
     suggestions: {
       list: {
@@ -85,6 +85,7 @@ const CommentInput = ({
       },
     },
   };
+
   return (
     <form className="comment-input-form" onSubmit={handleSubmit}>
       <div className="mention-input-wrapper">
