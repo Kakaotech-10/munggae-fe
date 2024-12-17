@@ -68,10 +68,28 @@ const WriteForm = ({
       setUploadStatus("게시글 저장 중...");
 
       const memberId = localStorage.getItem("userId");
+      const channelId = localStorage.getItem("selectedChannelId");
+
+      let reservationTime = null;
+      let deadLine = null;
+
+      // 업로드 시간이 설정된 경우
+      if (uploadDate && uploadTime) {
+        reservationTime = `${uploadDate}T${uploadTime}:00`;
+      }
+
+      // 마감 시간이 설정된 경우
+      if (deadlineDate && deadlineTime) {
+        deadLine = `${deadlineDate}T${deadlineTime}:00`;
+      }
+
       const postData = {
         title,
         content,
+        channelId: parseInt(channelId),
         memberId: parseInt(memberId),
+        reservationTime,
+        deadLine,
       };
 
       let updatedPost = editMode
@@ -267,7 +285,9 @@ const WriteForm = ({
                 <button
                   type="button"
                   onClick={() => setShowDeadlineTime(!showDeadlineTime)}
-                  className={`time-toggle-button ${showDeadlineTime ? "active" : ""}`}
+                  className={`time-toggle-button ${
+                    showDeadlineTime ? "active" : ""
+                  }`}
                 >
                   마감 시간 설정
                 </button>
