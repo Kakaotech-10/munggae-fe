@@ -3,9 +3,6 @@ import Sidebar from "./SideForm";
 import Post from "./PostForm";
 import Search from "../component/Search";
 import "./styles/MainForm.scss";
-import FirstIcon from "../image/1sticon.svg";
-import SecondIcon from "../image/2ndicon.svg";
-import ThirdIcon from "../image/3rdicon.svg";
 import DiscordIcon from "../image/discord.svg";
 import NotionIcon from "../image/notion-icon.svg";
 import CloudIcon from "../image/cloud-computing.svg";
@@ -14,7 +11,7 @@ import Logo from "../image/logo_black.png";
 import { getPosts } from "../api/useGetPosts";
 import NotificationSection from "../component/Notification";
 import NoticeSection from "../component/NoticeSection";
-import { useRanking } from "../api/useRanking";
+import Ranking from "../component/Ranking";
 
 const MainForm = () => {
   const searchAreaIcons = [
@@ -26,18 +23,6 @@ const MainForm = () => {
     },
     { icon: CloudIcon, alt: "Cloud", link: "https://exp.goorm.io" },
     { icon: ZepIcon, alt: "Zep", link: "https://zep.us/play/8lj15q" },
-  ];
-
-  const {
-    rankings,
-    isLoading: rankingsLoading,
-    error: rankingsError,
-  } = useRanking();
-
-  const staticTopics = [
-    { rank: 2, topic: "Topic 2", count: 80 },
-    { rank: 1, topic: "Topic 1", count: 100 },
-    { rank: 3, topic: "Topic 3", count: 60 },
   ];
 
   const [posts, setPosts] = useState([]);
@@ -78,19 +63,6 @@ const MainForm = () => {
     setIsRightAreaVisible((prev) => !prev);
   };
 
-  const getIconForRank = (rank) => {
-    switch (rank) {
-      case 1:
-        return FirstIcon;
-      case 2:
-        return SecondIcon;
-      case 3:
-        return ThirdIcon;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="main-container">
       <div className="sidebar-area">
@@ -129,66 +101,7 @@ const MainForm = () => {
             <div className="right-area">
               <NotificationSection />
               <NoticeSection />
-              <div className="right-section top-topics">
-                <h3>
-                  <div className="title-container">실시간 Top Topic</div>
-                </h3>
-                <div className="section-content">
-                  <p className="subtitle">
-                    현재 이슈가 되고 있는 내용은 무엇일까요?
-                  </p>
-                  <div className="topics-podium">
-                    {rankingsLoading ? (
-                      <div>Loading...</div>
-                    ) : rankingsError ? (
-                      <div>Error loading rankings: {rankingsError}</div>
-                    ) : rankings.length > 0 ? (
-                      rankings
-                        .sort((a, b) => a.rank - b.rank)
-                        .map((topic) => (
-                          <div
-                            key={topic.rank}
-                            className={`topic-item rank-${topic.rank}`}
-                          >
-                            <img
-                              src={getIconForRank(topic.rank)}
-                              alt={`Rank ${topic.rank}`}
-                              className="rank-icon"
-                            />
-                            <div
-                              className="topic-bar"
-                              style={{ height: `${topic.count}%` }}
-                            >
-                              <span className="topic-name">{topic.topic}</span>
-                            </div>
-                          </div>
-                        ))
-                    ) : (
-                      // Fallback to static data if no rankings are available
-                      staticTopics
-                        .sort((a, b) => a.rank - b.rank)
-                        .map((topic) => (
-                          <div
-                            key={topic.rank}
-                            className={`topic-item rank-${topic.rank}`}
-                          >
-                            <img
-                              src={getIconForRank(topic.rank)}
-                              alt={`Rank ${topic.rank}`}
-                              className="rank-icon"
-                            />
-                            <div
-                              className="topic-bar"
-                              style={{ height: `${topic.count}%` }}
-                            >
-                              <span className="topic-name">{topic.topic}</span>
-                            </div>
-                          </div>
-                        ))
-                    )}
-                  </div>
-                </div>
-              </div>
+              <Ranking />
             </div>
           )}
         </div>
