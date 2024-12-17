@@ -1,4 +1,3 @@
-// useRanking.jsx
 import { useState, useEffect } from "react";
 import api from "./config";
 
@@ -12,20 +11,23 @@ export const useRanking = () => {
       try {
         const { data } = await api.get("/api/v1/keywords/ranking");
 
-        // If data is an array directly
-        const rankingsData = Array.isArray(data) ? data : [];
-
-        // Transform the data to include count for visualization
-        const transformedData = rankingsData.map((item) => ({
-          rank: item.rank,
-          topic: item.keyword,
-          count: 100 - (item.rank - 1) * 20, // Creates a visual scale: 100%, 80%, 60%
-        }));
-
-        setRankings(transformedData);
+        // Check if data and keywordRankings exist
+        if (data && data.keywordRankings) {
+          const transformedData = data.keywordRankings.map((item) => ({
+            rank: item.rank,
+            topic: item.keyword,
+            count: 100 - (item.rank - 1) * 20,
+          }));
+          setRankings(transformedData);
+        } else {
+          // If data structure is not as expected, set empty array
+          console.warn("Unexpected API response structure:", data);
+          setRankings([]);
+        }
       } catch (err) {
         console.error("Error fetching rankings:", err);
         setError(err.response?.data?.message || err.message);
+        setRankings([]); // Ensure rankings is at least an empty array on error
       } finally {
         setIsLoading(false);
       }
