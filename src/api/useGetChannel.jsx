@@ -23,11 +23,17 @@ const useGetChannels = () => {
         },
       });
 
-      console.log("Channel API Response:", response.data);
+      // 상세 로깅 추가
+      console.log("Original Channel Response:", response.data);
 
-      // 서버에서 이미 권한에 따라 필터링된 채널 목록을 반환하므로
-      // 추가 처리 없이 바로 설정
-      setChannels(response.data);
+      // 중복 제거를 위해 Set 사용 (id 기준)
+      const uniqueChannels = Array.from(
+        new Map(response.data.map((channel) => [channel.id, channel])).values()
+      );
+
+      console.log("Processed Unique Channels:", uniqueChannels);
+
+      setChannels(uniqueChannels);
       setError(null);
     } catch (error) {
       console.error("Failed to load channels:", error);

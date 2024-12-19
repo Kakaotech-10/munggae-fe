@@ -4,17 +4,15 @@ import PropTypes from "prop-types";
 import api from "../api/config";
 import useCreateChannel from "../api/useCreateChannel";
 import useGetChannels from "../api/useGetChannel";
+import useGetMembers from "../api/useGetMembers";
 
 // 이미지 imports
 import Logo from "../image/logo.png";
 import Mainicon from "../image/Mainicon.svg";
-// import Noticeicon from "../image/Noticeicon.svg";
-// import Commuicon from "../image/Commuicon.svg";
 import Clubicon from "../image/Clubicon.svg";
 import Mypageicon from "../image/Mypageicon.svg";
 import Logouticon from "../image/Logouticon.svg";
 import Profileimg from "../image/logo_black.png";
-// import Studyicon from "../image/Studyicon.svg";
 
 // 컴포넌트 imports
 import CustomModal from "../component/CustomModal";
@@ -22,6 +20,7 @@ import { CustomButton } from "../component/CustomButton";
 import { CustomInput } from "../component/CustomInput";
 import { CustomSwitch } from "../component/CustomSwitch";
 import CustomAlert from "../component/CustomAlert";
+import MemberSelect from "../component/MemberSelect";
 
 import "./styles/SideForm.scss";
 
@@ -72,7 +71,17 @@ const SideForm = ({ showLogout = true }) => {
     role: "",
   });
 
-  const { channels, loading, error, loadUserChannels } = useGetChannels();
+  const {
+    channels,
+    loading: channelsLoading,
+    loadUserChannels,
+  } = useGetChannels();
+  const {
+    members,
+    loading: membersLoading,
+    error: membersError,
+    loadMembers,
+  } = useGetMembers();
 
   const {
     isModalOpen,
@@ -83,6 +92,8 @@ const SideForm = ({ showLogout = true }) => {
     handleAddChannel,
     handleCreateChannel,
     updateNewChannel,
+    handleMemberToggle,
+    handleSelectAllMembers,
   } = useCreateChannel(() => loadUserChannels());
 
   const loadUserInfo = async () => {
@@ -166,6 +177,7 @@ const SideForm = ({ showLogout = true }) => {
   useEffect(() => {
     loadUserInfo();
     loadUserChannels();
+    loadMembers();
 
     const handleProfileUpdate = () => {
       loadUserInfo();
@@ -288,13 +300,13 @@ const SideForm = ({ showLogout = true }) => {
             path="/mainpage"
           />
 
-          {!loading &&
+          {!channelsLoading &&
             channels &&
             channels.length > 0 &&
             channels.map((channel) => (
               <NavItem
                 key={channel.id}
-                icon={Clubicon} // 채널별 아이콘이 없으므로 기본 Clubicon 사용
+                icon={Clubicon}
                 alt={channel.name}
                 text={channel.name}
                 path={`/channel/${channel.id}`}
@@ -384,6 +396,18 @@ const SideForm = ({ showLogout = true }) => {
             checked={newChannel.allowStudents}
             onChange={(checked) => updateNewChannel("allowStudents", checked)}
           />
+          {membersLoading ? (
+            <div>멤버 목록을 불러오는 중...</div>
+          ) : membersError ? (
+            <div>멤버 목록을 불러오는데 실패했습니다.</div>
+          ) : (
+            <MemberSelect
+              members={members}
+              selectedMemberIds={newChannel.memberIds}
+              onMemberToggle={handleMemberToggle}
+              onSelectAll={handleSelectAllMembers}
+            />
+          )}
         </div>
       </CustomModal>
     </div>
