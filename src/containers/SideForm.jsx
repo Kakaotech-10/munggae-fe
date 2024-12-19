@@ -1,22 +1,27 @@
-import PropTypes from "prop-types";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import api from "../api/config";
 import useCreateChannel from "../api/useCreateChannel";
+import useGetChannels from "../api/useGetChannel";
+import useGetMembers from "../api/useGetMembers";
+
+// 이미지 imports
 import Logo from "../image/logo.png";
 import Mainicon from "../image/Mainicon.svg";
-import Noticeicon from "../image/Noticeicon.svg";
-import Commuicon from "../image/Commuicon.svg";
 import Clubicon from "../image/Clubicon.svg";
 import Mypageicon from "../image/Mypageicon.svg";
 import Logouticon from "../image/Logouticon.svg";
 import Profileimg from "../image/logo_black.png";
-import Studyicon from "../image/Studyicon.svg";
-import CustomModal from "../component/CustomModal.jsx";
-import { CustomButton } from "../component/CustomButton.jsx";
-import { CustomInput } from "../component/CustomInput.jsx";
-import { CustomSwitch } from "../component/CustomSwitch.jsx";
-import CustomAlert from "../component/CustomAlert.jsx";
+
+// 컴포넌트 imports
+import CustomModal from "../component/CustomModal";
+import { CustomButton } from "../component/CustomButton";
+import { CustomInput } from "../component/CustomInput";
+import { CustomSwitch } from "../component/CustomSwitch";
+import CustomAlert from "../component/CustomAlert";
+import MemberSelect from "../component/MemberSelect";
+
 import "./styles/SideForm.scss";
 
 const NavItem = ({ icon, alt, text, path }) => {
@@ -56,7 +61,7 @@ NavItem.propTypes = {
   path: PropTypes.string.isRequired,
 };
 
-const Sidebar = ({ showLogout }) => {
+const SideForm = ({ showLogout = true }) => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
     userName: "",
@@ -65,7 +70,18 @@ const Sidebar = ({ showLogout }) => {
     isLoggedIn: false,
     role: "",
   });
-  const [channels, setChannels] = useState([]);
+
+  const {
+    channels,
+    loading: channelsLoading,
+    loadUserChannels,
+  } = useGetChannels();
+  const {
+    members,
+    loading: membersLoading,
+    error: membersError,
+    loadMembers,
+  } = useGetMembers();
 
   const {
     isModalOpen,
@@ -76,7 +92,9 @@ const Sidebar = ({ showLogout }) => {
     handleAddChannel,
     handleCreateChannel,
     updateNewChannel,
-  } = useCreateChannel(() => loadChannels());
+    handleMemberToggle,
+    handleSelectAllMembers,
+  } = useCreateChannel(() => loadUserChannels());
 
   const loadUserInfo = async () => {
     try {
@@ -141,11 +159,8 @@ const Sidebar = ({ showLogout }) => {
       localStorage.setItem("memberName", memberData.name);
       localStorage.setItem("memberNameEnglish", memberData.nameEnglish);
       localStorage.setItem("course", memberData.course);
-
-      loadChannels();
     } catch (error) {
       console.error("Failed to load user info:", error);
-
       const storedInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
       if (storedInfo.name) {
         setUserInfo({
@@ -159,27 +174,10 @@ const Sidebar = ({ showLogout }) => {
     }
   };
 
-  const loadChannels = async () => {
-    try {
-      const response = await api.get("/api/v1/channels", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
-      console.log("API Response:", response.data);
-
-      const channelsData = Array.isArray(response.data)
-        ? response.data
-        : response.data.channels || [];
-      setChannels(channelsData);
-    } catch (error) {
-      console.error("Failed to load channels:", error);
-      setChannels([]);
-    }
-  };
-
   useEffect(() => {
     loadUserInfo();
+    loadUserChannels();
+    loadMembers();
 
     const handleProfileUpdate = () => {
       loadUserInfo();
@@ -266,11 +264,17 @@ const Sidebar = ({ showLogout }) => {
       <div
         className="logo"
         onClick={handleLogoClick}
+        onKeyPress={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            handleLogoClick();
+          }
+        }}
         role="button"
         tabIndex={0}
       >
         <img src={Logo} alt="Logo" />
       </div>
+
       <div className="user-info">
         <div className="user-image">
           <img
@@ -286,6 +290,7 @@ const Sidebar = ({ showLogout }) => {
         </div>
         {getWelcomeMessage()}
       </div>
+
       <nav>
         <ul>
           <NavItem
@@ -294,35 +299,19 @@ const Sidebar = ({ showLogout }) => {
             text="메인 페이지"
             path="/mainpage"
           />
-          <NavItem
-            icon={Noticeicon}
-            alt="Notice"
-            text="공지사항"
-            path="/noticepage"
-          />
-          <NavItem
-            icon={Commuicon}
-            alt="Community"
-            text="커뮤니티"
-            path="/communitypage"
-          />
-          <NavItem icon={Clubicon} alt="Club" text="동아리" path="/clubpage" />
-          <NavItem
-            icon={Studyicon}
-            alt="Study"
-            text="학습게시판"
-            path="/studypage"
-          />
 
-          {channels.map((channel) => (
-            <NavItem
-              key={channel.id}
-              icon={channel.icon || Clubicon}
-              alt={channel.name}
-              text={channel.name}
-              path={`/channel/${channel.id}`}
-            />
-          ))}
+          {!channelsLoading &&
+            channels &&
+            channels.length > 0 &&
+            channels.map((channel) => (
+              <NavItem
+                key={channel.id}
+                icon={Clubicon}
+                alt={channel.name}
+                text={channel.name}
+                path={`/channel/${channel.id}`}
+              />
+            ))}
 
           <NavItem
             icon={Mypageicon}
@@ -333,7 +322,7 @@ const Sidebar = ({ showLogout }) => {
 
           {showLogout && userInfo.isLoggedIn && (
             <li>
-              <button
+              <div
                 className="nav-item logout"
                 onClick={handleLogout}
                 onKeyPress={(e) => {
@@ -342,20 +331,29 @@ const Sidebar = ({ showLogout }) => {
                     handleLogout();
                   }
                 }}
+                role="button"
+                tabIndex={0}
               >
                 <img src={Logouticon} alt="Logout" />
                 <span className="nav-text">로그아웃</span>
-              </button>
+              </div>
             </li>
           )}
 
           <li>
-            <button
+            <div
               className="nav-item add-channel"
               onClick={() => handleAddChannel(userInfo.role)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleAddChannel(userInfo.role);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               <span className="nav-text">채널 추가</span>
-            </button>
+            </div>
           </li>
         </ul>
       </nav>
@@ -398,18 +396,30 @@ const Sidebar = ({ showLogout }) => {
             checked={newChannel.allowStudents}
             onChange={(checked) => updateNewChannel("allowStudents", checked)}
           />
+          {membersLoading ? (
+            <div>멤버 목록을 불러오는 중...</div>
+          ) : membersError ? (
+            <div>멤버 목록을 불러오는데 실패했습니다.</div>
+          ) : (
+            <MemberSelect
+              members={members}
+              selectedMemberIds={newChannel.memberIds}
+              onMemberToggle={handleMemberToggle}
+              onSelectAll={handleSelectAllMembers}
+            />
+          )}
         </div>
       </CustomModal>
     </div>
   );
 };
 
-Sidebar.propTypes = {
+SideForm.propTypes = {
   showLogout: PropTypes.bool,
 };
 
-Sidebar.defaultProps = {
+SideForm.defaultProps = {
   showLogout: true,
 };
 
-export default Sidebar;
+export default SideForm;
