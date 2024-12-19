@@ -8,6 +8,7 @@ import useGetMembers from "../api/useGetMembers";
 
 // 이미지 imports
 import Logo from "../image/logo.png";
+import Studyicon from "../image/Studyicon.svg";
 import Mainicon from "../image/Mainicon.svg";
 import Clubicon from "../image/Clubicon.svg";
 import Mypageicon from "../image/Mypageicon.svg";
@@ -298,6 +299,13 @@ const SideForm = ({ showLogout = true }) => {
             alt="Main"
             text="메인 페이지"
             path="/mainpage"
+          />
+
+          <NavItem
+            icon={Studyicon}
+            alt="Study"
+            text="학습게시판"
+            path="/studypage"
           />
 
           {!channelsLoading &&
