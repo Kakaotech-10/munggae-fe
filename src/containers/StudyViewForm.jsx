@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import PropTypes from "prop-types";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import Comment from "../component/Comment";
 import CommentInput from "../component/CommentInput";
 import { useCreateComment } from "../hooks/useComment";
+import useEducation from "../api/useEducation";
 import FilteredContent from "../component/FilteredContent";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
-import { getPost } from "../api/useGetPost";
 import { getPostComments } from "../api/useGetComment";
 import api from "../api/config";
 import Profileimg from "../image/logo_black.png";
@@ -19,12 +18,16 @@ const StudyViewForm = () => {
   const { postId } = useParams();
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [commentError, setCommentError] = useState(null);
   const [authorData, setAuthorData] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const { handleCreateComment, isCreating, createError } = useCreateComment();
+  const {
+    getEducationPost,
+    isLoading: postLoading,
+    error: postError,
+  } = useEducation();
 
   useEffect(() => {
     const userId = localStorage.getItem("userId");
@@ -33,13 +36,13 @@ const StudyViewForm = () => {
 
   useEffect(() => {
     const fetchPostData = async () => {
-      setIsLoading(true);
       try {
         const [postData, commentsData] = await Promise.all([
-          getPost(postId),
+          getEducationPost(postId),
           getPostComments(postId),
         ]);
 
+        console.log("Post Data:", postData); // 받아온 데이터 확인
         setPost(postData);
 
         if (commentsData.error) {
@@ -50,29 +53,31 @@ const StudyViewForm = () => {
           setComments(commentsArray);
         }
 
-        if (postData.author?.id) {
-          const authorResponse = await api.get(
-            `/api/v1/members/${postData.author.id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-              },
-            }
-          );
-          setAuthorData(authorResponse.data);
+        if (postData?.author?.id) {
+          try {
+            const authorResponse = await api.get(
+              `/api/v1/members/${postData.author.id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+              }
+            );
+            setAuthorData(authorResponse.data);
+          } catch (error) {
+            console.error("Error fetching author data:", error);
+          }
         }
       } catch (error) {
         console.error("Error fetching post details:", error);
         setCommentError("게시물을 불러오는 중 오류가 발생했습니다.");
-      } finally {
-        setIsLoading(false);
       }
     };
 
     if (postId) {
       fetchPostData();
     }
-  }, [postId]);
+  }, [postId, getEducationPost]);
 
   const getAuthorImage = () => {
     if (authorData?.imageUrl?.path) return authorData.imageUrl.path;
@@ -188,6 +193,14 @@ const StudyViewForm = () => {
     }
   };
 
+  if (postLoading) {
+    return <div className="loading">로딩 중...</div>;
+  }
+
+  if (postError) {
+    return <div className="error-message">{postError}</div>;
+  }
+
   return (
     <div className="start-container">
       <div className="sidebar-area">
@@ -205,108 +218,98 @@ const StudyViewForm = () => {
         <hr className="divider" />
 
         <div className="view-content-area">
-          {isLoading ? (
-            <div className="loading">로딩 중...</div>
-          ) : (
-            <>
-              <div className="profile-section">
-                <img
-                  src={getAuthorImage()}
-                  alt="프로필"
-                  className="profile-image"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = Profileimg;
+          <div className="profile-section">
+            <img
+              src={getAuthorImage()}
+              alt="프로필"
+              className="profile-image"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = Profileimg;
+              }}
+            />
+            <div className="profile-info">
+              <span className="profile-name">
+                {post?.author &&
+                  `${post.author.name}(${post.author.nameEnglish})`}
+              </span>
+              <span className="upload-time">
+                {post?.updatedAt && formatDate(post.updatedAt)}
+              </span>
+            </div>
+          </div>
+
+          <div className="title-section">
+            {post && (
+              <FilteredContent
+                title={post.title}
+                content={post.content}
+                clean={post.clean}
+              />
+            )}
+            <div className="image-preview-container">
+              {post?.imageUrls?.map((url, index) => (
+                <div
+                  key={index}
+                  className="preview-box"
+                  onClick={() => handleImageClick(url)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleImageClick(url);
+                    }
                   }}
-                />
-                <div className="profile-info">
-                  <span className="profile-name">
-                    {post?.author &&
-                      `${post.author.name}(${post.author.nameEnglish})`}
-                  </span>
-                  <span className="upload-time">
-                    {post?.updatedAt && formatDate(post.updatedAt)}
-                  </span>
+                >
+                  <img src={url} alt={`Preview ${index + 1}`} />
                 </div>
-              </div>
+              ))}
+            </div>
+            <div className="content-box">{/* 코드 영역 - 추후 구현 */}</div>
+            <div className="reaction">
+              <img className="hearts" src={Hearticon} alt="하트 아이콘" />
+              <span>{post?.likes}</span>
+              <div className="divider"></div>
+              <img className="comments" src={Commenticon} alt="댓글 아이콘" />
+              <span>{comments.length}</span>
+            </div>
+          </div>
 
-              <div className="title-section">
-                {post && (
-                  <FilteredContent
-                    title={post.title}
-                    content={post.content}
-                    clean={post.clean}
-                  />
-                )}
-                <div className="image-preview-container">
-                  {post?.imageUrls?.map((url, index) => (
-                    <div
-                      key={index}
-                      className="preview-box"
-                      onClick={() => handleImageClick(url)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          handleImageClick(url);
-                        }
-                      }}
-                    >
-                      <img src={url} alt={`Preview ${index + 1}`} />
-                    </div>
-                  ))}
-                </div>
-                <div className="content-box">{/* 코드 영역 - 추후 구현 */}</div>
-                <div className="reaction">
-                  <img className="hearts" src={Hearticon} alt="하트 아이콘" />
-                  <span>{post?.likes}</span>
-                  <div className="divider"></div>
-                  <img
-                    className="comments"
-                    src={Commenticon}
-                    alt="댓글 아이콘"
-                  />
-                  <span>{comments.length}</span>
-                </div>
-              </div>
+          <hr className="comment-divider" />
 
-              <hr className="comment-divider" />
-
-              <div className="comment-section">
-                <h3>댓글</h3>
-                <div className="comment-input-area">
-                  <CommentInput
-                    onSubmit={handleNewComment}
-                    placeholder="댓글을 입력하세요"
-                    isSubmitting={isCreating}
+          <div className="comment-section">
+            <h3>댓글</h3>
+            <div className="comment-input-area">
+              <CommentInput
+                onSubmit={handleNewComment}
+                placeholder="댓글을 입력하세요"
+                isSubmitting={isCreating}
+                depth={0}
+              />
+              {createError && (
+                <div className="error-message">{createError}</div>
+              )}
+            </div>
+            <div className="comments-list">
+              {commentError ? (
+                <div className="error-message">{commentError}</div>
+              ) : comments.length > 0 ? (
+                comments.map((comment) => (
+                  <Comment
+                    key={`comment-${comment.id}`}
+                    comment={comment}
                     depth={0}
+                    currentUserId={currentUserId}
+                    postId={postId}
+                    onCommentUpdate={handleCommentUpdate}
                   />
-                  {createError && (
-                    <div className="error-message">{createError}</div>
-                  )}
-                </div>
-                <div className="comments-list">
-                  {commentError ? (
-                    <div className="error-message">{commentError}</div>
-                  ) : comments.length > 0 ? (
-                    comments.map((comment) => (
-                      <Comment
-                        key={`comment-${comment.id}`}
-                        comment={comment}
-                        depth={0}
-                        currentUserId={currentUserId}
-                        postId={postId}
-                        onCommentUpdate={handleCommentUpdate}
-                      />
-                    ))
-                  ) : (
-                    <div className="no-comments">댓글이 없습니다.</div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+                ))
+              ) : (
+                <div className="no-comments">댓글이 없습니다.</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
