@@ -1,3 +1,4 @@
+// useGetMembers.jsx
 import { useState } from "react";
 import api from "../api/config";
 
@@ -18,13 +19,23 @@ const useGetMembers = () => {
 
       console.log("Original Members Response:", response.data);
 
-      // 멤버 데이터 가공
-      const processedMembers = response.data.map((member) => ({
-        ...member,
-        displayName: `${member.nameEnglish}(${member.name})`,
+      // 응답 데이터가 배열이 아닌 경우 처리
+      const membersArray = Array.isArray(response.data)
+        ? response.data
+        : response.data?.content || [];
+
+      // 멤버 데이터 가공 - 안전한 접근
+      const processedMembers = membersArray.map((member) => ({
+        id: member?.id || 0,
+        name: member?.name || "",
+        nameEnglish: member?.nameEnglish || "",
+        role: member?.role || "",
+        course: member?.course || "",
+        imageUrl: member?.imageUrl?.path || "",
+        displayName: `${member?.nameEnglish || ""}(${member?.name || ""})`,
       }));
 
-      // 중복 제거를 위해 Set 사용 (id 기준)
+      // 중복 제거
       const uniqueMembers = Array.from(
         new Map(processedMembers.map((member) => [member.id, member])).values()
       );

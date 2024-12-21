@@ -12,7 +12,7 @@ import CustomModal from "../component/CustomModal";
 import { CustomInput } from "../component/CustomInput";
 import CustomAlert from "../component/CustomAlert";
 import api from "../api/config";
-import "./styles/Community.scss";
+import "./styles/ChannelForm.scss";
 
 const ChannelForm = () => {
   const { channelId } = useParams();
@@ -60,9 +60,10 @@ const ChannelForm = () => {
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get(`/api/v1/channels/${channelId}/posts`, {
+      const response = await api.get("/api/v1/posts", {
         params: {
-          page: currentPage,
+          channelId,
+          pageNo: currentPage,
           size: pageSize,
           sort: sortBy,
         },
@@ -71,29 +72,43 @@ const ChannelForm = () => {
         },
       });
 
-      const data = response.data;
-      let sortedPosts;
+      const data = response.data || {};
+      const content = Array.isArray(data.content) ? data.content : [];
 
+      // 응답 데이터 변환 및 정렬
+      let sortedPosts = content.map((post) => ({
+        post_id: post.id,
+        post_title: post.title,
+        post_content: post.content,
+        post_likes: post.likes || 0,
+        created_at: post.createdAt,
+        updated_at: post.updatedAt,
+        clean: post.clean ?? true,
+        imageUrls: Array.isArray(post.imageUrls) ? post.imageUrls : [],
+        member: post.member || {},
+      }));
+
+      // 정렬 로직 적용
       if (sortBy === "oldest") {
-        sortedPosts = [...data.content].sort(
-          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        sortedPosts.sort(
+          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
         );
       } else if (sortBy === "latest") {
-        sortedPosts = [...data.content].sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        sortedPosts.sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
         );
       } else {
-        sortedPosts = [...data.content].sort(
-          (a, b) => b.post_likes - a.post_likes
-        );
+        sortedPosts.sort((a, b) => (b.post_likes || 0) - (a.post_likes || 0));
       }
 
       setPosts(sortedPosts);
-      setTotalPages(Math.ceil(data.totalPages));
+      setTotalPages(Math.ceil(data.totalPages || 1));
       setError(null);
     } catch (error) {
       console.error("Error fetching posts:", error);
       setError("게시물을 불러오는데 실패했습니다.");
+      setPosts([]);
+      setTotalPages(0);
     } finally {
       setIsLoading(false);
     }
@@ -206,12 +221,14 @@ const ChannelForm = () => {
       setCommentError(null);
 
       const [postData, commentsData] = await Promise.all([
-        api.get(`/api/v1/channels/${channelId}/posts/${postId}`, {
+        api.get(`/api/v1/posts/${postId}`, {
+          params: { channelId },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         }),
-        api.get(`/api/v1/channels/${channelId}/posts/${postId}/comments`, {
+        api.get(`/api/v1/posts/${postId}/comments`, {
+          params: { channelId },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -273,8 +290,9 @@ const ChannelForm = () => {
 
       if (updatedPost.id) {
         const response = await api.get(
-          `/api/v1/channels/${channelId}/posts/${updatedPost.id}/comments`,
+          `/api/v1/posts/${updatedPost.id}/comments`,
           {
+            params: { channelId },
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
             },
@@ -297,7 +315,8 @@ const ChannelForm = () => {
 
   const handlePostDelete = async (postId) => {
     try {
-      await api.delete(`/api/v1/channels/${channelId}/posts/${postId}`, {
+      await api.delete(`/api/v1/posts/${postId}`, {
+        params: { channelId },
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -366,29 +385,41 @@ const ChannelForm = () => {
             {isLoading ? (
               <div className="loading">로딩 중...</div>
             ) : (
-              posts.map((post) => (
-                <div
-                  key={post.post_id}
-                  onClick={() => handlePostClick(post.post_id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handlePostClick(post.post_id);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  className="post-item"
-                >
-                  <Postlist
-                    id={post.post_id}
-                    title={post.post_title}
-                    imageUrls={post.imageUrls}
-                    likes={post.post_likes.toString()}
-                    clean={post.clean}
-                  />
-                </div>
-              ))
+              Array.isArray(posts) &&
+              posts.map((post) => {
+                // 데이터 유효성 검사 및 기본값 설정
+                const safePost = {
+                  post_id: post?.post_id || post?.id || 0,
+                  post_title: post?.post_title || post?.title || "",
+                  imageUrls: post?.imageUrls || [],
+                  post_likes: post?.post_likes ?? post?.likes ?? 0,
+                  clean: post?.clean ?? true,
+                };
+
+                return (
+                  <div
+                    key={safePost.post_id}
+                    onClick={() => handlePostClick(safePost.post_id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handlePostClick(safePost.post_id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    className="post-item"
+                  >
+                    <Postlist
+                      id={safePost.post_id}
+                      title={safePost.post_title}
+                      imageUrls={safePost.imageUrls}
+                      likes={String(safePost.post_likes)}
+                      clean={safePost.clean}
+                    />
+                  </div>
+                );
+              })
             )}
           </div>
         )}

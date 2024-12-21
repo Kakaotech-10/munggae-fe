@@ -1,18 +1,16 @@
+// useGetPost.jsx
 import api from "./config";
 
 export const getPost = async (postId) => {
   try {
-    const response = await api.get(`/api/v1/posts/${postId}`);
+    const response = await api.get(`/api/v1/posts/${postId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+    });
+
     console.log("API Response:", response);
-
-    const data = response.data;
-    if (!data || typeof data !== "object") {
-      throw new Error("Invalid response format");
-    }
-
-    console.log("Received data:", data);
-    const postData = data.data || data;
-    console.log("Post data structure:", Object.keys(postData));
+    const postData = response.data;
 
     // 필수 필드 검증
     const requiredFields = [
@@ -47,10 +45,8 @@ export const getPost = async (postId) => {
       }
     }
 
-    // 이미지 URL 배열 변환
+    // 이미지 URL 변환
     const imageUrls = postData.imageUrls?.map((img) => img.path) || [];
-
-    // 멤버 이미지 URL 처리
     const memberImageUrl = postData.member.imageUrl?.path || "";
 
     // API 응답을 프론트엔드 데이터 구조로 변환
@@ -60,7 +56,9 @@ export const getPost = async (postId) => {
       content: postData.content,
       createdAt: postData.createdAt,
       updatedAt: postData.updatedAt,
-      imageUrls: imageUrls, // 변환된 이미지 URL 배열
+      reservationTime: postData.reservationTime,
+      deadLine: postData.deadLine,
+      imageUrls: imageUrls,
       likes: (postData.likes !== undefined ? postData.likes : 0).toString(),
       clean: postData.clean,
       author: {
@@ -69,7 +67,7 @@ export const getPost = async (postId) => {
         course: postData.member.course,
         name: postData.member.name,
         nameEnglish: postData.member.nameEnglish,
-        profileImage: memberImageUrl, // 멤버 프로필 이미지 URL
+        profileImage: memberImageUrl,
       },
     };
   } catch (error) {

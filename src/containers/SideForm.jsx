@@ -5,7 +5,6 @@ import api from "../api/config";
 import useCreateChannel from "../api/useCreateChannel";
 import useGetChannels from "../api/useGetChannel";
 import useGetMembers from "../api/useGetMembers";
-
 // 이미지 imports
 import Logo from "../image/logo.png";
 import Studyicon from "../image/Studyicon.svg";

@@ -1,11 +1,17 @@
-// Postlist.jsx
 import PropTypes from "prop-types";
 import "./styles/Postlist.scss";
 import Hearticon from "../image/Hearticon.svg";
 import SimpleFilteredContent from "./SimpleFilteredContent";
 
 const Postlist = ({ id, title, imageUrls = [], likes, clean = true }) => {
-  const firstImage = imageUrls && imageUrls.length > 0 ? imageUrls[0] : "";
+  // 이미지 URL 객체에서 path 추출
+  const getImagePath = (imageUrl) => {
+    if (typeof imageUrl === "string") return imageUrl;
+    return imageUrl?.path || "";
+  };
+
+  const firstImage =
+    imageUrls && imageUrls.length > 0 ? getImagePath(imageUrls[0]) : "";
 
   return (
     <div className="postlist-container" data-post-id={id}>
@@ -38,7 +44,16 @@ const Postlist = ({ id, title, imageUrls = [], likes, clean = true }) => {
 Postlist.propTypes = {
   id: PropTypes.number.isRequired,
   title: PropTypes.string.isRequired,
-  imageUrls: PropTypes.arrayOf(PropTypes.string),
+  imageUrls: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        imageId: PropTypes.number,
+        fileName: PropTypes.string,
+        path: PropTypes.string,
+      }),
+    ])
+  ),
   likes: PropTypes.string.isRequired,
   clean: PropTypes.bool,
 };
