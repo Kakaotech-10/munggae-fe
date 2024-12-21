@@ -1,20 +1,26 @@
-// useGetPosts.jsx
 import api from "../api/config";
 
 export const getPosts = async (
-  channelId,
   pageNo = 0,
   pageSize = 10,
-  sortBy = "latest"
+  sortBy = "latest",
+  channelId = null
 ) => {
   try {
+    // API 요청 파라미터 구성
+    const params = {
+      pageNo,
+      pageSize,
+      sort: sortBy,
+    };
+
+    // channelId가 있는 경우에만 파라미터에 추가
+    if (channelId) {
+      params.channelId = channelId;
+    }
+
     const response = await api.get("/api/v1/posts", {
-      params: {
-        channelId,
-        pageNo,
-        pageSize,
-        sort: sortBy,
-      },
+      params,
       headers: {
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       },
@@ -56,6 +62,7 @@ export const getPosts = async (
               imageUrls: imageUrls,
               thumbnailUrl: imageUrls[0] || "",
               post_likes: (post.likes || 0).toString(),
+              channelId: post.channelId || null, // 채널 ID 추가
             };
           })
         : [],
