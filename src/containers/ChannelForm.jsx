@@ -467,11 +467,18 @@ const ChannelForm = () => {
 
         <div className="community-header">
           <div className="header-left">
-            <h2>{channelInfo?.name || "채널"}</h2>
+            {channelError ? (
+              <h2>채널 정보를 불러올 수 없습니다</h2>
+            ) : channelLoading ? (
+              <h2>로딩 중...</h2>
+            ) : (
+              <h2>{channelInfo?.name || "채널"}</h2>
+            )}
             {isManager && (
               <CustomButton
                 className="add-member-button"
                 onClick={() => setShowAddMemberModal(true)}
+                disabled={channelLoading}
               >
                 멤버 추가
               </CustomButton>
@@ -483,7 +490,7 @@ const ChannelForm = () => {
               <button
                 className="write-button"
                 onClick={handleWriteClick}
-                disabled={isLoading}
+                disabled={isLoading || channelLoading}
               >
                 작성하기
               </button>
