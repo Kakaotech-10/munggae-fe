@@ -164,10 +164,13 @@ const ChannelForm = () => {
         return;
       }
 
+      // 권한 제한 체크박스에 따라 canPost 값 결정
+      const canPost = !selectedMemberIds.some((id) => memberPermissions[id]);
+
       await api.post(
         `/api/v1/channels/${channelId}/members`,
         {
-          canPost: true, // 모든 멤버에게 게시 권한 부여
+          canPost: canPost, // 모든 선택된 멤버에 대해 동일한 권한 적용
           memberIds: selectedMemberIds.map((id) => parseInt(id)),
         },
         {
@@ -180,6 +183,7 @@ const ChannelForm = () => {
 
       setShowAddMemberModal(false);
       setSelectedMemberIds([]);
+      setMemberPermissions({});
       showAlertMessage("멤버가 추가되었습니다.");
 
       // 채널 정보 다시 불러오기
@@ -453,7 +457,7 @@ const ChannelForm = () => {
                 <label>
                   <input
                     type="checkbox"
-                    checked={selectedMemberIds.every(
+                    checked={selectedMemberIds.some(
                       (id) => memberPermissions[id]
                     )}
                     onChange={(e) => {
@@ -468,7 +472,7 @@ const ChannelForm = () => {
                       }));
                     }}
                   />
-                  전체 멤버에게 게시글 작성 권한 부여
+                  선택된 멤버 게시글 작성 권한 제한
                 </label>
               </div>
             )}
