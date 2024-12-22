@@ -1,4 +1,3 @@
-// ChannelForm.js
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Sidebar from "./SideForm";
@@ -13,6 +12,7 @@ import CustomModal from "../component/CustomModal";
 import CustomAlert from "../component/CustomAlert";
 import MemberSelect from "../component/MemberSelect";
 import useGetMembers from "../api/useGetMembers";
+import useChannelInfo from "../api/useChannelInfo";
 import api from "../api/config";
 import "./styles/ChannelForm.scss";
 
@@ -36,14 +36,20 @@ const ChannelForm = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentError, setCommentError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [channelInfo, setChannelInfo] = useState(null);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [memberPermissions, setMemberPermissions] = useState({});
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const {
+    channelInfo,
+    isLoading: channelLoading,
+    error: channelError,
+    loadChannelInfo,
+  } = useChannelInfo(channelId);
 
   const isManager = getUserRole() === "MANAGER";
   const pageSize = 5;
@@ -54,47 +60,6 @@ const ChannelForm = () => {
     error: membersError,
     loadMembers,
   } = useGetMembers();
-
-  const loadChannelInfo = async () => {
-    try {
-      setIsLoading(true);
-      const response = await api.get(`/api/v1/channels/${channelId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          Accept: "application/json;charset=UTF-8",
-        },
-      });
-
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
-
-      const channelData = {
-        ...response.data,
-        name: response.data.channel_name || "채널", // 여기를 channel_name으로 수정
-        members: (response.data.members || []).map((member) => ({
-          ...member,
-          // canPost 값을 명확히 변환 (1 또는 true일 경우 true로 설정)
-          canPost: member.canPost === 1 || member.canPost === true,
-        })),
-        managerOnlyPost: response.data.managerOnlyPost || false,
-      };
-
-      // localStorage에 채널 정보 저장 (직렬화)
-      localStorage.setItem("channelInfo", JSON.stringify(channelData));
-
-      setChannelInfo(channelData);
-      setError(null);
-    } catch (error) {
-      console.error("Failed to load channel info:", error);
-      setError("채널 정보를 불러오는데 실패했습니다.");
-
-      // 로컬 스토리지에서 채널 정보 제거
-      localStorage.removeItem("channelInfo");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchPosts = async () => {
     try {
@@ -175,13 +140,12 @@ const ChannelForm = () => {
         return;
       }
 
-      // 권한 제한 체크박스에 따라 canPost 값 결정
       const canPost = !selectedMemberIds.some((id) => memberPermissions[id]);
 
       await api.post(
         `/api/v1/channels/${channelId}/members`,
         {
-          canPost: canPost, // 모든 선택된 멤버에 대해 동일한 권한 적용
+          canPost: canPost,
           memberIds: selectedMemberIds.map((id) => parseInt(id)),
         },
         {
@@ -197,7 +161,6 @@ const ChannelForm = () => {
       setMemberPermissions({});
       showAlertMessage("멤버가 추가되었습니다.");
 
-      // 채널 정보 다시 불러오기
       await loadChannelInfo();
     } catch (error) {
       console.error("Failed to add members:", error);
@@ -233,7 +196,6 @@ const ChannelForm = () => {
   };
 
   useEffect(() => {
-    loadChannelInfo();
     fetchPosts();
   }, [channelId, currentPage, sortBy]);
 
