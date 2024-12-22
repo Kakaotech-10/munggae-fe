@@ -61,6 +61,7 @@ const ChannelForm = () => {
       const response = await api.get(`/api/v1/channels/${channelId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          Accept: "application/json;charset=UTF-8",
         },
       });
 
@@ -71,15 +72,25 @@ const ChannelForm = () => {
       const channelData = {
         ...response.data,
         name: response.data.name || "채널",
-        members: response.data.members || [],
+        members: (response.data.members || []).map((member) => ({
+          ...member,
+          // canPost 값을 명확히 변환 (1 또는 true일 경우 true로 설정)
+          canPost: member.canPost === 1 || member.canPost === true,
+        })),
         managerOnlyPost: response.data.managerOnlyPost || false,
       };
+
+      // localStorage에 채널 정보 저장 (직렬화)
+      localStorage.setItem("channelInfo", JSON.stringify(channelData));
 
       setChannelInfo(channelData);
       setError(null);
     } catch (error) {
       console.error("Failed to load channel info:", error);
       setError("채널 정보를 불러오는데 실패했습니다.");
+
+      // 로컬 스토리지에서 채널 정보 제거
+      localStorage.removeItem("channelInfo");
     } finally {
       setIsLoading(false);
     }

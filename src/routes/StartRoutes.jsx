@@ -55,13 +55,14 @@ function StartRoutes() {
       /> */}
       {/* 채널 라우트 추가 */}
       <Route
-        path="/channel/:channelId/*"
+        path="/channel/:channelId"
         element={
           <ProtectedRoute>
             <ChannelForm />
           </ProtectedRoute>
         }
       />
+
       <Route path="/studypage/*" element={<StudyRoutes />} />
     </Routes>
   );
