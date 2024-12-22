@@ -71,7 +71,7 @@ const ChannelForm = () => {
 
       const channelData = {
         ...response.data,
-        name: response.data.name || "채널",
+        name: response.data.channel_name || "채널", // 여기를 channel_name으로 수정
         members: (response.data.members || []).map((member) => ({
           ...member,
           // canPost 값을 명확히 변환 (1 또는 true일 경우 true로 설정)
