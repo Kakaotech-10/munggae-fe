@@ -10,25 +10,15 @@ const MemberSelect = ({
   // localStorage에서 현재 로그인한 사용자의 ID를 가져옴
   const currentUserId = localStorage.getItem("userId");
 
-  // 디버깅을 위한 로그 추가
-  console.log("Current User ID:", currentUserId);
-  console.log("All Members:", members);
-
   // 현재 로그인한 사용자를 제외한 멤버 목록 필터링
-  const filteredMembers = members.filter((member) => {
-    console.log("Comparing:", {
-      memberId: member.id,
-      currentUserId: currentUserId,
-      isEqual: member.id === currentUserId,
-    });
-    return String(member.id) !== String(currentUserId);
-  });
-
-  console.log("Filtered Members:", filteredMembers);
+  const filteredMembers = members.filter(
+    (member) => String(member.id) !== String(currentUserId)
+  );
 
   const allSelected =
     filteredMembers.length > 0 &&
     selectedMemberIds.length === filteredMembers.length;
+
   const memberIds = filteredMembers.map((member) => member.id);
 
   return (
@@ -71,14 +61,16 @@ const MemberSelect = ({
 MemberSelect.propTypes = {
   members: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired,
       nameEnglish: PropTypes.string.isRequired,
       role: PropTypes.string.isRequired,
       displayName: PropTypes.string.isRequired,
     })
   ).isRequired,
-  selectedMemberIds: PropTypes.arrayOf(PropTypes.string).isRequired,
+  selectedMemberIds: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+  ).isRequired,
   onMemberToggle: PropTypes.func.isRequired,
   onSelectAll: PropTypes.func.isRequired,
 };
