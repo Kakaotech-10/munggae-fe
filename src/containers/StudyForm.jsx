@@ -1,4 +1,3 @@
-// StudyForm.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./SideForm";
@@ -7,6 +6,7 @@ import WriteForm from "./WriteForm";
 import Postlist from "../component/Postlist";
 import Pagination from "../component/Pagination";
 import SortButtons from "../component/SortButtons";
+import CustomAlert from "../component/CustomAlert";
 import "./styles/StudyForm.scss";
 import { getPosts } from "../api/useGetPosts";
 
@@ -17,42 +17,61 @@ const StudyForm = () => {
   const [posts, setPosts] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   const pageSize = 5;
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchPosts();
-  }, [currentPage, sortBy]);
+  const showAlertMessage = (message) => {
+    setAlertMessage(message);
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
+  };
 
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+
       const data = await getPosts(currentPage, pageSize, sortBy);
 
-      let sortedPosts;
+      if (!data.content || !Array.isArray(data.content)) {
+        throw new Error("Invalid posts data received");
+      }
+
+      let sortedPosts = [...data.content];
       if (sortBy === "oldest") {
-        sortedPosts = [...data.content].sort(
-          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        sortedPosts.sort(
+          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
         );
       } else if (sortBy === "latest") {
-        sortedPosts = [...data.content].sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        sortedPosts.sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
         );
       } else {
-        sortedPosts = [...data.content].sort(
-          (a, b) => b.post_likes - a.post_likes
+        sortedPosts.sort(
+          (a, b) => Number(b.post_likes || 0) - Number(a.post_likes || 0)
         );
       }
 
       setPosts(sortedPosts);
-      setTotalPages(Math.ceil(data.totalPages));
+      setTotalPages(Math.ceil(data.totalPages || 1));
+      setError(null);
     } catch (error) {
       console.error("Error fetching posts:", error);
+      setError("게시물을 불러오는데 실패했습니다.");
+      setPosts([]);
+      setTotalPages(0);
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPosts();
+  }, [currentPage, sortBy]);
 
   const handleSort = (sortType) => {
     setSortBy(sortType);
@@ -60,7 +79,7 @@ const StudyForm = () => {
   };
 
   const handleWriteClick = () => {
-    navigate("/studypage/writepage");
+    navigate("/channel/5/write");
   };
 
   const handleCloseWriteForm = () => {
@@ -84,14 +103,15 @@ const StudyForm = () => {
       setPosts((prevPosts) => [formattedPost, ...prevPosts]);
       setShowWriteForm(false);
       await fetchPosts();
+      showAlertMessage("게시글이 작성되었습니다.");
     } catch (error) {
       console.error("Error handling new post:", error);
-      alert("게시글 작성 중 오류가 발생했습니다.");
+      showAlertMessage("게시글 작성에 실패했습니다.");
     }
   };
 
   const handlePostClick = (postId) => {
-    navigate(`/studypage/studyviewpage/${postId}`);
+    navigate(`/channel/5/${postId}`);
   };
 
   const handlePageChange = (page) => {
@@ -126,7 +146,9 @@ const StudyForm = () => {
 
         <hr className="divider" />
         <div className="posts-area">
-          {isLoading ? (
+          {error ? (
+            <div className="error-message">{error}</div>
+          ) : isLoading ? (
             <div className="loading">로딩 중...</div>
           ) : (
             posts.map((post) => (
@@ -145,13 +167,10 @@ const StudyForm = () => {
               >
                 <Postlist
                   id={post.post_id}
-                  title={post.post_title}
-                  imageUrls={post.imageUrls}
-                  likes={(post.post_likes !== undefined
-                    ? post.post_likes
-                    : 0
-                  ).toString()}
-                  clean={post.clean}
+                  title={post.post_title || ""}
+                  imageUrls={post.imageUrls || []}
+                  likes={String(post.post_likes || 0)}
+                  clean={post.clean ?? true}
                 />
               </div>
             ))
@@ -171,6 +190,14 @@ const StudyForm = () => {
         <WriteForm
           onClose={handleCloseWriteForm}
           onPostCreated={handlePostCreated}
+        />
+      )}
+
+      {showAlert && (
+        <CustomAlert
+          title="알림"
+          message={alertMessage}
+          onClose={() => setShowAlert(false)}
         />
       )}
     </div>

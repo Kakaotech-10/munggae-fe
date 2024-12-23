@@ -1,18 +1,43 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import PropTypes from "prop-types";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import Comment from "../component/Comment";
 import CommentInput from "../component/CommentInput";
 import { useCreateComment } from "../hooks/useComment";
 import useEducation from "../api/useEducation";
-import FilteredContent from "../component/FilteredContent";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import { getPostComments } from "../api/useGetComment";
 import api from "../api/config";
 import Profileimg from "../image/logo_black.png";
+import CustomAlert from "../component/CustomAlert";
 import "./styles/StudyViewForm.scss";
+
+const FilteredContent = ({ title, content, codeArea, clean }) => {
+  if (clean) {
+    return <div className="filtered-content">비공개 처리된 게시글입니다.</div>;
+  }
+
+  return (
+    <div className="filtered-content">
+      <h1 className="title">{title}</h1>
+
+      {/* 일반 텍스트 영역 */}
+      <div className="content-text">{content}</div>
+
+      {/* 코드 영역이 있는 경우에만 표시 */}
+      {codeArea && codeArea.trim() !== "" && (
+        <div className="code-area">
+          <pre>
+            <code>{codeArea}</code>
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const StudyViewForm = () => {
   const { postId } = useParams();
@@ -22,12 +47,19 @@ const StudyViewForm = () => {
   const [commentError, setCommentError] = useState(null);
   const [authorData, setAuthorData] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const { handleCreateComment, isCreating, createError } = useCreateComment();
-  const {
-    getEducationPost,
-    isLoading: postLoading,
-    error: postError,
-  } = useEducation();
+  const { getEducationPost } = useEducation();
+
+  const showAlertMessage = (message) => {
+    setAlertMessage(message);
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
+  };
 
   useEffect(() => {
     const userId = localStorage.getItem("userId");
@@ -37,13 +69,43 @@ const StudyViewForm = () => {
   useEffect(() => {
     const fetchPostData = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+
         const [postData, commentsData] = await Promise.all([
           getEducationPost(postId),
           getPostComments(postId),
         ]);
 
-        console.log("Post Data:", postData); // 받아온 데이터 확인
-        setPost(postData);
+        console.log("Fetched Post Data:", postData);
+
+        if (!postData) {
+          throw new Error("게시글을 찾을 수 없습니다.");
+        }
+
+        // post 데이터 설정
+        setPost({
+          id: postData.id,
+          title: postData.title || "",
+          content: postData.content || "",
+          codeArea: postData.codeArea || "",
+          createdAt: postData.createdAt,
+          updatedAt: postData.updatedAt,
+          likes: postData.likes || 0,
+          clean: postData.clean || false,
+          imageUrls: Array.isArray(postData.imageUrls)
+            ? postData.imageUrls.map((img) => img.path || img)
+            : [],
+          author: postData.member && {
+            id: postData.member.id,
+            role: postData.member.role || "STUDENT",
+            course: postData.member.course || "",
+            name: postData.member.name || "",
+            nameEnglish: postData.member.nameEnglish || "",
+            profileImage:
+              postData.member.imageUrl?.path || postData.member.imageUrl || "",
+          },
+        });
 
         if (commentsData.error) {
           setCommentError(commentsData.error);
@@ -53,10 +115,10 @@ const StudyViewForm = () => {
           setComments(commentsArray);
         }
 
-        if (postData?.author?.id) {
+        if (postData?.member?.id) {
           try {
             const authorResponse = await api.get(
-              `/api/v1/members/${postData.author.id}`,
+              `/api/v1/members/${postData.member.id}`,
               {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -66,11 +128,14 @@ const StudyViewForm = () => {
             setAuthorData(authorResponse.data);
           } catch (error) {
             console.error("Error fetching author data:", error);
+            showAlertMessage("작성자 정보를 불러오는데 실패했습니다.");
           }
         }
       } catch (error) {
         console.error("Error fetching post details:", error);
-        setCommentError("게시물을 불러오는 중 오류가 발생했습니다.");
+        setError(error.message || "게시물을 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -143,15 +208,18 @@ const StudyViewForm = () => {
   const handleNewComment = async (content, parentId = null, depth = 0) => {
     try {
       if (!content?.trim()) {
-        throw new Error("댓글 내용을 입력해주세요.");
+        showAlertMessage("댓글 내용을 입력해주세요.");
+        return;
       }
 
       if (!currentUserId) {
-        throw new Error("로그인이 필요합니다.");
+        showAlertMessage("로그인이 필요합니다.");
+        return;
       }
 
       if (!postId) {
-        throw new Error("게시글 정보가 없습니다.");
+        showAlertMessage("게시글 정보가 없습니다.");
+        return;
       }
 
       const newComment = await handleCreateComment(
@@ -164,14 +232,16 @@ const StudyViewForm = () => {
 
       if (newComment) {
         handleCommentUpdate(newComment);
+        showAlertMessage("댓글이 작성되었습니다.");
       }
     } catch (error) {
       console.error("댓글 생성 실패:", error);
-      alert(error.message || "댓글 작성 중 오류가 발생했습니다.");
+      showAlertMessage(error.message || "댓글 작성에 실패했습니다.");
     }
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "";
     const options = {
       year: "numeric",
       month: "long",
@@ -193,12 +263,16 @@ const StudyViewForm = () => {
     }
   };
 
-  if (postLoading) {
+  if (isLoading) {
     return <div className="loading">로딩 중...</div>;
   }
 
-  if (postError) {
-    return <div className="error-message">{postError}</div>;
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
+
+  if (!post) {
+    return <div className="error-message">게시글을 찾을 수 없습니다.</div>;
   }
 
   return (
@@ -233,20 +307,17 @@ const StudyViewForm = () => {
                 {post?.author &&
                   `${post.author.name}(${post.author.nameEnglish})`}
               </span>
-              <span className="upload-time">
-                {post?.updatedAt && formatDate(post.updatedAt)}
-              </span>
+              <span className="upload-time">{formatDate(post?.updatedAt)}</span>
             </div>
           </div>
 
           <div className="title-section">
-            {post && (
-              <FilteredContent
-                title={post.title}
-                content={post.content}
-                clean={post.clean}
-              />
-            )}
+            <FilteredContent
+              title={post.title}
+              content={post.content}
+              codeArea={post.codeArea}
+              clean={post.clean}
+            />
             <div className="image-preview-container">
               {post?.imageUrls?.map((url, index) => (
                 <div
@@ -266,10 +337,9 @@ const StudyViewForm = () => {
                 </div>
               ))}
             </div>
-            <div className="content-box">{/* 코드 영역 - 추후 구현 */}</div>
             <div className="reaction">
               <img className="hearts" src={Hearticon} alt="하트 아이콘" />
-              <span>{post?.likes}</span>
+              <span>{post?.likes || 0}</span>
               <div className="divider"></div>
               <img className="comments" src={Commenticon} alt="댓글 아이콘" />
               <span>{comments.length}</span>
@@ -332,8 +402,26 @@ const StudyViewForm = () => {
           </div>
         </div>
       )}
+
+      {showAlert && (
+        <CustomAlert
+          title="알림"
+          message={alertMessage}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
     </div>
   );
 };
 
+FilteredContent.propTypes = {
+  title: PropTypes.string.isRequired,
+  content: PropTypes.string.isRequired,
+  codeArea: PropTypes.string,
+  clean: PropTypes.bool.isRequired,
+};
+
+FilteredContent.defaultProps = {
+  codeArea: "",
+};
 export default StudyViewForm;
