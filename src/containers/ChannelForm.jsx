@@ -9,10 +9,22 @@ import SortButtons from "../component/SortButtons";
 import ViewPage from "../component/ViewPage";
 import { CustomButton } from "../component/CustomButton";
 import CustomModal from "../component/CustomModal";
-import { CustomInput } from "../component/CustomInput";
 import CustomAlert from "../component/CustomAlert";
+import MemberSelect from "../component/MemberSelect";
+import useGetMembers from "../api/useGetMembers";
+import useChannelInfo from "../api/useChannelInfo";
 import api from "../api/config";
-import "./styles/Community.scss";
+import "./styles/ChannelForm.scss";
+
+// role 확인을 위한 함수
+const getUserRole = () => {
+  try {
+    const memberInfo = JSON.parse(localStorage.getItem("memberInfo"));
+    return memberInfo?.role;
+  } catch {
+    return null;
+  }
+};
 
 const ChannelForm = () => {
   const { channelId } = useParams();
@@ -24,45 +36,38 @@ const ChannelForm = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentError, setCommentError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [channelInfo, setChannelInfo] = useState(null);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [newMember, setNewMember] = useState({ memberId: "", canPost: false });
+  const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [memberPermissions, setMemberPermissions] = useState({});
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  const {
+    channelInfo,
+    isLoading: channelLoading,
+    error: channelError,
+    loadChannelInfo,
+  } = useChannelInfo(channelId);
+
+  const isManager = getUserRole() === "MANAGER";
   const pageSize = 5;
 
-  const loadChannelInfo = async () => {
-    try {
-      setIsLoading(true);
-      const response = await api.get(`/api/v1/channels/${channelId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
-
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
-
-      setChannelInfo(response.data);
-      setError(null);
-    } catch (error) {
-      console.error("Failed to load channel info:", error);
-      setError("채널 정보를 불러오는데 실패했습니다.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    members,
+    loading: membersLoading,
+    error: membersError,
+    loadMembers,
+  } = useGetMembers();
 
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get(`/api/v1/channels/${channelId}/posts`, {
+      const response = await api.get("/api/v1/posts", {
         params: {
-          page: currentPage,
+          channelId,
+          pageNo: currentPage,
           size: pageSize,
           sort: sortBy,
         },
@@ -71,65 +76,97 @@ const ChannelForm = () => {
         },
       });
 
-      const data = response.data;
-      let sortedPosts;
+      const data = response.data || {};
+      const content = Array.isArray(data.content) ? data.content : [];
+
+      let sortedPosts = content.map((post) => ({
+        post_id: post.id,
+        post_title: post.title,
+        post_content: post.content,
+        post_likes: post.likes || 0,
+        created_at: post.createdAt,
+        updated_at: post.updatedAt,
+        clean: post.clean ?? true,
+        imageUrls: Array.isArray(post.imageUrls) ? post.imageUrls : [],
+        member: post.member || {},
+      }));
 
       if (sortBy === "oldest") {
-        sortedPosts = [...data.content].sort(
-          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        sortedPosts.sort(
+          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
         );
       } else if (sortBy === "latest") {
-        sortedPosts = [...data.content].sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        sortedPosts.sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
         );
       } else {
-        sortedPosts = [...data.content].sort(
-          (a, b) => b.post_likes - a.post_likes
-        );
+        sortedPosts.sort((a, b) => (b.post_likes || 0) - (a.post_likes || 0));
       }
 
       setPosts(sortedPosts);
-      setTotalPages(Math.ceil(data.totalPages));
+      setTotalPages(Math.ceil(data.totalPages || 1));
       setError(null);
     } catch (error) {
       console.error("Error fetching posts:", error);
       setError("게시물을 불러오는데 실패했습니다.");
+      setPosts([]);
+      setTotalPages(0);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 멤버 선택/해제 핸들러
+  const handleMemberToggle = (memberId) => {
+    setSelectedMemberIds((prev) => {
+      if (prev.includes(memberId)) {
+        return prev.filter((id) => id !== memberId);
+      }
+      return [...prev, memberId];
+    });
+  };
+
+  // 전체 선택/해제 핸들러
+  const handleSelectAllMembers = (memberIds) => {
+    setSelectedMemberIds((prev) =>
+      prev.length === memberIds.length ? [] : memberIds
+    );
+  };
+
   const handleAddMember = async () => {
     try {
-      if (!newMember.memberId.trim()) {
-        showAlertMessage("멤버 ID를 입력해주세요.");
+      if (selectedMemberIds.length === 0) {
+        showAlertMessage("멤버를 선택해주세요.");
         return;
       }
 
-      const response = await api.post(
+      const canPost = !selectedMemberIds.some((id) => memberPermissions[id]);
+
+      await api.post(
         `/api/v1/channels/${channelId}/members`,
         {
-          memberId: parseInt(newMember.memberId),
-          canPost: newMember.canPost,
+          canPost: canPost,
+          memberIds: selectedMemberIds.map((id) => parseInt(id)),
         },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            Accept: "application/json;charset=UTF-8",
           },
         }
       );
 
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
-
       setShowAddMemberModal(false);
-      setNewMember({ memberId: "", canPost: false });
+      setSelectedMemberIds([]);
+      setMemberPermissions({});
       showAlertMessage("멤버가 추가되었습니다.");
+
       await loadChannelInfo();
     } catch (error) {
-      console.error("Failed to add member:", error);
-      showAlertMessage("멤버 추가에 실패했습니다.");
+      console.error("Failed to add members:", error);
+      showAlertMessage(
+        error.response?.data?.message || "멤버 추가에 실패했습니다."
+      );
     }
   };
 
@@ -140,24 +177,34 @@ const ChannelForm = () => {
   };
 
   const checkWritePermission = () => {
-    const userRole = localStorage.getItem("memberRole");
-    const userId = parseInt(localStorage.getItem("userId"));
+    const role = getUserRole();
 
-    // 채널 멤버 찾기
+    if (role === "MANAGER") {
+      return true;
+    }
+
+    const userId = parseInt(localStorage.getItem("userId"));
     const channelMember = channelInfo?.members?.find(
       (member) => member.memberId === userId
     );
 
-    return (
-      userRole === "MANAGER" ||
-      (userRole === "STUDENT" && channelMember?.canPost)
-    );
+    if (channelInfo?.managerOnlyPost) {
+      return role === "MANAGER";
+    }
+
+    return channelMember?.canPost ?? false;
   };
 
   useEffect(() => {
-    loadChannelInfo();
     fetchPosts();
   }, [channelId, currentPage, sortBy]);
+
+  // 모달이 열릴 때 멤버 목록 로드
+  useEffect(() => {
+    if (showAddMemberModal) {
+      loadMembers();
+    }
+  }, [showAddMemberModal]);
 
   const handleSort = (sortType) => {
     setSortBy(sortType);
@@ -170,10 +217,6 @@ const ChannelForm = () => {
     } else {
       showAlertMessage("게시글 작성 권한이 없습니다.");
     }
-  };
-
-  const handleCloseWriteForm = () => {
-    setShowWriteForm(false);
   };
 
   const handlePostCreated = async (newPost) => {
@@ -206,27 +249,61 @@ const ChannelForm = () => {
       setCommentError(null);
 
       const [postData, commentsData] = await Promise.all([
-        api.get(`/api/v1/channels/${channelId}/posts/${postId}`, {
+        api.get(`/api/v1/posts/${postId}`, {
+          params: { channelId },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         }),
-        api.get(`/api/v1/channels/${channelId}/posts/${postId}/comments`, {
+        api.get(`/api/v1/posts/${postId}/comments`, {
+          params: { channelId },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         }),
       ]);
 
-      setSelectedPost(postData.data);
+      const formattedPost = {
+        id: postData.data.id,
+        title: postData.data.title,
+        content: postData.data.content,
+        imageUrls: Array.isArray(postData.data.imageUrls)
+          ? postData.data.imageUrls.map((img) => img?.path || "")
+          : [],
+        likes: String(postData.data.likes || 0),
+        createdAt: postData.data.createdAt,
+        updatedAt: postData.data.updatedAt,
+        clean: postData.data.clean ?? true,
+        author: {
+          id: postData.data.member.id,
+          role: postData.data.member.role,
+          course: postData.data.member.course,
+          name: postData.data.member.name,
+          nameEnglish: postData.data.member.nameEnglish,
+          profileImage: postData.data.member.imageUrl?.path || null,
+        },
+      };
 
-      if (commentsData.data?.error) {
-        setCommentError(commentsData.data.error);
-        setComments([]);
-      } else {
-        const commentsArray = commentsData.data?.content || [];
-        setComments(commentsArray);
-      }
+      const formattedComments = commentsData.data?.content
+        ? commentsData.data.content.map((comment) => ({
+            id: comment.id,
+            content: comment.content,
+            parentId: comment.parentId || null,
+            depth: comment.depth || 0,
+            createdAt: comment.createdAt,
+            updatedAt: comment.updatedAt,
+            member: {
+              id: comment.member.id,
+              name: comment.member.name,
+              nameEnglish: comment.member.nameEnglish,
+              profileImage: comment.member.imageUrl?.path || null,
+            },
+            replies: comment.replies || [],
+          }))
+        : [];
+
+      setSelectedPost(formattedPost);
+      setComments(formattedComments);
     } catch (error) {
       console.error("Error fetching post details:", error);
       setSelectedPost(null);
@@ -253,38 +330,25 @@ const ChannelForm = () => {
 
   const handlePostEdit = async (updatedPost) => {
     try {
+      const formattedPost = {
+        id: updatedPost.id,
+        title: updatedPost.title,
+        content: updatedPost.content,
+        likes: String(updatedPost.likes || 0),
+        createdAt: updatedPost.createdAt,
+        updatedAt: updatedPost.updatedAt,
+        clean: updatedPost.clean,
+        imageUrls: Array.isArray(updatedPost.imageUrls)
+          ? updatedPost.imageUrls.map((img) => img?.path || "")
+          : [],
+        author: updatedPost.author || updatedPost.member,
+      };
+
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
-          post.post_id === updatedPost.id
-            ? {
-                post_id: updatedPost.id,
-                post_title: updatedPost.title,
-                post_content: updatedPost.content,
-                post_likes: post.post_likes,
-                created_at: updatedPost.createdAt,
-                updated_at: updatedPost.updatedAt,
-                clean: updatedPost.clean,
-                imageUrls: updatedPost.imageUrls || [],
-                member: updatedPost.member,
-              }
-            : post
+          post.post_id === updatedPost.id ? formattedPost : post
         )
       );
-
-      if (updatedPost.id) {
-        const response = await api.get(
-          `/api/v1/channels/${channelId}/posts/${updatedPost.id}/comments`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            },
-          }
-        );
-
-        if (response.data?.content) {
-          setComments(response.data.content);
-        }
-      }
 
       setSelectedPost(null);
       await fetchPosts();
@@ -297,7 +361,8 @@ const ChannelForm = () => {
 
   const handlePostDelete = async (postId) => {
     try {
-      await api.delete(`/api/v1/channels/${channelId}/posts/${postId}`, {
+      await api.delete(`/api/v1/posts/${postId}`, {
+        params: { channelId },
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -320,11 +385,75 @@ const ChannelForm = () => {
     setCurrentPage(page);
   };
 
-  const handleCloseViewPage = () => {
-    setSelectedPost(null);
-    setComments([]);
-    setCommentError(null);
-  };
+  // 멤버 추가 모달
+  const renderMemberAddModal = () => (
+    <CustomModal
+      isOpen={showAddMemberModal}
+      onClose={() => {
+        setShowAddMemberModal(false);
+        setSelectedMemberIds([]);
+        setMemberPermissions({});
+      }}
+      title="채널 멤버 추가"
+      footer={
+        <>
+          <CustomButton
+            variant="outline"
+            onClick={() => {
+              setShowAddMemberModal(false);
+              setSelectedMemberIds([]);
+              setMemberPermissions({});
+            }}
+          >
+            취소
+          </CustomButton>
+          <CustomButton onClick={handleAddMember}>추가하기</CustomButton>
+        </>
+      }
+    >
+      <div className="member-form">
+        {membersLoading ? (
+          <div className="loading">멤버 목록을 불러오는 중...</div>
+        ) : membersError ? (
+          <div className="error">{membersError}</div>
+        ) : (
+          <div>
+            <MemberSelect
+              members={members}
+              selectedMemberIds={selectedMemberIds}
+              onMemberToggle={handleMemberToggle}
+              onSelectAll={handleSelectAllMembers}
+            />
+            {selectedMemberIds.length > 0 && (
+              <div className="permissions-section">
+                <h4>선택된 멤버 권한 설정</h4>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={selectedMemberIds.some(
+                      (id) => memberPermissions[id]
+                    )}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      const newPermissions = {};
+                      selectedMemberIds.forEach((id) => {
+                        newPermissions[id] = newValue;
+                      });
+                      setMemberPermissions((prev) => ({
+                        ...prev,
+                        ...newPermissions,
+                      }));
+                    }}
+                  />
+                  선택된 멤버 게시글 작성 권한 제한
+                </label>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </CustomModal>
+  );
 
   return (
     <div className="start-container">
@@ -337,19 +466,31 @@ const ChannelForm = () => {
         </div>
 
         <div className="community-header">
-          <h2>{channelInfo?.name || "채널"}</h2>
+          <div className="header-left">
+            {channelError ? (
+              <h2>채널 정보를 불러올 수 없습니다</h2>
+            ) : channelLoading ? (
+              <h2>로딩 중...</h2>
+            ) : (
+              <h2>{channelInfo?.name || "채널"}</h2>
+            )}
+            {isManager && (
+              <CustomButton
+                className="add-member-button"
+                onClick={() => setShowAddMemberModal(true)}
+                disabled={channelLoading}
+              >
+                멤버 추가
+              </CustomButton>
+            )}
+          </div>
           <div className="header-right">
             <SortButtons onSort={handleSort} currentSort={sortBy} />
             <div className="button-group">
-              {localStorage.getItem("memberRole") === "MANAGER" && (
-                <CustomButton onClick={() => setShowAddMemberModal(true)}>
-                  멤버 추가
-                </CustomButton>
-              )}
               <button
                 className="write-button"
                 onClick={handleWriteClick}
-                disabled={isLoading || !checkWritePermission()}
+                disabled={isLoading || channelLoading}
               >
                 작성하기
               </button>
@@ -359,21 +500,30 @@ const ChannelForm = () => {
 
         <hr className="divider" />
 
-        {error ? (
-          <div className="error-message">{error}</div>
-        ) : (
-          <div className="posts-area">
-            {isLoading ? (
-              <div className="loading">로딩 중...</div>
-            ) : (
-              posts.map((post) => (
+        <div className="posts-area">
+          {error ? (
+            <div className="error-message">{error}</div>
+          ) : isLoading ? (
+            <div className="loading">로딩 중...</div>
+          ) : (
+            Array.isArray(posts) &&
+            posts.map((post) => {
+              const safePost = {
+                post_id: post?.post_id || post?.id || 0,
+                post_title: post?.post_title || post?.title || "",
+                imageUrls: post?.imageUrls || [],
+                post_likes: post?.post_likes ?? post?.likes ?? 0,
+                clean: post?.clean ?? true,
+              };
+
+              return (
                 <div
-                  key={post.post_id}
-                  onClick={() => handlePostClick(post.post_id)}
+                  key={safePost.post_id}
+                  onClick={() => handlePostClick(safePost.post_id)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      handlePostClick(post.post_id);
+                      handlePostClick(safePost.post_id);
                     }
                   }}
                   role="button"
@@ -381,17 +531,17 @@ const ChannelForm = () => {
                   className="post-item"
                 >
                   <Postlist
-                    id={post.post_id}
-                    title={post.post_title}
-                    imageUrls={post.imageUrls}
-                    likes={post.post_likes.toString()}
-                    clean={post.clean}
+                    id={safePost.post_id}
+                    title={safePost.post_title}
+                    imageUrls={safePost.imageUrls}
+                    likes={String(safePost.post_likes)}
+                    clean={safePost.clean}
                   />
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              );
+            })
+          )}
+        </div>
 
         <div className="pagination-container">
           <Pagination
@@ -403,7 +553,7 @@ const ChannelForm = () => {
 
         {showWriteForm && (
           <WriteForm
-            onClose={handleCloseWriteForm}
+            onClose={() => setShowWriteForm(false)}
             onPostCreated={handlePostCreated}
             channelId={channelId}
           />
@@ -414,7 +564,7 @@ const ChannelForm = () => {
             post={selectedPost}
             comments={comments}
             commentError={commentError}
-            onClose={handleCloseViewPage}
+            onClose={() => setSelectedPost(null)}
             onPostDelete={handlePostDelete}
             onPostEdit={handlePostEdit}
             onCommentsUpdate={handleCommentsUpdate}
@@ -422,49 +572,7 @@ const ChannelForm = () => {
           />
         )}
 
-        <CustomModal
-          isOpen={showAddMemberModal}
-          onClose={() => setShowAddMemberModal(false)}
-          title="채널 멤버 추가"
-          footer={
-            <>
-              <CustomButton
-                variant="outline"
-                onClick={() => setShowAddMemberModal(false)}
-              >
-                취소
-              </CustomButton>
-              <CustomButton onClick={handleAddMember}>추가하기</CustomButton>
-            </>
-          }
-        >
-          <div className="member-form">
-            <CustomInput
-              id="memberId"
-              label="멤버 ID"
-              value={newMember.memberId}
-              onChange={(e) =>
-                setNewMember((prev) => ({ ...prev, memberId: e.target.value }))
-              }
-            />
-
-            <div className="permission-switch">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={newMember.canPost}
-                  onChange={(e) =>
-                    setNewMember((prev) => ({
-                      ...prev,
-                      canPost: e.target.checked,
-                    }))
-                  }
-                />
-                게시글 작성 권한 부여
-              </label>
-            </div>
-          </div>
-        </CustomModal>
+        {renderMemberAddModal()}
 
         {showAlert && (
           <CustomAlert

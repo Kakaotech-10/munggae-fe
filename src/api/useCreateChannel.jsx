@@ -1,3 +1,4 @@
+// useCreateChannel.js
 import { useState } from "react";
 import api from "../api/config";
 
@@ -6,8 +7,6 @@ const useCreateChannel = (onChannelCreated) => {
   const [showPermissionAlert, setShowPermissionAlert] = useState(false);
   const [newChannel, setNewChannel] = useState({
     name: "",
-    allowStudents: false,
-    memberIds: [],
   });
 
   const handleAddChannel = (userRole) => {
@@ -19,26 +18,6 @@ const useCreateChannel = (onChannelCreated) => {
     setIsModalOpen(true);
   };
 
-  const addMembersToChannel = async (channelId, memberIds) => {
-    try {
-      await api.post(
-        `/api/v1/channels/${channelId}/members`,
-        {
-          memberIds: memberIds,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-      console.log("Members added to channel successfully");
-    } catch (error) {
-      console.error("Failed to add members to channel:", error);
-      throw new Error("멤버 추가에 실패했습니다.");
-    }
-  };
-
   const handleCreateChannel = async () => {
     try {
       if (!newChannel.name.trim()) {
@@ -46,16 +25,10 @@ const useCreateChannel = (onChannelCreated) => {
         return;
       }
 
-      if (newChannel.memberIds.length === 0) {
-        alert("최소 한 명 이상의 멤버를 선택해주세요.");
-        return;
-      }
-
       const response = await api.post(
         "/api/v1/channels",
         {
           name: newChannel.name,
-          allowStudents: newChannel.allowStudents,
         },
         {
           headers: {
@@ -64,23 +37,18 @@ const useCreateChannel = (onChannelCreated) => {
         }
       );
 
-      const channelId = response.data.id;
-      console.log("Channel created with ID:", channelId);
-
-      await addMembersToChannel(channelId, newChannel.memberIds);
+      console.log("Channel created with ID:", response.data.id);
 
       setIsModalOpen(false);
       setNewChannel({
         name: "",
-        allowStudents: false,
-        memberIds: [],
       });
 
       if (onChannelCreated) {
         onChannelCreated();
       }
     } catch (error) {
-      console.error("Channel creation or member addition failed:", error);
+      console.error("Channel creation failed:", error);
       alert(error.message || "채널 생성에 실패했습니다.");
     }
   };
@@ -89,22 +57,6 @@ const useCreateChannel = (onChannelCreated) => {
     setNewChannel((prev) => ({
       ...prev,
       [field]: value,
-    }));
-  };
-
-  const handleMemberToggle = (memberId) => {
-    setNewChannel((prev) => ({
-      ...prev,
-      memberIds: prev.memberIds.includes(memberId)
-        ? prev.memberIds.filter((id) => id !== memberId)
-        : [...prev.memberIds, memberId],
-    }));
-  };
-
-  const handleSelectAllMembers = (memberIds) => {
-    setNewChannel((prev) => ({
-      ...prev,
-      memberIds: prev.memberIds.length === memberIds.length ? [] : memberIds,
     }));
   };
 
@@ -117,8 +69,6 @@ const useCreateChannel = (onChannelCreated) => {
     handleAddChannel,
     handleCreateChannel,
     updateNewChannel,
-    handleMemberToggle,
-    handleSelectAllMembers,
   };
 };
 

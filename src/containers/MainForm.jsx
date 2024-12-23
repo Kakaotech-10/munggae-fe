@@ -30,22 +30,58 @@ const MainForm = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRightAreaVisible, setIsRightAreaVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [hasMore, setHasMore] = useState(true);
 
+  const loadPosts = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getPosts(currentPage, 10, "latest"); // 최신순 정렬
+
+      // 새로운 포스트가 없으면 hasMore를 false로 설정
+      if (response.content.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      // 첫 페이지면 posts를 대체, 아니면 기존 posts에 추가
+      setPosts((prevPosts) =>
+        currentPage === 0
+          ? response.content
+          : [...prevPosts, ...response.content]
+      );
+    } catch (error) {
+      console.error("Failed to fetch posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 초기 로딩과 페이지 변경 시 posts 로드
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await getPosts(currentPage, 10);
-        setPosts(response.content);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to fetch posts:", error);
-        setIsLoading(false);
+    loadPosts();
+  }, [currentPage]);
+
+  // 무한 스크롤 처리
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = document.documentElement.scrollTop;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (
+        scrollHeight - scrollTop <= clientHeight * 1.5 &&
+        !isLoading &&
+        hasMore
+      ) {
+        setCurrentPage((prev) => prev + 1);
       }
     };
 
-    fetchPosts();
-  }, [currentPage]);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isLoading, hasMore]);
 
+  // 반응형 처리
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth < 768;
@@ -78,23 +114,31 @@ const MainForm = () => {
           {!isMobile && <Search />}
           <div className="search-area-icons">
             {searchAreaIcons.map((item, index) => (
-              <a key={index} href={item.link} className="icon-wrapper">
+              <a
+                key={index}
+                href={item.link}
+                className="icon-wrapper"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <img src={item.icon} alt={item.alt} className="search-icon" />
               </a>
             ))}
           </div>
           {isMobile && (
             <button className="toggle-right-area" onClick={toggleRightArea}>
-              {isRightAreaVisible ? "Hide Sidebar" : "Show Sidebar"}
+              {isRightAreaVisible ? "사이드바 숨기기" : "사이드바 보기"}
             </button>
           )}
         </div>
         <div className="main-content">
           <div className="post-area">
-            {isLoading ? (
-              <div>Loading...</div>
-            ) : (
-              posts.map((post) => <Post key={post.post_id} post={post} />)
+            {posts.map((post) => (
+              <Post key={post.post_id} post={post} />
+            ))}
+            {isLoading && <div className="loading">로딩 중...</div>}
+            {!hasMore && !isLoading && (
+              <div className="no-more-posts">더 이상 게시글이 없습니다.</div>
             )}
           </div>
           {(isRightAreaVisible || !isMobile) && (

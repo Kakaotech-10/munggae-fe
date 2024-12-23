@@ -1,3 +1,4 @@
+// useGetChannels.js
 import { useState } from "react";
 import api from "../api/config";
 
@@ -23,12 +24,21 @@ const useGetChannels = () => {
         },
       });
 
-      // 상세 로깅 추가
       console.log("Original Channel Response:", response.data);
 
-      // 중복 제거를 위해 Set 사용 (id 기준)
+      const channelData = Array.isArray(response.data) ? response.data : [];
+
+      const processedChannels = channelData.map((channel) => ({
+        id: channel.id,
+        name: channel.name,
+        channel_name: channel.name,
+        members: channel.members || [],
+      }));
+
       const uniqueChannels = Array.from(
-        new Map(response.data.map((channel) => [channel.id, channel])).values()
+        new Map(
+          processedChannels.map((channel) => [channel.id, channel])
+        ).values()
       );
 
       console.log("Processed Unique Channels:", uniqueChannels);
@@ -37,7 +47,14 @@ const useGetChannels = () => {
       setError(null);
     } catch (error) {
       console.error("Failed to load channels:", error);
-      setError("채널 목록을 불러오는데 실패했습니다.");
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+        setError(
+          error.response.data.message || "채널 목록을 불러오는데 실패했습니다."
+        );
+      } else {
+        setError("채널 목록을 불러오는데 실패했습니다.");
+      }
       setChannels([]);
     } finally {
       setLoading(false);

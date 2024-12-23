@@ -57,8 +57,66 @@ const WriteForm = ({
     return `${userInfo.memberNameEnglish}(${userInfo.memberName})`;
   };
 
+  const checkChannelWritePermission = () => {
+    try {
+      // 현재 로그인한 사용자 정보 확인
+      const memberInfo = JSON.parse(localStorage.getItem("memberInfo") || "{}");
+      const userRole = memberInfo.role;
+
+      // 채널 정보 확인
+      const channelInfoString = localStorage.getItem("channelInfo");
+      if (!channelInfoString) {
+        console.error("채널 정보가 없습니다.");
+        return false;
+      }
+
+      const channelInfo = JSON.parse(channelInfoString);
+
+      // 관리자는 항상 게시글 작성 가능
+      if (userRole === "MANAGER") {
+        return true;
+      }
+
+      // 채널의 전체 게시 설정 확인
+      if (channelInfo.managerOnlyPost) {
+        console.log("관리자만 게시글 작성 가능한 채널입니다.");
+        return false;
+      }
+
+      // 채널 멤버 확인
+      const userId = localStorage.getItem("userId");
+      const channelMembers = channelInfo.members || [];
+      const currentUserInChannel = channelMembers.find(
+        (member) => member.memberId === parseInt(userId)
+      );
+
+      // 채널 멤버가 아닌 경우
+      if (!currentUserInChannel) {
+        console.log("채널 멤버가 아닙니다.");
+        return false;
+      }
+
+      // 게시글 작성 권한 확인 (canPost가 1 또는 true인 경우에만 허용)
+      const canPost =
+        currentUserInChannel.canPost === 1 ||
+        currentUserInChannel.canPost === true;
+      console.log("게시글 작성 권한:", canPost);
+
+      return canPost;
+    } catch (error) {
+      console.error("권한 확인 중 오류:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async () => {
     try {
+      // 게시글 작성 권한 확인
+      if (!checkChannelWritePermission()) {
+        alert("이 채널에서 게시글을 작성할 권한이 없습니다.");
+        return;
+      }
+
       if (!title.trim() || !content.trim()) {
         alert("제목과 내용을 모두 입력해주세요.");
         return;
@@ -67,36 +125,46 @@ const WriteForm = ({
       setIsUploading(true);
       setUploadStatus("게시글 저장 중...");
 
+      const channelId = window.location.pathname.split("/")[2];
       const memberId = localStorage.getItem("userId");
-      const channelId = localStorage.getItem("selectedChannelId");
 
-      let reservationTime = null;
-      let deadLine = null;
+      // 날짜와 시간 형식 변환 함수
+      const formatDateTime = (date, time) => {
+        if (!date || !time) return null;
+        const dateTimeString = `${date}T${time}:00`;
+        const dateObj = new Date(dateTimeString);
+        return dateObj.toISOString();
+      };
 
-      // 업로드 시간이 설정된 경우
-      if (uploadDate && uploadTime) {
-        reservationTime = `${uploadDate}T${uploadTime}:00`;
-      }
-
-      // 마감 시간이 설정된 경우
-      if (deadlineDate && deadlineTime) {
-        deadLine = `${deadlineDate}T${deadlineTime}:00`;
-      }
+      const reservationTime = formatDateTime(uploadDate, uploadTime);
+      const deadLine = formatDateTime(deadlineDate, deadlineTime);
 
       const postData = {
         title,
         content,
         channelId: parseInt(channelId),
         memberId: parseInt(memberId),
+        uploadDate,
+        uploadTime,
+        deadlineDate,
+        deadlineTime,
         reservationTime,
         deadLine,
       };
 
-      let updatedPost = editMode
-        ? await editPost(initialPost.id, initialPost.author.id, postData)
-        : await createPost(postData);
+      let updatedPost;
+      try {
+        updatedPost = editMode
+          ? await editPost(initialPost.id, initialPost.author.id, postData)
+          : await createPost(postData);
+      } catch (postError) {
+        console.error("게시글 생성/수정 실패:", postError);
+        alert(postError.message || "게시글 저장에 실패했습니다.");
+        return;
+      }
 
-      if (files.length > 0) {
+      // 이미지 업로드 로직 강화
+      if (files.length > 0 && updatedPost?.id) {
         try {
           setUploadStatus("이미지 업로드 중...");
 
@@ -120,6 +188,10 @@ const WriteForm = ({
             throw new Error("사용자가 게시글 저장을 취소했습니다.");
           }
         }
+      } else if (files.length > 0) {
+        console.error("게시물 ID가 없어 이미지 업로드를 할 수 없습니다.");
+        alert("게시물 생성에 실패하여 이미지를 업로드할 수 없습니다.");
+        return;
       }
 
       onPostCreated(updatedPost);
@@ -133,7 +205,6 @@ const WriteForm = ({
       setUploadProgress(0);
     }
   };
-
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
 
