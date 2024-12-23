@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import Alerticon from "../image/alerticon.svg";
 import Alertshow from "../image/alertshow.svg";
 import useNotifications from "../api/useNotifications";
-import NotificationTestButton from "../test/NotificationTest";
 import "./styles/Notification.scss";
 
 const NotificationSection = () => {
+  const navigate = useNavigate();
   const { notifications, isConnected, markAsRead, markAllAsRead } =
     useNotifications();
 
@@ -49,6 +50,20 @@ const NotificationSection = () => {
     }
   };
 
+  const handleNotificationClick = async (notification) => {
+    // Mark the notification as read
+    await handleMarkAsRead(notification.id);
+
+    // Navigate based on the channel
+    if (notification.channelId === 5 || notification.channelId === "5") {
+      // 학습게시판 (StudyViewForm)
+      navigate(`/channel/5/${notification.postId}`);
+    } else {
+      // 다른 게시판 (ChannelForm)
+      navigate(`/channel/${notification.channelId}`);
+    }
+  };
+
   return (
     <div className={`right-section calendar ${isCollapsed ? "collapsed" : ""}`}>
       <div className="section-header">
@@ -60,7 +75,6 @@ const NotificationSection = () => {
           <span>알림</span>
           {isConnected && <span className="connection-status">(연결됨)</span>}
         </div>
-        <NotificationTestButton />
         <div className="notification-actions">
           {notifications.length > 0 && (
             <button onClick={handleMarkAllAsRead} className="mark-all-read">
@@ -83,7 +97,7 @@ const NotificationSection = () => {
                 <div
                   key={notification.id}
                   className={`notification-item ${notification.isRead ? "read" : "unread"}`}
-                  onClick={() => handleMarkAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="notification-content">
                     <div className="notification-type-icon">
