@@ -1,12 +1,14 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import SideForm from "./SideForm";
 import MentionInput from "../component/MentionInput";
 import useMentionApi from "../api/useMentionApi";
-import { createPost } from "../api/useCreatePost"; // Import the createPost function
+import { createPost } from "../api/useCreatePost";
 import "./styles/StudyWriteForm.scss";
 
 const StudyWriteForm = () => {
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [codeContent, setCodeContent] = useState("");
@@ -25,53 +27,46 @@ const StudyWriteForm = () => {
     try {
       setIsSubmitting(true);
 
-      // Combine content and code content with ***** separator
       const combinedContent =
         showCodeEditor && codeContent
           ? `${content}\n*****\n${codeContent}`
           : content;
 
-      // Get channelId from your application state or route params
       const channelId = 5;
 
-      // Prepare post data
       const postData = {
         channelId,
         title: title,
         content: combinedContent,
-        // Add these if your study board needs them
         reservationTime: null,
         deadLine: null,
       };
 
-      // Create the post
       const response = await createPost(postData);
 
-      // Send mention notifications after successful post creation
       for (const mention of mentions) {
         await sendMentionNotification(mention.id);
       }
 
-      // Handle success (e.g., show success message, redirect)
       console.log("Post created successfully:", response);
 
-      // Reset form or redirect
       setTitle("");
       setContent("");
       setCodeContent("");
       setShowCodeEditor(false);
       setImages([]);
       setMentions([]);
+
+      navigate("/channel/5");
     } catch (error) {
-      // Handle specific error cases
       let errorMessage = "게시글 작성에 실패했습니다.";
 
       if (error.message.includes("권한이 없습니다")) {
         errorMessage = "게시글을 작성할 수 있는 권한이 없습니다.";
       }
 
-      // Show error message to user (implement your error display mechanism)
       console.error("Error creating post:", errorMessage);
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
