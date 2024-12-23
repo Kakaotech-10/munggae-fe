@@ -292,6 +292,7 @@ const StudyViewForm = () => {
               title={post.title}
               content={post.content}
               codeArea={post.codeArea}
+              clean={post.isClean}
             />
             <div className="image-preview-container">
               {post?.imageUrls?.map((url, index) => (
@@ -396,6 +397,7 @@ FilteredContent.propTypes = {
   title: PropTypes.string.isRequired,
   content: PropTypes.string.isRequired,
   codeArea: PropTypes.string,
+  clean: PropTypes.bool.isRequired,
 };
 
 FilteredContent.defaultProps = {
