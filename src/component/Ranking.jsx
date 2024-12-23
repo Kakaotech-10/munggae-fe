@@ -1,6 +1,6 @@
-import FirstIcon from "../image/1sticon.svg";
-import SecondIcon from "../image/2ndicon.svg";
-import ThirdIcon from "../image/3rdicon.svg";
+import FirstIcon from "../image/1st.svg";
+import SecondIcon from "../image/2st.svg";
+import ThirdIcon from "../image/3st.svg";
 import { useRanking } from "../api/useRanking";
 
 const Ranking = () => {
@@ -9,6 +9,12 @@ const Ranking = () => {
     isLoading: rankingsLoading,
     error: rankingsError,
   } = useRanking();
+
+  const defaultTopics = [
+    { rank: 1, topic: "Topic 1", count: 30 },
+    { rank: 2, topic: "Topic 2", count: 20 },
+    { rank: 3, topic: "Topic 3", count: 10 },
+  ];
 
   const getIconForRank = (rank) => {
     switch (rank) {
@@ -23,20 +29,8 @@ const Ranking = () => {
     }
   };
 
-  const renderContent = () => {
-    if (rankingsLoading) {
-      return <div>Loading...</div>;
-    }
-
-    if (rankingsError) {
-      return <div>Error loading rankings: {rankingsError}</div>;
-    }
-
-    if (!rankings || rankings.length === 0) {
-      return <div>현재 표시할 랭킹 데이터가 없습니다.</div>;
-    }
-
-    return rankings
+  const renderTopics = (topics) => {
+    return topics
       .sort((a, b) => a.rank - b.rank)
       .map((topic) => (
         <div key={topic.rank} className={`topic-item rank-${topic.rank}`}>
@@ -50,6 +44,22 @@ const Ranking = () => {
           </div>
         </div>
       ));
+  };
+
+  const renderContent = () => {
+    if (rankingsLoading) {
+      return <div className="loading">Loading...</div>;
+    }
+
+    if (rankingsError) {
+      return (
+        <div className="error">Error loading rankings: {rankingsError}</div>
+      );
+    }
+
+    const topicsToRender =
+      rankings && rankings.length > 0 ? rankings : defaultTopics;
+    return renderTopics(topicsToRender);
   };
 
   return (
