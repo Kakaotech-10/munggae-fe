@@ -4,7 +4,7 @@ import "./styles/FilteredContent.scss";
 const FilteredContent = ({ title, content, codeArea }) => {
   return (
     <div className="filtered-content">
-      <h1 className="title">{title}</h1>
+      <h4 className="title">{title}</h4>
 
       {/* 일반 텍스트 영역 */}
       <div className="content-text">{content}</div>
