@@ -27,12 +27,14 @@ const StudyViewForm = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   // 커스텀 훅들
   const { handleCreateComment, isCreating, createError } = useCreateComment();
-  const { getEducationPost } = useEducation();
+  const {
+    getEducationPost,
+    isLoading: postLoading,
+    error: postError,
+  } = useEducation();
 
   // 알림 메시지 표시 함수
   const showAlertMessage = (message) => {
@@ -51,9 +53,6 @@ const StudyViewForm = () => {
   useEffect(() => {
     const fetchPostData = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
-
         // 게시글과 댓글 병렬 로딩
         const [postData, commentsData] = await Promise.all([
           getEducationPost(postId),
@@ -68,27 +67,7 @@ const StudyViewForm = () => {
         }
 
         // 게시글 데이터 설정
-        setPost({
-          id: postData.id,
-          title: postData.title || "",
-          content: postData.content || "",
-          codeArea: postData.codeArea || "",
-          createdAt: postData.createdAt,
-          updatedAt: postData.updatedAt,
-          likes: postData.likes || 0,
-          imageUrls: Array.isArray(postData.imageUrls)
-            ? postData.imageUrls.map((img) => img.path || img)
-            : [],
-          author: postData.member && {
-            id: postData.member.id,
-            role: postData.member.role || "STUDENT",
-            course: postData.member.course || "",
-            name: postData.member.name || "",
-            nameEnglish: postData.member.nameEnglish || "",
-            profileImage:
-              postData.member.imageUrl?.path || postData.member.imageUrl || "",
-          },
-        });
+        setPost(postData);
 
         // 댓글 데이터 처리
         if (commentsData.error) {
@@ -118,13 +97,10 @@ const StudyViewForm = () => {
         }
       } catch (error) {
         console.error("게시글 상세 정보 로딩 중 오류:", error);
-        setError(error.message || "게시물을 불러오는데 실패했습니다.");
-      } finally {
-        setIsLoading(false);
+        showAlertMessage(error.message || "게시물을 불러오는데 실패했습니다.");
       }
     };
 
-    // postId가 있을 때만 데이터 로딩
     if (postId) {
       fetchPostData();
     }
@@ -134,8 +110,8 @@ const StudyViewForm = () => {
   const getAuthorImage = () => {
     if (authorData?.imageUrl?.path) return authorData.imageUrl.path;
     if (authorData?.imageUrl) return authorData.imageUrl;
-    if (post?.author?.profileImage?.path) return post.author.profileImage.path;
-    if (post?.author?.profileImage) return post.author.profileImage;
+    if (post?.member?.imageUrl?.path) return post.member.imageUrl.path;
+    if (post?.member?.imageUrl) return post.member.imageUrl;
     return Profileimg;
   };
 
@@ -261,13 +237,13 @@ const StudyViewForm = () => {
   };
 
   // 로딩 상태 처리
-  if (isLoading) {
+  if (postLoading) {
     return <div className="loading">로딩 중...</div>;
   }
 
   // 에러 상태 처리
-  if (error) {
-    return <div className="error-message">{error}</div>;
+  if (postError) {
+    return <div className="error-message">{postError}</div>;
   }
 
   // 게시글 없음 처리
@@ -304,8 +280,8 @@ const StudyViewForm = () => {
             />
             <div className="profile-info">
               <span className="profile-name">
-                {post?.author &&
-                  `${post.author.name}(${post.author.nameEnglish})`}
+                {post?.member &&
+                  `${post.member.name}(${post.member.nameEnglish})`}
               </span>
               <span className="upload-time">{formatDate(post?.updatedAt)}</span>
             </div>
@@ -322,17 +298,17 @@ const StudyViewForm = () => {
                 <div
                   key={index}
                   className="preview-box"
-                  onClick={() => handleImageClick(url)}
+                  onClick={() => handleImageClick(url.path)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      handleImageClick(url);
+                      handleImageClick(url.path);
                     }
                   }}
                 >
-                  <img src={url} alt={`Preview ${index + 1}`} />
+                  <img src={url.path} alt={`Preview ${index + 1}`} />
                 </div>
               ))}
             </div>
@@ -370,7 +346,7 @@ const StudyViewForm = () => {
                     comment={comment}
                     depth={0}
                     currentUserId={currentUserId}
-                    postId={postId}
+                    postId={parseInt(postId)}
                     onCommentUpdate={handleCommentUpdate}
                   />
                 ))
