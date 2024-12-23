@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import api from "../api/config";
 
 const useChannelInfo = (channelId) => {
-  const [channelInfo, setChannelInfo] = useState(null);
+  // localStorage에서 초기 상태 로드
+  const [channelInfo, setChannelInfo] = useState(() => {
+    const savedInfo = localStorage.getItem("channelInfo");
+    return savedInfo ? JSON.parse(savedInfo) : null;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -22,8 +26,9 @@ const useChannelInfo = (channelId) => {
         throw new Error(response.data.error);
       }
 
-      // API 응답이 이미 필요한 형태로 오고 있음
+      // API 응답 데이터를 state와 localStorage 모두에 저장
       setChannelInfo(response.data);
+      localStorage.setItem("channelInfo", JSON.stringify(response.data));
       setError(null);
     } catch (error) {
       console.error("Failed to load channel info:", error);
