@@ -4,6 +4,9 @@ import PropTypes from "prop-types";
 const FilteredContent = ({ title, content, codeArea, clean }) => {
   const [isRevealed, setIsRevealed] = useState(false);
 
+  // 디버깅을 위한 로그 추가
+  console.log("FilteredContent props:", { title, content, codeArea, clean });
+
   // Explicitly check if clean is false
   const shouldFilter = clean === false;
 
