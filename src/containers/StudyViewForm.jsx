@@ -292,7 +292,7 @@ const StudyViewForm = () => {
               title={post.title}
               content={post.content}
               codeArea={post.codeArea}
-              clean={post.isClean}
+              clean={post.clean}
             />
             <div className="image-preview-container">
               {post?.imageUrls?.map((url, index) => (
