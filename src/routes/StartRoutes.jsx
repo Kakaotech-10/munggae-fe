@@ -4,14 +4,9 @@ import LoginForm from "../containers/LoginForm";
 import SignupForm from "../containers/SignupForm";
 import MainForm from "../containers/MainForm";
 import SignupForm_kakao from "../containers/SignupForm_kakao";
-// import NoticeForm from "../containers/NoticeForm";
-// import Community from "../containers/Community";
-// import ClubForm from "../containers/ClubForm";
 import KakaoLogin from "../containers/LoginHandler";
 import ProtectedRoute from "./ProtectedRoute";
-import StudyRoutes from "./StudyRoutes";
-// 채널 컴포넌트 import
-import ChannelForm from "../containers/ChannelForm"; // 이 컴포넌트는 생성해야 함
+import ChannelRouter from "./ChannelRoutes";
 
 function StartRoutes() {
   return (
@@ -29,41 +24,16 @@ function StartRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* <Route
-        path="/noticepage"
-        element={
-          <ProtectedRoute>
-            <NoticeForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/communitypage"
-        element={
-          <ProtectedRoute>
-            <Community />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/clubpage"
-        element={
-          <ProtectedRoute>
-            <ClubForm />
-          </ProtectedRoute>
-        }
-      /> */}
-      {/* 채널 라우트 추가 */}
-      <Route
-        path="/channel/:channelId"
-        element={
-          <ProtectedRoute>
-            <ChannelForm />
-          </ProtectedRoute>
-        }
-      />
 
-      <Route path="/studypage/*" element={<StudyRoutes />} />
+      {/* 채널 라우트와 StudyRoutes를 통합 */}
+      <Route
+        path="/channel/:channelId/*"
+        element={
+          <ProtectedRoute>
+            <ChannelRouter />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

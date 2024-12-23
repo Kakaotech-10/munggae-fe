@@ -1,50 +1,96 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import PropTypes from "prop-types";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import Comment from "../component/Comment";
 import CommentInput from "../component/CommentInput";
 import { useCreateComment } from "../hooks/useComment";
 import useEducation from "../api/useEducation";
-import FilteredContent from "../component/FilteredContent";
 import Hearticon from "../image/Hearticon.svg";
 import Commenticon from "../image/Commenticon.svg";
 import { getPostComments } from "../api/useGetComment";
 import api from "../api/config";
 import Profileimg from "../image/logo_black.png";
+import CustomAlert from "../component/CustomAlert";
 import "./styles/StudyViewForm.scss";
+import FilteredContent from "../component/FilteredContent";
 
 const StudyViewForm = () => {
   const { postId } = useParams();
+
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [commentError, setCommentError] = useState(null);
   const [authorData, setAuthorData] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  const { handleCreateComment, isCreating, createError } = useCreateComment();
-  const {
-    getEducationPost,
-    isLoading: postLoading,
-    error: postError,
-  } = useEducation();
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // 커스텀 훅들
+  const { handleCreateComment, isCreating, createError } = useCreateComment();
+  const { getEducationPost } = useEducation();
+
+  // 알림 메시지 표시 함수
+  const showAlertMessage = (message) => {
+    setAlertMessage(message);
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
+  };
+
+  // 사용자 ID 로딩
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     setCurrentUserId(userId ? parseInt(userId) : null);
   }, []);
 
+  // 게시글 및 댓글 데이터 로딩
   useEffect(() => {
     const fetchPostData = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+
+        // 게시글과 댓글 병렬 로딩
         const [postData, commentsData] = await Promise.all([
           getEducationPost(postId),
           getPostComments(postId),
         ]);
 
-        console.log("Post Data:", postData); // 받아온 데이터 확인
-        setPost(postData);
+        console.log("Fetched Post Data:", postData);
 
+        // 게시글이 없는 경우 에러 처리
+        if (!postData) {
+          throw new Error("게시글을 찾을 수 없습니다.");
+        }
+
+        // 게시글 데이터 설정
+        setPost({
+          id: postData.id,
+          title: postData.title || "",
+          content: postData.content || "",
+          codeArea: postData.codeArea || "",
+          createdAt: postData.createdAt,
+          updatedAt: postData.updatedAt,
+          likes: postData.likes || 0,
+          imageUrls: Array.isArray(postData.imageUrls)
+            ? postData.imageUrls.map((img) => img.path || img)
+            : [],
+          author: postData.member && {
+            id: postData.member.id,
+            role: postData.member.role || "STUDENT",
+            course: postData.member.course || "",
+            name: postData.member.name || "",
+            nameEnglish: postData.member.nameEnglish || "",
+            profileImage:
+              postData.member.imageUrl?.path || postData.member.imageUrl || "",
+          },
+        });
+
+        // 댓글 데이터 처리
         if (commentsData.error) {
           setCommentError(commentsData.error);
           setComments([]);
@@ -53,10 +99,11 @@ const StudyViewForm = () => {
           setComments(commentsArray);
         }
 
-        if (postData?.author?.id) {
+        // 작성자 정보 로딩
+        if (postData?.member?.id) {
           try {
             const authorResponse = await api.get(
-              `/api/v1/members/${postData.author.id}`,
+              `/api/v1/members/${postData.member.id}`,
               {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -65,20 +112,25 @@ const StudyViewForm = () => {
             );
             setAuthorData(authorResponse.data);
           } catch (error) {
-            console.error("Error fetching author data:", error);
+            console.error("작성자 정보 로딩 중 오류:", error);
+            showAlertMessage("작성자 정보를 불러오는데 실패했습니다.");
           }
         }
       } catch (error) {
-        console.error("Error fetching post details:", error);
-        setCommentError("게시물을 불러오는 중 오류가 발생했습니다.");
+        console.error("게시글 상세 정보 로딩 중 오류:", error);
+        setError(error.message || "게시물을 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
+    // postId가 있을 때만 데이터 로딩
     if (postId) {
       fetchPostData();
     }
   }, [postId, getEducationPost]);
 
+  // 작성자 프로필 이미지 가져오기
   const getAuthorImage = () => {
     if (authorData?.imageUrl?.path) return authorData.imageUrl.path;
     if (authorData?.imageUrl) return authorData.imageUrl;
@@ -87,10 +139,12 @@ const StudyViewForm = () => {
     return Profileimg;
   };
 
+  // 댓글 업데이트 핸들러
   const handleCommentUpdate = (updatedComment, deletedCommentId = null) => {
     let updatedComments = [...comments];
 
     if (deletedCommentId) {
+      // 댓글 삭제 로직
       updatedComments = updatedComments.filter((comment) => {
         if (comment.id === deletedCommentId) return false;
         if (comment.replies) {
@@ -104,6 +158,7 @@ const StudyViewForm = () => {
       const parentId = updatedComment.parentId;
 
       if (parentId) {
+        // 답글 추가 로직
         updatedComments = updatedComments.map((comment) => {
           if (comment.id === parentId) {
             return {
@@ -116,6 +171,7 @@ const StudyViewForm = () => {
           return comment;
         });
       } else {
+        // 댓글 수정/추가 로직
         const existingCommentIndex = updatedComments.findIndex(
           (comment) => comment.id === updatedComment.id
         );
@@ -140,20 +196,26 @@ const StudyViewForm = () => {
     setComments(updatedComments);
   };
 
+  // 새 댓글 생성 핸들러
   const handleNewComment = async (content, parentId = null, depth = 0) => {
     try {
+      // 댓글 유효성 검사
       if (!content?.trim()) {
-        throw new Error("댓글 내용을 입력해주세요.");
+        showAlertMessage("댓글 내용을 입력해주세요.");
+        return;
       }
 
       if (!currentUserId) {
-        throw new Error("로그인이 필요합니다.");
+        showAlertMessage("로그인이 필요합니다.");
+        return;
       }
 
       if (!postId) {
-        throw new Error("게시글 정보가 없습니다.");
+        showAlertMessage("게시글 정보가 없습니다.");
+        return;
       }
 
+      // 댓글 생성
       const newComment = await handleCreateComment(
         postId,
         currentUserId,
@@ -164,14 +226,17 @@ const StudyViewForm = () => {
 
       if (newComment) {
         handleCommentUpdate(newComment);
+        showAlertMessage("댓글이 작성되었습니다.");
       }
     } catch (error) {
       console.error("댓글 생성 실패:", error);
-      alert(error.message || "댓글 작성 중 오류가 발생했습니다.");
+      showAlertMessage(error.message || "댓글 작성에 실패했습니다.");
     }
   };
 
+  // 날짜 포맷팅 함수
   const formatDate = (dateString) => {
+    if (!dateString) return "";
     const options = {
       year: "numeric",
       month: "long",
@@ -183,22 +248,31 @@ const StudyViewForm = () => {
     return new Date(dateString).toLocaleDateString("ko-KR", options);
   };
 
+  // 이미지 클릭 핸들러
   const handleImageClick = (url) => {
     setSelectedImage(url);
   };
 
+  // 모달 닫기 핸들러
   const handleCloseModal = (e) => {
     if (e.target.classList.contains("image-modal-overlay")) {
       setSelectedImage(null);
     }
   };
 
-  if (postLoading) {
+  // 로딩 상태 처리
+  if (isLoading) {
     return <div className="loading">로딩 중...</div>;
   }
 
-  if (postError) {
-    return <div className="error-message">{postError}</div>;
+  // 에러 상태 처리
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
+
+  // 게시글 없음 처리
+  if (!post) {
+    return <div className="error-message">게시글을 찾을 수 없습니다.</div>;
   }
 
   return (
@@ -233,20 +307,16 @@ const StudyViewForm = () => {
                 {post?.author &&
                   `${post.author.name}(${post.author.nameEnglish})`}
               </span>
-              <span className="upload-time">
-                {post?.updatedAt && formatDate(post.updatedAt)}
-              </span>
+              <span className="upload-time">{formatDate(post?.updatedAt)}</span>
             </div>
           </div>
 
           <div className="title-section">
-            {post && (
-              <FilteredContent
-                title={post.title}
-                content={post.content}
-                clean={post.clean}
-              />
-            )}
+            <FilteredContent
+              title={post.title}
+              content={post.content}
+              codeArea={post.codeArea}
+            />
             <div className="image-preview-container">
               {post?.imageUrls?.map((url, index) => (
                 <div
@@ -266,10 +336,9 @@ const StudyViewForm = () => {
                 </div>
               ))}
             </div>
-            <div className="content-box">{/* 코드 영역 - 추후 구현 */}</div>
             <div className="reaction">
               <img className="hearts" src={Hearticon} alt="하트 아이콘" />
-              <span>{post?.likes}</span>
+              <span>{post?.likes || 0}</span>
               <div className="divider"></div>
               <img className="comments" src={Commenticon} alt="댓글 아이콘" />
               <span>{comments.length}</span>
@@ -313,6 +382,7 @@ const StudyViewForm = () => {
         </div>
       </div>
 
+      {/* 이미지 확대 모달 */}
       {selectedImage && (
         <div
           className="image-modal-overlay"
@@ -332,8 +402,28 @@ const StudyViewForm = () => {
           </div>
         </div>
       )}
+
+      {/* 알림 모달 */}
+      {showAlert && (
+        <CustomAlert
+          title="알림"
+          message={alertMessage}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
     </div>
   );
+};
+
+// PropTypes 정의
+FilteredContent.propTypes = {
+  title: PropTypes.string.isRequired,
+  content: PropTypes.string.isRequired,
+  codeArea: PropTypes.string,
+};
+
+FilteredContent.defaultProps = {
+  codeArea: "",
 };
 
 export default StudyViewForm;

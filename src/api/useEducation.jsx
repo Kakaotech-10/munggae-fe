@@ -9,7 +9,7 @@ const useEducation = () => {
     return localStorage.getItem("accessToken");
   };
 
-  // 학습게시판 게시물 조회
+  // 학습 게시물 상세 조회
   const getEducationPost = useCallback(async (postId) => {
     setIsLoading(true);
     setError(null);
@@ -26,33 +26,39 @@ const useEducation = () => {
         },
       });
 
-      console.log("Raw API Response:", response);
-
-      // response.data가 없거나 유효하지 않은 경우 처리
       if (!response.data) {
         throw new Error("Invalid response data");
       }
 
-      // response.data.data 또는 response.data 사용
       const postData = response.data.data || response.data;
-      console.log("Processed Post Data:", postData);
 
+      // content가 없는 경우 예외 처리
       if (!postData) {
         throw new Error("No post data available");
       }
 
-      // API 응답을 프론트엔드 데이터 구조로 변환
+      // content와 codeArea 분리
+      let content = postData.content || "";
+      let codeArea = "";
+
+      if (content.includes("*****")) {
+        const [mainContent, code] = content.split("*****");
+        content = mainContent;
+        codeArea = code;
+      }
+
       return {
         id: postData.id,
         title: postData.title || "",
-        content: postData.content || "",
+        content: content.trim(),
+        codeArea: codeArea.trim(),
         createdAt: postData.createdAt || new Date().toISOString(),
         updatedAt: postData.updatedAt || new Date().toISOString(),
         imageUrls: Array.isArray(postData.imageUrls)
           ? postData.imageUrls.map((img) => img.path || img)
           : [],
         likes: String(postData.likes || 0),
-        clean: postData.clean || false,
+        member: postData.member,
         author: postData.member
           ? {
               id: postData.member.id,
@@ -75,16 +81,6 @@ const useEducation = () => {
           status: err.response.status,
           headers: err.response.headers,
         });
-      }
-
-      if (err.response?.status === 401) {
-        setError("인증이 필요합니다.");
-      } else if (err.response?.status === 404) {
-        setError("게시물을 찾을 수 없습니다.");
-      } else {
-        setError(
-          err.response?.data?.message || "게시물 조회 중 오류가 발생했습니다."
-        );
       }
       throw err;
     } finally {
@@ -112,10 +108,6 @@ const useEducation = () => {
       const formData = new FormData();
       formData.append("title", postData.title || "");
       formData.append("content", combinedContent);
-
-      if (postData.clean !== undefined) {
-        formData.append("clean", postData.clean);
-      }
 
       if (postData.files && postData.files.length > 0) {
         for (let i = 0; i < postData.files.length; i++) {
@@ -166,10 +158,6 @@ const useEducation = () => {
       const formData = new FormData();
       formData.append("title", updateData.title || "");
       formData.append("content", combinedContent);
-
-      if (updateData.clean !== undefined) {
-        formData.append("clean", updateData.clean);
-      }
 
       if (updateData.files && updateData.files.length > 0) {
         for (let i = 0; i < updateData.files.length; i++) {
@@ -241,7 +229,7 @@ const useEducation = () => {
     }
   }, []);
 
-  // 전체 게시물 목록 조회 (필요한 경우 추가)
+  // 전체 게시물 목록 조회
   const getEducationPosts = useCallback(async (params) => {
     setIsLoading(true);
     setError(null);

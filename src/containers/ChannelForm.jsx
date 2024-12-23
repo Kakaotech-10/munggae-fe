@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./SideForm";
 import Search from "../component/Search";
 import WriteForm from "./WriteForm";
@@ -27,6 +27,7 @@ const getUserRole = () => {
 };
 
 const ChannelForm = () => {
+  const navigate = useNavigate();
   const { channelId } = useParams();
   const [showWriteForm, setShowWriteForm] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -60,7 +61,6 @@ const ChannelForm = () => {
     error: membersError,
     loadMembers,
   } = useGetMembers();
-
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
@@ -212,6 +212,12 @@ const ChannelForm = () => {
   };
 
   const handleWriteClick = () => {
+    // 채널 ID가 5인 경우 특별 처리
+    if (channelId === "5") {
+      navigate("/channel/5/write");
+      return;
+    }
+
     if (checkWritePermission()) {
       setShowWriteForm(true);
     } else {
@@ -244,6 +250,12 @@ const ChannelForm = () => {
   };
 
   const handlePostClick = async (postId) => {
+    // 채널 ID가 5인 경우 특별 처리
+    if (channelId === "5") {
+      navigate(`/channel/5/${postId}`);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setCommentError(null);
@@ -454,7 +466,6 @@ const ChannelForm = () => {
       </div>
     </CustomModal>
   );
-
   return (
     <div className="start-container">
       <div className="sidebar-area">

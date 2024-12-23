@@ -288,13 +288,6 @@ const SideForm = ({ showLogout = true }) => {
             path="/mainpage"
           />
 
-          <NavItem
-            icon={Studyicon}
-            alt="Study"
-            text="학습게시판"
-            path="/studypage"
-          />
-
           {!channelsLoading &&
             channels &&
             channels.length > 0 &&

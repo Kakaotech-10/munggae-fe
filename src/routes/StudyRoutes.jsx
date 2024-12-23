@@ -1,22 +1,13 @@
 import { Routes, Route } from "react-router-dom";
 import StudyWriteForm from "../containers/StudyWriteForm";
-import StudyForm from "../containers/StudyForm";
-import ProtectedRoute from "./ProtectedRoute";
 import StudyViewForm from "../containers/StudyViewForm";
+import ProtectedRoute from "./ProtectedRoute";
 
 function StudyRoutes() {
   return (
     <Routes>
       <Route
-        index
-        element={
-          <ProtectedRoute>
-            <StudyForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="writepage"
+        path="write"
         element={
           <ProtectedRoute>
             <StudyWriteForm />
@@ -24,7 +15,7 @@ function StudyRoutes() {
         }
       />
       <Route
-        path="studyviewpage/:postId"
+        path=":postId"
         element={
           <ProtectedRoute>
             <StudyViewForm />
