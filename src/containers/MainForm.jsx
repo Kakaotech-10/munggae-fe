@@ -12,6 +12,7 @@ import { getPosts } from "../api/useGetPosts";
 import NotificationSection from "../component/Notification";
 import NoticeSection from "../component/NoticeSection";
 import Ranking from "../component/Ranking";
+import useGetChannels from "../api/useGetChannel";
 
 const MainForm = () => {
   const searchAreaIcons = [
@@ -32,22 +33,32 @@ const MainForm = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [hasMore, setHasMore] = useState(true);
 
+  const { channels, loadUserChannels } = useGetChannels();
+
   const loadPosts = async () => {
     try {
       setIsLoading(true);
-      const response = await getPosts(currentPage, 10, "latest"); // 최신순 정렬
 
-      // 새로운 포스트가 없으면 hasMore를 false로 설정
-      if (response.content.length === 0) {
+      let allPosts = [];
+      for (const channel of channels) {
+        const response = await getPosts(currentPage, 10, "latest", channel.id);
+        allPosts = [...allPosts, ...response.content];
+      }
+
+      // 전체 게시글을 날짜순으로 정렬
+      allPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      // 페이지네이션 처리
+      const start = currentPage * 10;
+      const paginatedPosts = allPosts.slice(start, start + 10);
+
+      if (paginatedPosts.length === 0) {
         setHasMore(false);
         return;
       }
 
-      // 첫 페이지면 posts를 대체, 아니면 기존 posts에 추가
       setPosts((prevPosts) =>
-        currentPage === 0
-          ? response.content
-          : [...prevPosts, ...response.content]
+        currentPage === 0 ? paginatedPosts : [...prevPosts, ...paginatedPosts]
       );
     } catch (error) {
       console.error("Failed to fetch posts:", error);
@@ -56,10 +67,17 @@ const MainForm = () => {
     }
   };
 
-  // 초기 로딩과 페이지 변경 시 posts 로드
+  // 컴포넌트 마운트 시 채널 목록 로드
   useEffect(() => {
-    loadPosts();
-  }, [currentPage]);
+    loadUserChannels();
+  }, []);
+
+  // channels가 로드된 후 posts 로드
+  useEffect(() => {
+    if (channels.length > 0) {
+      loadPosts();
+    }
+  }, [channels, currentPage]);
 
   // 무한 스크롤 처리
   useEffect(() => {
