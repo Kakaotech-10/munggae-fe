@@ -9,7 +9,7 @@ const useEducation = () => {
     return localStorage.getItem("accessToken");
   };
 
-  // useEducation.js의 getEducationPost 함수 수정
+  // 학습 게시물 상세 조회
   const getEducationPost = useCallback(async (postId) => {
     setIsLoading(true);
     setError(null);
@@ -58,7 +58,6 @@ const useEducation = () => {
           ? postData.imageUrls.map((img) => img.path || img)
           : [],
         likes: String(postData.likes || 0),
-        clean: postData.clean || false,
         member: postData.member,
         author: postData.member
           ? {
@@ -88,6 +87,7 @@ const useEducation = () => {
       setIsLoading(false);
     }
   }, []);
+
   // 학습게시판 게시물 생성
   const createEducationPost = useCallback(async (postData) => {
     setIsLoading(true);
@@ -108,10 +108,6 @@ const useEducation = () => {
       const formData = new FormData();
       formData.append("title", postData.title || "");
       formData.append("content", combinedContent);
-
-      if (postData.clean !== undefined) {
-        formData.append("clean", postData.clean);
-      }
 
       if (postData.files && postData.files.length > 0) {
         for (let i = 0; i < postData.files.length; i++) {
@@ -162,10 +158,6 @@ const useEducation = () => {
       const formData = new FormData();
       formData.append("title", updateData.title || "");
       formData.append("content", combinedContent);
-
-      if (updateData.clean !== undefined) {
-        formData.append("clean", updateData.clean);
-      }
 
       if (updateData.files && updateData.files.length > 0) {
         for (let i = 0; i < updateData.files.length; i++) {
@@ -237,7 +229,7 @@ const useEducation = () => {
     }
   }, []);
 
-  // 전체 게시물 목록 조회 (필요한 경우 추가)
+  // 전체 게시물 목록 조회
   const getEducationPosts = useCallback(async (params) => {
     setIsLoading(true);
     setError(null);

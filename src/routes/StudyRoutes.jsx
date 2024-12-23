@@ -1,25 +1,13 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import StudyWriteForm from "../containers/StudyWriteForm";
-import StudyForm from "../containers/StudyForm";
-import ProtectedRoute from "./ProtectedRoute";
 import StudyViewForm from "../containers/StudyViewForm";
+import ProtectedRoute from "./ProtectedRoute";
 
 function StudyRoutes() {
-  const location = useLocation();
-  const isChannelPath = location.pathname.startsWith("/channel");
-
   return (
     <Routes>
       <Route
-        index
-        element={
-          <ProtectedRoute>
-            <StudyForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={isChannelPath ? "write" : "writepage"}
+        path="write"
         element={
           <ProtectedRoute>
             <StudyWriteForm />
@@ -27,7 +15,7 @@ function StudyRoutes() {
         }
       />
       <Route
-        path={isChannelPath ? ":postId" : "studyviewpage/:postId"}
+        path=":postId"
         element={
           <ProtectedRoute>
             <StudyViewForm />
