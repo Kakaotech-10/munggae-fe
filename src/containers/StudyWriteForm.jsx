@@ -1,44 +1,74 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import SideForm from "./SideForm";
 import MentionInput from "../component/MentionInput";
 import useMentionApi from "../api/useMentionApi";
+import { createPost } from "../api/useCreatePost";
 import "./styles/StudyWriteForm.scss";
 
 const StudyWriteForm = () => {
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [codeContent, setCodeContent] = useState("");
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [images, setImages] = useState([]);
-  const [mentions, setMentions] = useState([]); // 멘션된 사용자들 관리
+  const [mentions, setMentions] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const imageInputRef = useRef(null);
   const { sendMentionNotification } = useMentionApi();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      // 게시글 업로드 API 호출 (예시)
-      // await submitPost({ title, content, codeContent, images });
+    if (isSubmitting) return;
 
-      // 모든 멘션된 사용자에게 알림 전송
+    try {
+      setIsSubmitting(true);
+
+      const combinedContent =
+        showCodeEditor && codeContent
+          ? `${content}\n*****\n${codeContent}`
+          : content;
+
+      const channelId = 5;
+
+      const postData = {
+        channelId,
+        title: title,
+        content: combinedContent,
+        reservationTime: null,
+        deadLine: null,
+      };
+
+      const response = await createPost(postData);
+
       for (const mention of mentions) {
         await sendMentionNotification(mention.id);
       }
 
-      console.log({
-        title,
-        content,
-        codeContent,
-        images,
-        mentionedUsers: mentions.map((mention) => mention.id),
-      });
+      console.log("Post created successfully:", response);
 
-      // 성공 처리 (예: 목록 페이지로 이동)
+      setTitle("");
+      setContent("");
+      setCodeContent("");
+      setShowCodeEditor(false);
+      setImages([]);
+      setMentions([]);
+
+      navigate("/channel/5");
     } catch (error) {
-      console.error("게시글 업로드 중 오류 발생:", error);
-      // 에러 처리 (예: 에러 메시지 표시)
+      let errorMessage = "게시글 작성에 실패했습니다.";
+
+      if (error.message.includes("권한이 없습니다")) {
+        errorMessage = "게시글을 작성할 수 있는 권한이 없습니다.";
+      }
+
+      console.error("Error creating post:", errorMessage);
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -97,10 +127,15 @@ const StudyWriteForm = () => {
                 type="button"
                 onClick={handleCodeEditorToggle}
                 className={showCodeEditor ? "active" : ""}
+                disabled={isSubmitting}
               >
                 &lt;/&gt;
               </button>
-              <button type="button" onClick={handleImageButtonClick}>
+              <button
+                type="button"
+                onClick={handleImageButtonClick}
+                disabled={isSubmitting}
+              >
                 이미지
               </button>
               <input
@@ -121,6 +156,7 @@ const StudyWriteForm = () => {
                       type="button"
                       className="delete-button"
                       onClick={() => handleRemoveImage(i)}
+                      disabled={isSubmitting}
                     >
                       ×
                     </button>
@@ -135,6 +171,7 @@ const StudyWriteForm = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="title-input"
+              disabled={isSubmitting}
             />
 
             <div className="editors-container">
@@ -143,6 +180,7 @@ const StudyWriteForm = () => {
                 onChange={handleContentChange}
                 placeholder="내용을 입력해주세요. '@'를 입력하여 다른 사용자를 멘션할 수 있습니다."
                 className="content-textarea"
+                disabled={isSubmitting}
               />
 
               {showCodeEditor && (
@@ -156,6 +194,7 @@ const StudyWriteForm = () => {
                     options={{
                       minimap: { enabled: false },
                       scrollBeyondLastLine: false,
+                      readOnly: isSubmitting,
                     }}
                   />
                 </div>
@@ -163,8 +202,12 @@ const StudyWriteForm = () => {
             </div>
 
             <div className="submit-button-wrapper">
-              <button type="submit" className="submit-button">
-                업로드 하기
+              <button
+                type="submit"
+                className="submit-button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "업로드 중..." : "업로드 하기"}
               </button>
             </div>
           </form>
